@@ -1,0 +1,73 @@
+// Hand-checked math tests. Run with: npm test
+import { rentalYield } from "./rentalYield";
+import { mortgage } from "./mortgage";
+import { roi } from "./roi";
+
+let failures = 0;
+
+function expectClose(label: string, actual: number, expected: number, tol = 0.01) {
+  if (Math.abs(actual - expected) > tol) {
+    console.error(`FAIL ${label}: expected ${expected}, got ${actual}`);
+    failures++;
+  } else {
+    console.log(`ok   ${label} = ${actual.toFixed(3)}`);
+  }
+}
+
+// Rental yield: 100k purchase, 500/mo rent, 1k expenses
+// annual rent 6000 → gross 6%; net 5000 → 5%
+{
+  const r = rentalYield({ purchasePrice: 100_000, monthlyRent: 500, annualExpenses: 1_000 });
+  expectClose("rentalYield.annualRent", r.annualRent, 6_000);
+  expectClose("rentalYield.grossYieldPct", r.grossYieldPct, 6);
+  expectClose("rentalYield.netYieldPct", r.netYieldPct, 5);
+}
+
+// Mortgage: 100k loan (125k price, 25k down) @ 5% / 25y → 584.59/mo (standard amortization result)
+{
+  const m = mortgage({ propertyPrice: 125_000, downPayment: 25_000, annualRatePct: 5, years: 25, mode: "conventional" });
+  expectClose("mortgage.loanAmount", m.loanAmount, 100_000);
+  expectClose("mortgage.monthlyPayment", m.monthlyPayment, 584.59, 0.01);
+  expectClose("mortgage.finalBalance", m.schedule.at(-1)!.balance, 0, 0.01);
+}
+
+// Zero-rate mortgage: 60k over 10y → 500/mo exactly
+{
+  const m = mortgage({ propertyPrice: 60_000, downPayment: 0, annualRatePct: 0, years: 10, mode: "islamic" });
+  expectClose("mortgage.zeroRate.monthlyPayment", m.monthlyPayment, 500);
+  expectClose("mortgage.zeroRate.totalCharge", m.totalCharge, 0);
+}
+
+// ROI: 100k cash purchase (no financing), rent 600, expenses 100 → cash flow 500/mo,
+// 6000/yr, cash-on-cash 6%, break-even 200 months, 2%/yr growth over 10y
+{
+  const r = roi({
+    purchasePrice: 100_000, downPayment: 0, monthlyRent: 600,
+    monthlyExpenses: 100, monthlyMortgage: 0, annualAppreciationPct: 2, horizonYears: 10,
+  });
+  expectClose("roi.monthlyCashFlow", r.monthlyCashFlow, 500);
+  expectClose("roi.cashOnCashPct", r.cashOnCashPct, 6);
+  expectClose("roi.breakEvenMonths", r.breakEvenMonths ?? -1, 200);
+  // 100k * 1.02^10 = 121,899.44 → gain 21,899.44; + cash flow 60,000
+  expectClose("roi.totalReturn", r.totalReturn, 81_899.44, 0.5);
+}
+
+// Negative cash flow never breaks even
+{
+  const r = roi({
+    purchasePrice: 100_000, downPayment: 20_000, monthlyRent: 400,
+    monthlyExpenses: 100, monthlyMortgage: 450, annualAppreciationPct: 0, horizonYears: 5,
+  });
+  if (r.breakEvenMonths !== null) {
+    console.error("FAIL roi.neverBreaksEven: expected null");
+    failures++;
+  } else {
+    console.log("ok   roi.neverBreaksEven = null");
+  }
+}
+
+if (failures > 0) {
+  console.error(`\n${failures} test(s) failed`);
+  process.exit(1);
+}
+console.log("\nAll calculator tests passed.");

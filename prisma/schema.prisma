@@ -1,0 +1,428 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+enum Role {
+  USER
+  AGENCY
+  ADMIN
+}
+
+enum Tier {
+  FREE
+  PREMIUM
+  BUSINESS
+}
+
+// Every data-bearing record says where its numbers came from.
+enum DataProvenance {
+  VERIFIED
+  OFFICIAL_STAT
+  USER_SUBMITTED
+  AI_ESTIMATED
+}
+
+enum PropertyType {
+  APARTMENT
+  VILLA
+  TOWNHOUSE
+  PENTHOUSE
+  LAND
+  OFFICE
+  RETAIL
+  WAREHOUSE
+}
+
+enum OwnershipEligibility {
+  OMANI_ONLY
+  GCC_ELIGIBLE
+  FOREIGN_ITC
+  UNKNOWN
+}
+
+enum ListingType {
+  SALE
+  RENT
+}
+
+enum RentPeriod {
+  MONTHLY
+  ANNUAL
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  REJECTED
+  SOLD
+  RENTED
+  ARCHIVED
+}
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  CLOSED
+  SPAM
+}
+
+enum ValuationMethod {
+  COMPARABLE
+  MANUAL
+  AI_MODEL
+}
+
+enum AiRating {
+  BUY
+  CONSIDER
+  AVOID
+  INSUFFICIENT_DATA
+}
+
+enum CitedSourceType {
+  MARKET_STAT
+  PROPERTY
+  LISTING
+  VALUATION
+}
+
+// ---------- Auth.js ----------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          Role      @default(USER)
+  tier          Tier      @default(FREE)
+  locale        String    @default("en")
+  phone         String?
+  agencyId      String?
+  agency        Agency?   @relation(fields: [agencyId], references: [id])
+
+  accounts           Account[]
+  sessions           Session[]
+  favorites          Favorite[]
+  inquiries          Inquiry[]
+  listings           Listing[]           @relation("ListingCreator")
+  aiAnalyses         AiAnalysis[]
+  verifiedStats      MarketStat[]        @relation("StatVerifier")
+  verifiedProperties Property[]          @relation("PropertyVerifier")
+  valuations         ValuationEstimate[] @relation("ValuationAuthor")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------- Location hierarchy (Governorate > City/Wilayat > Neighborhood) ----------
+
+model Governorate {
+  id     String @id @default(cuid())
+  slug   String @unique
+  nameEn String
+  nameAr String
+
+  cities      City[]
+  marketStats MarketStat[]
+}
+
+model City {
+  id            String @id @default(cuid())
+  slug          String @unique
+  nameEn        String
+  nameAr        String
+  governorateId String
+
+  governorate   Governorate    @relation(fields: [governorateId], references: [id])
+  neighborhoods Neighborhood[]
+  marketStats   MarketStat[]
+}
+
+model Neighborhood {
+  id            String  @id @default(cuid())
+  slug          String  @unique
+  nameEn        String
+  nameAr        String
+  cityId        String
+  lat           Float?
+  lng           Float?
+  isITC         Boolean @default(false)
+  descriptionEn String? @db.Text
+  descriptionAr String? @db.Text
+
+  city        City         @relation(fields: [cityId], references: [id])
+  properties  Property[]
+  marketStats MarketStat[]
+  aiAnalyses  AiAnalysis[]
+}
+
+// ---------- Property & marketplace ----------
+
+model Property {
+  id             String               @id @default(cuid())
+  neighborhoodId String
+  type           PropertyType
+  ownership      OwnershipEligibility @default(UNKNOWN)
+  titleEn        String
+  titleAr        String?
+  descriptionEn  String?              @db.Text
+  descriptionAr  String?              @db.Text
+  bedrooms       Int?
+  bathrooms      Int?
+  areaSqm        Decimal?             @db.Decimal(10, 2)
+  plotSqm        Decimal?             @db.Decimal(10, 2)
+  yearBuilt      Int?
+  furnished      Boolean?
+  lat            Float?
+  lng            Float?
+
+  provenance   DataProvenance @default(USER_SUBMITTED)
+  confidence   Float          @default(0.5)
+  sourceNote   String?
+  verifiedById String?
+  verifiedAt   DateTime?
+
+  neighborhood Neighborhood        @relation(fields: [neighborhoodId], references: [id])
+  verifiedBy   User?               @relation("PropertyVerifier", fields: [verifiedById], references: [id])
+  images       PropertyImage[]
+  listings     Listing[]
+  valuations   ValuationEstimate[]
+  aiAnalyses   AiAnalysis[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([neighborhoodId, type])
+}
+
+model PropertyImage {
+  id          String   @id @default(cuid())
+  propertyId  String
+  storagePath String
+  altEn       String?
+  altAr       String?
+  sortOrder   Int      @default(0)
+  isPrimary   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+model Listing {
+  id          String        @id @default(cuid())
+  propertyId  String
+  listingType ListingType
+  price       Decimal       @db.Decimal(12, 3)
+  rentPeriod  RentPeriod?
+  status      ListingStatus @default(DRAFT)
+  agencyId    String?
+  createdById String
+
+  provenance DataProvenance @default(USER_SUBMITTED)
+  confidence Float          @default(0.5)
+
+  publishedAt DateTime?
+  expiresAt   DateTime?
+  viewCount   Int       @default(0)
+
+  property  Property   @relation(fields: [propertyId], references: [id])
+  agency    Agency?    @relation(fields: [agencyId], references: [id])
+  createdBy User       @relation("ListingCreator", fields: [createdById], references: [id])
+  favorites Favorite[]
+  inquiries Inquiry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, listingType])
+  @@index([agencyId])
+}
+
+// ---------- Analytics time-series ----------
+
+// One row per (location scope, property type, month). Exactly one of the three
+// location links should be set (enforced by upsertMarketStat, not the DB);
+// all three empty = national figure. propertyType empty = all types.
+model MarketStat {
+  id             String        @id @default(cuid())
+  governorateId  String?
+  cityId         String?
+  neighborhoodId String?
+  propertyType   PropertyType?
+  periodStart    DateTime
+
+  avgSalePrice     Decimal? @db.Decimal(12, 3)
+  medianSalePrice  Decimal? @db.Decimal(12, 3)
+  avgRentMonthly   Decimal? @db.Decimal(12, 3)
+  avgPricePerSqm   Decimal? @db.Decimal(10, 3)
+  grossYieldPct    Decimal? @db.Decimal(5, 2)
+  transactionCount Int?
+  sampleSize       Int?
+
+  provenance   DataProvenance
+  confidence   Float          @default(0.5)
+  sourceNote   String?
+  sourceUrl    String?
+  verifiedById String?
+  verifiedAt   DateTime?
+
+  governorate  Governorate?  @relation(fields: [governorateId], references: [id])
+  city         City?         @relation(fields: [cityId], references: [id])
+  neighborhood Neighborhood? @relation(fields: [neighborhoodId], references: [id])
+  verifiedBy   User?         @relation("StatVerifier", fields: [verifiedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([governorateId, cityId, neighborhoodId, propertyType, periodStart])
+  @@index([neighborhoodId, propertyType, periodStart])
+  @@index([periodStart])
+}
+
+// ---------- Valuations & AI ----------
+
+model ValuationEstimate {
+  id          String          @id @default(cuid())
+  propertyId  String
+  method      ValuationMethod
+  valueLow    Decimal         @db.Decimal(12, 3)
+  valueMid    Decimal         @db.Decimal(12, 3)
+  valueHigh   Decimal         @db.Decimal(12, 3)
+  provenance  DataProvenance  @default(AI_ESTIMATED)
+  confidence  Float
+  assumptions String?         @db.Text
+  createdById String?
+
+  property  Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  createdBy User?    @relation("ValuationAuthor", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model AiAnalysis {
+  id             String   @id @default(cuid())
+  userId         String
+  question       String   @db.Text
+  answer         String   @db.Text
+  rating         AiRating
+  confidence     Float
+  propertyId     String?
+  neighborhoodId String?
+  model          String
+
+  user         User          @relation(fields: [userId], references: [id])
+  property     Property?     @relation(fields: [propertyId], references: [id])
+  neighborhood Neighborhood? @relation(fields: [neighborhoodId], references: [id])
+  citations    AiCitation[]
+
+  createdAt DateTime @default(now())
+}
+
+// Cited values are frozen at answer time so the answer stays auditable
+// even after the underlying data is edited.
+model AiCitation {
+  id           String          @id @default(cuid())
+  aiAnalysisId String
+  sourceType   CitedSourceType
+  sourceId     String
+  snapshot     Json
+
+  aiAnalysis AiAnalysis @relation(fields: [aiAnalysisId], references: [id], onDelete: Cascade)
+}
+
+// ---------- Business ----------
+
+model Agency {
+  id         String  @id @default(cuid())
+  slug       String  @unique
+  nameEn     String
+  nameAr     String?
+  licenseNo  String?
+  email      String?
+  phone      String?
+  logoPath   String?
+  isApproved Boolean @default(false)
+  tier       Tier    @default(FREE)
+
+  users    User[]
+  listings Listing[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Inquiry {
+  id         String        @id @default(cuid())
+  listingId  String
+  fromUserId String?
+  name       String
+  email      String
+  phone      String?
+  message    String        @db.Text
+  status     InquiryStatus @default(NEW)
+
+  listing  Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  fromUser User?   @relation(fields: [fromUserId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([listingId, status])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+}

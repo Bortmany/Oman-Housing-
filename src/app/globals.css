@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter), var(--font-arabic), ui-sans-serif, system-ui,
+    sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: #fafaf9; /* stone-50 */
+  color: #1c1917; /* stone-900 */
+}
+
+/* Arabic-first font stack when the page is RTL */
+[dir="rtl"] body {
+  font-family: var(--font-arabic), var(--font-inter), ui-sans-serif, system-ui,
+    sans-serif;
+}
