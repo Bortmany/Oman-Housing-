@@ -2,6 +2,7 @@
 import { rentalYield } from "./rentalYield";
 import { mortgage } from "./mortgage";
 import { roi } from "./roi";
+import { investmentScore } from "./investmentScore";
 
 let failures = 0;
 
@@ -64,6 +65,33 @@ function expectClose(label: string, actual: number, expected: number, tol = 0.01
   } else {
     console.log("ok   roi.neverBreaksEven = null");
   }
+}
+
+// Investment score: no yield → insufficient data
+{
+  const r = investmentScore({ grossYieldPct: null, confidence: 0.8, dataAgeMonths: 0 });
+  if (r.band !== "INSUFFICIENT_DATA" || r.score !== null) {
+    console.error("FAIL investmentScore.insufficientData");
+    failures++;
+  } else {
+    console.log("ok   investmentScore.insufficientData");
+  }
+}
+
+// Strong: 7% yield, 0.8 confidence, fresh data
+// yield 87.5*0.6=52.5 + conf 80*0.25=20 + recency 100*0.15=15 → 88 STRONG
+{
+  const r = investmentScore({ grossYieldPct: 7, confidence: 0.8, dataAgeMonths: null });
+  expectClose("investmentScore.strong", r.score ?? -1, 88);
+  if (r.band !== "STRONG") { console.error("FAIL investmentScore.strong.band"); failures++; }
+}
+
+// Weak: 2% yield, 0.3 confidence, 24-month-old data
+// yield 25*0.6=15 + conf 30*0.25=7.5 + recency 4*0.15=0.6 → 23 WEAK
+{
+  const r = investmentScore({ grossYieldPct: 2, confidence: 0.3, dataAgeMonths: 24 });
+  expectClose("investmentScore.weak", r.score ?? -1, 23);
+  if (r.band !== "WEAK") { console.error("FAIL investmentScore.weak.band"); failures++; }
 }
 
 if (failures > 0) {

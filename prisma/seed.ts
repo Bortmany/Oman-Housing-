@@ -304,8 +304,122 @@ async function main() {
     propCount++;
   }
 
+  // --- Sample listings & valuations (Phase 3) --------------------------------
+  // Deterministic assignment over the seeded properties (sorted by titleEn):
+  // 8 SALE + 6 RENT active, 2 pending review, 1 draft, 1 sold. Two properties
+  // carry both a SALE and a RENT listing. Prices are scaled from the same
+  // neighborhood baselines as the market stats so the numbers reconcile.
+  // Everything is honestly labeled sample data — never VERIFIED/OFFICIAL_STAT.
+  const admin = await prisma.user.findUnique({
+    where: { email: "admin@example.com" },
+    select: { id: true },
+  });
+  const allProps = await prisma.property.findMany({
+    orderBy: { titleEn: "asc" },
+    include: { neighborhood: { select: { slug: true } } },
+  });
+
+  function baseline(p: (typeof allProps)[number]) {
+    const hood = NEIGHBORHOODS.find((n) => n.slug === p.neighborhood.slug);
+    return p.type === "VILLA" ? hood?.villa : hood?.apt;
+  }
+  function salePrice(p: (typeof allProps)[number]): number {
+    const b = baseline(p);
+    if (!b) return 50_000;
+    const sqm = p.areaSqm ? Number(p.areaSqm) : b.sqm;
+    return Math.round((b.price * (sqm / b.sqm)) / 500) * 500;
+  }
+  function rentPrice(p: (typeof allProps)[number]): number {
+    const b = baseline(p);
+    if (!b) return 300;
+    const sqm = p.areaSqm ? Number(p.areaSqm) : b.sqm;
+    return Math.round((b.rent * (sqm / b.sqm)) / 5) * 5;
+  }
+
+  type ListingSpec = {
+    propIdx: number;
+    listingType: "SALE" | "RENT";
+    status: "ACTIVE" | "PENDING_REVIEW" | "DRAFT" | "SOLD";
+  };
+  const LISTING_SPECS: ListingSpec[] = [
+    ...[0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({
+      propIdx: i, listingType: "SALE" as const, status: "ACTIVE" as const,
+    })),
+    ...[8, 9, 10, 11, 12].map((i) => ({
+      propIdx: i, listingType: "RENT" as const, status: "ACTIVE" as const,
+    })),
+    { propIdx: 0, listingType: "RENT", status: "ACTIVE" }, // 6th active rent
+    { propIdx: 13, listingType: "SALE", status: "PENDING_REVIEW" },
+    { propIdx: 1, listingType: "RENT", status: "PENDING_REVIEW" },
+    { propIdx: 14, listingType: "SALE", status: "DRAFT" },
+    { propIdx: 15, listingType: "SALE", status: "SOLD" },
+  ];
+
+  const PUBLISHED = new Date(Date.UTC(2026, 4, 15)); // fixed for idempotency
+  let listingCount = 0;
+  if (admin) {
+    for (const spec of LISTING_SPECS) {
+      const prop = allProps[spec.propIdx];
+      if (!prop) continue;
+      const existing = await prisma.listing.findFirst({
+        where: { propertyId: prop.id, listingType: spec.listingType },
+        select: { id: true },
+      });
+      if (existing) continue;
+
+      const isRent = spec.listingType === "RENT";
+      await prisma.listing.create({
+        data: {
+          propertyId: prop.id,
+          listingType: spec.listingType,
+          price: isRent ? rentPrice(prop) : salePrice(prop),
+          rentPeriod: isRent ? "MONTHLY" : null,
+          status: spec.status,
+          createdById: admin.id,
+          provenance: "USER_SUBMITTED",
+          confidence: 0.5,
+          publishedAt:
+            spec.status === "ACTIVE" || spec.status === "SOLD" ? PUBLISHED : null,
+          expiresAt:
+            spec.status === "SOLD" ? new Date(Date.UTC(2026, 5, 20)) : null,
+        },
+      });
+      listingCount++;
+    }
+  }
+
+  // 6 valuations on alternating properties, so the MarketStat-fallback path
+  // in propertyFinancials() stays exercised on the rest.
+  let valuationCount = 0;
+  for (const [i, propIdx] of [0, 2, 4, 6, 8, 10].entries()) {
+    const prop = allProps[propIdx];
+    if (!prop) continue;
+    const method = i % 2 === 0 ? "COMPARABLE" : "AI_MODEL";
+    const existing = await prisma.valuationEstimate.findFirst({
+      where: { propertyId: prop.id, method },
+      select: { id: true },
+    });
+    if (existing) continue;
+
+    const mid = Math.round((salePrice(prop) * (0.97 + 0.01 * i)) / 100) * 100;
+    await prisma.valuationEstimate.create({
+      data: {
+        propertyId: prop.id,
+        method,
+        valueLow: Math.round(mid * 0.92),
+        valueMid: mid,
+        valueHigh: Math.round(mid * 1.08),
+        provenance: "AI_ESTIMATED",
+        confidence: 0.3 + 0.03 * i,
+        assumptions:
+          "Sample AI-estimated valuation for demonstration; not a professional appraisal.",
+      },
+    });
+    valuationCount++;
+  }
+
   console.log(
-    `Done. ${GOVERNORATES.length} governorates, ${CITIES.length} cities, ${NEIGHBORHOODS.length} neighborhoods, +${statCount} market stats, +${propCount} properties.`,
+    `Done. ${GOVERNORATES.length} governorates, ${CITIES.length} cities, ${NEIGHBORHOODS.length} neighborhoods, +${statCount} market stats, +${propCount} properties, +${listingCount} listings, +${valuationCount} valuations.`,
   );
 }
 

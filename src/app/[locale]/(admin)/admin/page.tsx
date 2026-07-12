@@ -9,10 +9,11 @@ export async function generateMetadata() {
 }
 
 export default async function AdminHome() {
-  const [t, statCount, propCount] = await Promise.all([
+  const [t, statCount, propCount, listingCount] = await Promise.all([
     getTranslations("admin"),
     prisma.marketStat.count(),
     prisma.property.count(),
+    prisma.listing.count(),
   ]);
 
   const sections = [
@@ -27,6 +28,12 @@ export default async function AdminHome() {
       title: t("properties"),
       hint: t("propertiesHint"),
       count: propCount,
+    },
+    {
+      href: "/admin/listings",
+      title: t("listings"),
+      hint: t("listingsHint"),
+      count: listingCount,
     },
   ];
 

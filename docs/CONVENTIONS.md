@@ -84,8 +84,12 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
 
 ## Roadmap (already designed, schema already in place)
 
-- **Phase 3 — Marketplace**: search + filters, property detail pages,
-  favorites, compare (uses the existing `Listing`, `Favorite` models).
+- **Phase 3 — Marketplace**: DONE — public search (`/properties`, URL-param
+  filters), property intelligence pages with provenance-labeled financials
+  (`src/lib/db/valuations.ts` — every figure carries its own provenance;
+  derived figures are always AI_ESTIMATED with capped confidence),
+  favorites (login-gated), listing comparison, admin listing moderation
+  (`/admin/listings`). Query modules: `src/lib/db/{listings,favorites,valuations}.ts`.
 - **Phase 4 — AI analyst**: leashed Buy/Consider/Avoid answers that cite
   stored data via `AiAnalysis`/`AiCitation` and refuse when data is thin.
 - **Phase 5 — Business**: agency portal (`Agency`, `Inquiry`), admin

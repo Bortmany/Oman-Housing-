@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
 import { Input, Label, FieldError } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +11,12 @@ import { Button } from "@/components/ui/Button";
 export function LoginForm() {
   const t = useTranslations("auth");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawCallback = searchParams.get("callbackUrl");
+  const callbackUrl =
+    rawCallback?.startsWith("/") && !rawCallback.startsWith("//")
+      ? rawCallback
+      : "/account";
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -27,7 +34,7 @@ export function LoginForm() {
     if (result?.error) {
       setError(t("invalidCredentials"));
     } else {
-      router.push("/account");
+      router.push(callbackUrl);
       router.refresh();
     }
   }

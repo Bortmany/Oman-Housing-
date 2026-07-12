@@ -29,7 +29,9 @@
     "account": "الحساب",
     "signIn": "تسجيل الدخول",
     "signOut": "تسجيل الخروج",
-    "register": "إنشاء حساب"
+    "register": "إنشاء حساب",
+    "properties": "تصفح العقارات",
+    "favorites": "المفضلة"
   },
   "footer": {
     "disclaimer": "أرقام السوق استرشادية ومصنّفة بوضوح حسب مصدرها. يجب التحقق من الأنظمة العقارية وأهلية التملك وشروط التمويل لدى الجهات الرسمية والبنك الذي تتعامل معه.",
@@ -77,6 +79,19 @@
     "listingType": {
       "SALE": "للبيع",
       "RENT": "للإيجار"
+    },
+    "listingStatus": {
+      "DRAFT": "مسودة",
+      "PENDING_REVIEW": "قيد المراجعة",
+      "ACTIVE": "نشط",
+      "REJECTED": "مرفوض",
+      "SOLD": "مباع",
+      "RENTED": "مؤجَّر",
+      "ARCHIVED": "مؤرشف"
+    },
+    "rentPeriod": {
+      "MONTHLY": "شهريًا",
+      "ANNUAL": "سنويًا"
     }
   },
   "market": {
@@ -267,7 +282,90 @@
       "photos": "الصور",
       "empty": "لا شيء هنا بعد.",
       "emptyStatsHint": "أضف أول إحصاء سوق لتفعيل لوحة البيانات.",
-      "emptyPropertiesHint": "أضف أول سجل عقار."
+      "emptyPropertiesHint": "أضف أول سجل عقار.",
+      "emptyListingsHint": "أضف أول إعلان."
+    },
+    "listings": "الإعلانات",
+    "listingsHint": "عروض البيع والإيجار مع المراجعة.",
+    "newListing": "إضافة إعلان",
+    "editListing": "تعديل الإعلان",
+    "publish": "نشر",
+    "reject": "رفض",
+    "archiveAction": "أرشفة",
+    "statusFilter": "الحالة",
+    "allStatuses": "كل الحالات",
+    "forProperty": "إعلانات هذا العقار",
+    "createListingFor": "إضافة إعلان لهذا العقار",
+    "listing": {
+      "listingType": "النوع",
+      "price": "السعر (ر.ع)",
+      "rentPeriod": "فترة الإيجار",
+      "status": "الحالة",
+      "property": "العقار",
+      "publishedAt": "تاريخ النشر",
+      "expiresAt": "ينتهي في"
     }
+  },
+  "properties": {
+    "title": "تصفح العقارات",
+    "subtitle": "إعلانات نشطة في أنحاء عُمان. كل رقم مصنّف بمصدره ودرجة الثقة.",
+    "filters": "التصفية",
+    "filterLocation": "الحي",
+    "filterType": "نوع العقار",
+    "filterListingType": "بيع / إيجار",
+    "filterMinPrice": "أدنى سعر (ر.ع)",
+    "filterMaxPrice": "أعلى سعر (ر.ع)",
+    "filterBedrooms": "غرف النوم",
+    "filterOwnership": "أهلية التملك",
+    "any": "الكل",
+    "bedroomsPlus": "+{count}",
+    "applyFilters": "تطبيق التصفية",
+    "clearFilters": "مسح",
+    "resultsCount": "{count} إعلانًا",
+    "noResults": "لا توجد إعلانات تطابق هذه التصفية.",
+    "noResultsHint": "جرّب توسيع نطاق السعر أو إزالة أحد المرشحات.",
+    "sale": "للبيع",
+    "rent": "للإيجار",
+    "viewDetails": "عرض التفاصيل",
+    "compare": "قارن بين الإعلانات",
+    "compareHint": "اختر إعلانين نشطين للمقارنة جنبًا إلى جنب.",
+    "selectA": "الإعلان الأول",
+    "selectB": "الإعلان الثاني",
+    "specs": "التفاصيل",
+    "yearBuilt": "سنة البناء",
+    "furnished": "مفروش",
+    "unfurnished": "غير مفروش",
+    "description": "الوصف",
+    "photos": "الصور",
+    "noPhotos": "لا توجد صور بعد",
+    "financialAnalysis": "التحليل المالي",
+    "estimatedValue": "القيمة السوقية المقدّرة",
+    "listedRent": "الإيجار المعلن (المطلوب)",
+    "expectedRent": "الإيجار السوقي المتوقع",
+    "pricePerSqm": "سعر المتر المربع",
+    "rentalYield": "عائد الإيجار الإجمالي",
+    "investmentScore": "مؤشر الاستثمار",
+    "insufficientData": "بيانات غير كافية",
+    "insufficientDataHint": "لا توجد بيانات مسجّلة كافية لتقدير هذا الرقم بصدق — عدم إظهار رقم أفضل من اختلاقه.",
+    "listedPrice": "السعر المطلوب",
+    "publishedOn": "نُشر في",
+    "backToSearch": "كل العقارات",
+    "mapTitle": "الموقع",
+    "activeListings": "الإعلانات النشطة",
+    "scoreBand": {
+      "STRONG": "قوي",
+      "MODERATE": "متوسط",
+      "WEAK": "ضعيف",
+      "INSUFFICIENT_DATA": "بيانات غير كافية"
+    },
+    "scoreDisclaimer": "مؤشر إرشادي شفاف يعتمد على العائد المقدّر وثقة البيانات وحداثتها — وليس نصيحة مالية."
+  },
+  "favorites": {
+    "title": "مفضلتك",
+    "empty": "لا توجد عناصر مفضلة بعد.",
+    "emptyHint": "اضغط على القلب في أي إعلان لحفظه هنا.",
+    "add": "حفظ في المفضلة",
+    "remove": "إزالة من المفضلة",
+    "signInToSave": "سجّل الدخول للحفظ"
   }
 }

@@ -23,6 +23,9 @@ export async function Header() {
         </Link>
 
         <nav className="flex items-center gap-4 text-sm font-medium text-stone-600">
+          <Link href="/properties" className="hover:text-teal-800">
+            {t("properties")}
+          </Link>
           <Link href="/market" className="hover:text-teal-800">
             {t("market")}
           </Link>
@@ -40,6 +43,12 @@ export async function Header() {
           <LocaleSwitcher />
           {session ? (
             <div className="flex items-center gap-3">
+              <Link
+                href="/favorites"
+                className="text-sm font-medium text-stone-600 hover:text-teal-800"
+              >
+                {t("favorites")}
+              </Link>
               <Link
                 href="/account"
                 className="text-sm font-medium text-stone-600 hover:text-teal-800"

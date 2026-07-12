@@ -6,6 +6,7 @@ import { PropertyForm } from "../PropertyForm";
 import { deleteProperty, deletePropertyImage, makePrimaryImage } from "../actions";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { StatusPill } from "@/components/marketplace/StatusPill";
 import { Link } from "@/i18n/navigation";
 
 export default async function EditPropertyPage({
@@ -21,7 +22,10 @@ export default async function EditPropertyPage({
     getTranslations("common"),
     prisma.property.findUnique({
       where: { id },
-      include: { images: { orderBy: { sortOrder: "asc" } } },
+      include: {
+        images: { orderBy: { sortOrder: "asc" } },
+        listings: { orderBy: { updatedAt: "desc" } },
+      },
     }),
     prisma.neighborhood.findMany({
       orderBy: { nameEn: "asc" },
@@ -55,6 +59,34 @@ export default async function EditPropertyPage({
           {t("saved")}
         </p>
       )}
+
+      <Card className="mt-6">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold text-stone-900">
+            {t("forProperty")}
+          </h2>
+          <Link
+            href={{ pathname: "/admin/listings/new", query: { propertyId: property.id } }}
+            className="text-sm font-semibold text-teal-800 hover:underline"
+          >
+            {t("createListingFor")}
+          </Link>
+        </div>
+        {property.listings.length > 0 && (
+          <ul className="mt-3 space-y-2 text-sm">
+            {property.listings.map((l) => (
+              <li key={l.id}>
+                <Link
+                  href={`/admin/listings/${l.id}`}
+                  className="text-teal-800 hover:underline"
+                >
+                  {l.listingType} · <StatusPill status={l.status} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
       {property.images.length > 0 && (
         <Card className="mt-6">

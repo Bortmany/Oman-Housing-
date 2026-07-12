@@ -29,7 +29,9 @@
     "account": "Account",
     "signIn": "Sign in",
     "signOut": "Sign out",
-    "register": "Create account"
+    "register": "Create account",
+    "properties": "Browse",
+    "favorites": "Favorites"
   },
   "footer": {
     "disclaimer": "Market figures are indicative and clearly labeled by source. Property regulations, ownership eligibility, and financing terms should be verified with the official authorities and your bank.",
@@ -77,6 +79,19 @@
     "listingType": {
       "SALE": "For sale",
       "RENT": "For rent"
+    },
+    "listingStatus": {
+      "DRAFT": "Draft",
+      "PENDING_REVIEW": "Pending review",
+      "ACTIVE": "Active",
+      "REJECTED": "Rejected",
+      "SOLD": "Sold",
+      "RENTED": "Rented",
+      "ARCHIVED": "Archived"
+    },
+    "rentPeriod": {
+      "MONTHLY": "per month",
+      "ANNUAL": "per year"
     }
   },
   "market": {
@@ -267,7 +282,90 @@
       "photos": "Photos",
       "empty": "Nothing here yet.",
       "emptyStatsHint": "Add your first market statistic to light up the dashboard.",
-      "emptyPropertiesHint": "Add your first property record."
+      "emptyPropertiesHint": "Add your first property record.",
+      "emptyListingsHint": "Add your first listing."
+    },
+    "listings": "Listings",
+    "listingsHint": "Sale and rent offers with moderation.",
+    "newListing": "Add listing",
+    "editListing": "Edit listing",
+    "publish": "Publish",
+    "reject": "Reject",
+    "archiveAction": "Archive",
+    "statusFilter": "Status",
+    "allStatuses": "All statuses",
+    "forProperty": "Listings for this property",
+    "createListingFor": "Add listing for this property",
+    "listing": {
+      "listingType": "Type",
+      "price": "Price (OMR)",
+      "rentPeriod": "Rent period",
+      "status": "Status",
+      "property": "Property",
+      "publishedAt": "Published",
+      "expiresAt": "Expires"
     }
+  },
+  "properties": {
+    "title": "Browse properties",
+    "subtitle": "Active listings across Oman. Every figure is labeled with its source and confidence.",
+    "filters": "Filters",
+    "filterLocation": "Neighborhood",
+    "filterType": "Property type",
+    "filterListingType": "For sale / rent",
+    "filterMinPrice": "Min price (OMR)",
+    "filterMaxPrice": "Max price (OMR)",
+    "filterBedrooms": "Bedrooms",
+    "filterOwnership": "Ownership",
+    "any": "Any",
+    "bedroomsPlus": "{count}+",
+    "applyFilters": "Apply filters",
+    "clearFilters": "Clear",
+    "resultsCount": "{count} listings",
+    "noResults": "No listings match these filters.",
+    "noResultsHint": "Try widening the price range or clearing a filter.",
+    "sale": "For sale",
+    "rent": "For rent",
+    "viewDetails": "View details",
+    "compare": "Compare listings",
+    "compareHint": "Pick two active listings to compare side by side.",
+    "selectA": "First listing",
+    "selectB": "Second listing",
+    "specs": "Details",
+    "yearBuilt": "Year built",
+    "furnished": "Furnished",
+    "unfurnished": "Unfurnished",
+    "description": "Description",
+    "photos": "Photos",
+    "noPhotos": "No photos yet",
+    "financialAnalysis": "Financial analysis",
+    "estimatedValue": "Estimated market value",
+    "listedRent": "Listed rent (asking)",
+    "expectedRent": "Expected market rent",
+    "pricePerSqm": "Price per sqm",
+    "rentalYield": "Gross rental yield",
+    "investmentScore": "Investment score",
+    "insufficientData": "Insufficient data",
+    "insufficientDataHint": "Not enough recorded data to estimate this honestly — no number is better than a made-up one.",
+    "listedPrice": "Asking price",
+    "publishedOn": "Published",
+    "backToSearch": "All properties",
+    "mapTitle": "Location",
+    "activeListings": "Active listings",
+    "scoreBand": {
+      "STRONG": "Strong",
+      "MODERATE": "Moderate",
+      "WEAK": "Weak",
+      "INSUFFICIENT_DATA": "Insufficient data"
+    },
+    "scoreDisclaimer": "A transparent heuristic based on estimated yield, data confidence, and data recency — not financial advice."
+  },
+  "favorites": {
+    "title": "Your favorites",
+    "empty": "No favorites yet.",
+    "emptyHint": "Tap the heart on any listing to save it here.",
+    "add": "Save to favorites",
+    "remove": "Remove from favorites",
+    "signInToSave": "Sign in to save"
   }
 }
