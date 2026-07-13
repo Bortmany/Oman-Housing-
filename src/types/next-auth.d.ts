@@ -7,12 +7,14 @@ declare module "next-auth" {
       id: string;
       role: Role;
       tier: Tier;
+      agencyId: string | null;
     } & DefaultSession["user"];
   }
 
   interface User {
     role?: Role;
     tier?: Tier;
+    agencyId?: string | null;
   }
 }
 
@@ -21,5 +23,6 @@ declare module "next-auth/jwt" {
     id?: string;
     role?: Role;
     tier?: Tier;
+    agencyId?: string | null;
   }
 }

@@ -14,6 +14,12 @@ const registerSchema = z.object({
 
 export type RegisterState = { error: "emailTaken" | "registerFailed" } | null;
 
+/** Only relative in-app paths — never an absolute URL (open-redirect guard). */
+function safePath(raw: unknown, fallback: string): string {
+  const s = String(raw ?? "");
+  return s.startsWith("/") && !s.startsWith("//") ? s : fallback;
+}
+
 export async function registerUser(
   _prev: RegisterState,
   formData: FormData,
@@ -27,6 +33,7 @@ export async function registerUser(
 
   const { name, email, password } = parsed.data;
   const locale = await getLocale();
+  const callbackUrl = safePath(formData.get("callbackUrl"), "/account");
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "emailTaken" };
@@ -44,7 +51,7 @@ export async function registerUser(
   await signIn("credentials", {
     email,
     password,
-    redirectTo: `/${locale}/account`,
+    redirectTo: `/${locale}${callbackUrl}`,
   });
   return null;
 }

@@ -32,6 +32,11 @@ export async function Header() {
           <Link href="/calculators" className="hover:text-teal-800">
             {t("calculators")}
           </Link>
+          {session?.user.role === "AGENCY" && (
+            <Link href="/agency" className="hover:text-teal-800">
+              {t("agency")}
+            </Link>
+          )}
           {session?.user.role === "ADMIN" && (
             <Link href="/admin" className="hover:text-teal-800">
               {t("admin")}

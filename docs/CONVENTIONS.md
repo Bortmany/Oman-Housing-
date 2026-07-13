@@ -103,9 +103,24 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
   gate skips the API call entirely when the data is too thin. Every answer
   persists to `AiAnalysis` with value snapshots frozen in `AiCitation`.
   Tests: `src/lib/ai/analystCore.test.ts` (runs in `npm test`).
-- **Phase 5 — Business**: agency portal (`Agency`, `Inquiry`), admin
-  verification queue (`provenance = USER_SUBMITTED AND verifiedAt IS NULL`),
-  subscriptions via a regional gateway (Thawani/PayTabs — Stripe does not
-  serve Oman merchants).
+- **Phase 5 — Business**: DONE (except the parts needing external accounts —
+  see below). Buyer enquiries on every property (`EnquiryCard`, open to all
+  with an account-creation nudge + honeypot + per-email daily cap;
+  `src/lib/db/inquiries.ts`, `src/lib/enquiry.ts`). Self-serve agency signup
+  (`/list-with-us`) creates an unapproved `Agency` + an `AGENCY` user; the
+  agency portal (`(agency)` route group) lets them submit listings
+  (a property + `PENDING_REVIEW` listing together) and see their enquiry inbox.
+  Admin oversight (`/admin/{review,agencies,inquiries}`): a unified review
+  queue (pending listings + `USER_SUBMITTED AND verifiedAt IS NULL`
+  properties/stats), agency approval, and an all-enquiries inbox. Paid-tier
+  plumbing (`src/lib/tiers.ts`): each `Tier` caps an agency's in-play listings
+  (FREE 3 / PREMIUM 25 / BUSINESS ∞); the owner grants a tier by hand from
+  `/admin/agencies` — the same switch a payment webhook will flip.
+  `agencyId` now rides on the session (`src/auth.ts`). Tests:
+  `src/lib/{tiers,enquiry}.test.ts` (run in `npm test`).
+  **Still needs external accounts (deferred):** email notifications (the
+  `// TODO(Phase 5 email)` seam in the enquiry action), a Thawani/PayTabs
+  checkout that flips the tier automatically (Stripe does not serve Oman
+  merchants), and setting the new env vars on Railway.
 
 Each phase should start as a product-manager spec in `Agents/docs/specs/`.

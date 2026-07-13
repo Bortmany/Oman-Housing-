@@ -30,6 +30,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           role: user.role,
           tier: user.tier,
+          agencyId: user.agencyId,
         };
       },
     }),
@@ -40,6 +41,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.role = user.role;
         token.tier = user.tier;
+        token.agencyId = user.agencyId;
       }
       return token;
     },
@@ -47,6 +49,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.id = token.id as string;
       session.user.role = token.role as Role;
       session.user.tier = token.tier as Tier;
+      session.user.agencyId = (token.agencyId as string | null) ?? null;
       return session;
     },
   },

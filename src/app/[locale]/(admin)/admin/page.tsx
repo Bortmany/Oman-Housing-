@@ -9,14 +9,54 @@ export async function generateMetadata() {
 }
 
 export default async function AdminHome() {
-  const [t, statCount, propCount, listingCount] = await Promise.all([
+  const [
+    t,
+    statCount,
+    propCount,
+    listingCount,
+    pendingListings,
+    unverifiedProps,
+    unverifiedStats,
+    agencyCount,
+    pendingAgencies,
+    newInquiries,
+  ] = await Promise.all([
     getTranslations("admin"),
     prisma.marketStat.count(),
     prisma.property.count(),
     prisma.listing.count(),
+    prisma.listing.count({ where: { status: "PENDING_REVIEW" } }),
+    prisma.property.count({ where: { provenance: "USER_SUBMITTED", verifiedAt: null } }),
+    prisma.marketStat.count({ where: { provenance: "USER_SUBMITTED", verifiedAt: null } }),
+    prisma.agency.count(),
+    prisma.agency.count({ where: { isApproved: false } }),
+    prisma.inquiry.count({ where: { status: "NEW" } }),
   ]);
 
+  const reviewCount = pendingListings + unverifiedProps + unverifiedStats;
+
   const sections = [
+    {
+      href: "/admin/review",
+      title: t("review.title"),
+      hint: t("review.dashHint"),
+      count: reviewCount,
+      badge: reviewCount > 0,
+    },
+    {
+      href: "/admin/inquiries",
+      title: t("inquiries.title"),
+      hint: t("inquiries.dashHint"),
+      count: newInquiries,
+      badge: newInquiries > 0,
+    },
+    {
+      href: "/admin/agencies",
+      title: t("agencies.title"),
+      hint: t("agencies.dashHint"),
+      count: agencyCount,
+      badge: pendingAgencies > 0,
+    },
     {
       href: "/admin/market-stats",
       title: t("marketStats"),
@@ -49,7 +89,11 @@ export default async function AdminHome() {
                 <h2 className="font-semibold text-stone-900 group-hover:text-teal-800">
                   {s.title}
                 </h2>
-                <span className="text-2xl font-bold text-teal-800">
+                <span
+                  className={`text-2xl font-bold ${
+                    s.badge ? "text-amber-600" : "text-teal-800"
+                  }`}
+                >
                   {s.count}
                 </span>
               </div>

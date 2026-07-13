@@ -31,7 +31,8 @@
     "signOut": "Sign out",
     "register": "Create account",
     "properties": "Browse",
-    "favorites": "Favorites"
+    "favorites": "Favorites",
+    "agency": "For agencies"
   },
   "footer": {
     "disclaimer": "Market figures are indicative and clearly labeled by source. Property regulations, ownership eligibility, and financing terms should be verified with the official authorities and your bank.",
@@ -92,6 +93,12 @@
     "rentPeriod": {
       "MONTHLY": "per month",
       "ANNUAL": "per year"
+    },
+    "inquiryStatus": {
+      "NEW": "New",
+      "CONTACTED": "Contacted",
+      "CLOSED": "Closed",
+      "SPAM": "Spam"
     }
   },
   "market": {
@@ -304,6 +311,41 @@
       "property": "Property",
       "publishedAt": "Published",
       "expiresAt": "Expires"
+    },
+    "review": {
+      "title": "Needs review",
+      "subtitle": "Everything waiting on you: agency listings to publish and user-submitted data to verify.",
+      "dashHint": "Listings and data awaiting your review.",
+      "allClear": "All clear — nothing is waiting for review.",
+      "pendingListings": "Agency listings awaiting publish",
+      "publish": "Publish",
+      "reject": "Reject",
+      "unverifiedProperties": "Properties awaiting verification",
+      "openEditor": "Open editor",
+      "markVerified": "Mark verified",
+      "unverifiedStats": "Market figures awaiting verification",
+      "nationalScope": "National"
+    },
+    "agencies": {
+      "title": "Agencies",
+      "subtitle": "Approve agencies and set their plan. Nothing an agency posts goes live until you approve it.",
+      "dashHint": "Approve agencies and manage plans.",
+      "empty": "No agencies have signed up yet.",
+      "license": "License",
+      "users": "{count} user(s)",
+      "listings": "{count} listing(s)",
+      "approved": "Approved",
+      "pending": "Pending",
+      "approve": "Approve",
+      "unapprove": "Un-approve",
+      "plan": "Plan",
+      "setPlan": "Set plan"
+    },
+    "inquiries": {
+      "title": "Enquiries",
+      "subtitle": "Every enquiry buyers have sent, across all listings.",
+      "dashHint": "Buyer enquiries across all listings.",
+      "empty": "No enquiries yet."
     }
   },
   "properties": {
@@ -410,6 +452,107 @@
       "estimatedYield": "Estimated rental yield of this property",
       "investmentScore": "Platform investment score",
       "comparableListing": "Comparable listing nearby #{n}"
+    }
+  },
+  "enquiry": {
+    "title": "Enquire about this property",
+    "subtitle": "Send a message to the seller. They'll reply to the email you give.",
+    "accountNudge": "Sending anonymously.",
+    "createAccount": "Create an account to save this enquiry and track replies.",
+    "aboutListing": "Which listing?",
+    "name": "Your name",
+    "email": "Your email",
+    "phone": "Phone",
+    "phoneHint": "Optional — lets the seller call you back.",
+    "message": "Message",
+    "messagePlaceholder": "e.g. Is this still available? Can I arrange a viewing?",
+    "send": "Send enquiry",
+    "sending": "Sending…",
+    "sent": "Your enquiry has been sent. The seller will be in touch.",
+    "sentSaved": "Saved to your account — you can track it under My enquiries.",
+    "errors": {
+      "invalid": "Please fill in your name, a valid email, and a message.",
+      "rateLimited": "You've sent several enquiries recently. Please try again later.",
+      "unavailable": "This listing is no longer available for enquiries."
+    },
+    "myEnquiries": "My enquiries",
+    "myEnquiriesEmpty": "You haven't sent any enquiries yet."
+  },
+  "agency": {
+    "signup": {
+      "title": "List your properties with us",
+      "lede": "Join the Oman Property Intelligence marketplace and reach buyers and renters who are already researching the market.",
+      "benefit1": "Manage your own listings from a simple dashboard.",
+      "benefit2": "Receive enquiries straight from interested buyers.",
+      "benefit3": "Every figure on your listings carries an honest source label — buyers trust what they see.",
+      "approvalNotice": "New agencies are reviewed before going live. You can start adding listings right away; they appear publicly once we approve your agency and each listing.",
+      "haveAccount": "Already have an agency account?",
+      "signIn": "Sign in",
+      "nameEn": "Agency name (English)",
+      "nameAr": "Agency name (Arabic)",
+      "licenseNo": "License number",
+      "licenseHint": "Optional — helps us verify you faster.",
+      "phone": "Phone",
+      "loginSection": "Your login",
+      "contactName": "Your name",
+      "email": "Email",
+      "password": "Password",
+      "passwordHint": "At least 8 characters.",
+      "emailTaken": "That email is already registered. Try signing in instead.",
+      "failed": "Please check the form and try again.",
+      "submit": "Create agency account",
+      "submitting": "Creating…"
+    },
+    "dashboard": {
+      "subtitle": "Your agency workspace.",
+      "approved": "Your agency is approved. Published listings appear on the public marketplace.",
+      "pending": "Your agency is awaiting approval. You can add listings now — they go live once we approve your agency and each listing.",
+      "plan": "Your plan",
+      "allowance": "{used} of {limit} listing slots used · {remaining} remaining.",
+      "allowanceUnlimited": "{used} listings · unlimited slots.",
+      "quickLinks": "Quick links"
+    },
+    "nav": {
+      "listings": "My listings",
+      "enquiries": "Enquiries",
+      "profile": "Agency profile"
+    },
+    "tier": {
+      "FREE": "Free",
+      "PREMIUM": "Premium",
+      "BUSINESS": "Business"
+    },
+    "listings": {
+      "sale": "For sale",
+      "rent": "For rent",
+      "newListing": "Add a listing",
+      "newLede": "Add the property details and price. It goes to us for review before appearing publicly.",
+      "atLimit": "You've reached your plan's listing limit. Upgrade to add more.",
+      "notAllowed": "You don't have permission to do that.",
+      "validationFailed": "Please check the form and try again.",
+      "submitNotice": "This listing will be reviewed before it appears on the public marketplace.",
+      "submit": "Submit for review",
+      "submittedNotice": "Listing submitted. We'll review it before it goes live.",
+      "empty": "No listings yet.",
+      "emptyHint": "Add your first property to start receiving enquiries.",
+      "property": "Property",
+      "price": "Price",
+      "status": "Status"
+    },
+    "enquiries": {
+      "subtitle": "Messages from buyers about your listings.",
+      "empty": "No enquiries yet.",
+      "mark": {
+        "CONTACTED": "Mark contacted",
+        "CLOSED": "Close",
+        "SPAM": "Mark spam"
+      }
+    },
+    "profile": {
+      "subtitle": "How your agency appears and how buyers reach you.",
+      "saved": "Profile saved.",
+      "failed": "Please check the form and try again.",
+      "save": "Save profile"
     }
   }
 }

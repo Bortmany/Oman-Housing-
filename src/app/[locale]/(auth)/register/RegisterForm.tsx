@@ -2,12 +2,18 @@
 
 import { useActionState } from "react";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { registerUser, type RegisterState } from "./actions";
 import { Input, Label, Hint, FieldError } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 
 export function RegisterForm() {
   const t = useTranslations("auth");
+  const rawCallback = useSearchParams().get("callbackUrl");
+  const callbackUrl =
+    rawCallback?.startsWith("/") && !rawCallback.startsWith("//")
+      ? rawCallback
+      : "";
   const [state, action, pending] = useActionState<RegisterState, FormData>(
     registerUser,
     null,
@@ -15,6 +21,9 @@ export function RegisterForm() {
 
   return (
     <form action={action} className="space-y-4">
+      {callbackUrl && (
+        <input type="hidden" name="callbackUrl" value={callbackUrl} />
+      )}
       <div>
         <Label htmlFor="name">{t("name")}</Label>
         <Input id="name" name="name" required maxLength={100} />

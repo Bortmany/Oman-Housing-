@@ -418,8 +418,70 @@ async function main() {
     valuationCount++;
   }
 
+  // ---------- Phase 5: a sample agency, its login, a listing, an enquiry ----------
+  // So the agency portal and the admin/agency inboxes are demoable out of the box.
+  const agency = await prisma.agency.upsert({
+    where: { slug: "bay-estates" },
+    update: {},
+    create: {
+      slug: "bay-estates",
+      nameEn: "Bay Estates",
+      nameAr: "عقارات الخليج",
+      licenseNo: "OM-RE-2024-0142",
+      email: "hello@bayestates.example",
+      phone: "+968 2400 0000",
+      isApproved: true,
+      tier: "PREMIUM",
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: "agency@example.com" },
+    update: {},
+    create: {
+      name: "Bay Estates Team",
+      email: "agency@example.com",
+      passwordHash: await bcrypt.hash(adminPassword, 10),
+      role: "AGENCY",
+      tier: "PREMIUM",
+      agencyId: agency.id,
+    },
+  });
+
+  // Hand the agency one live listing so its portal isn't empty.
+  const someActive = await prisma.listing.findFirst({
+    where: { status: "ACTIVE", agencyId: null },
+    orderBy: { createdAt: "asc" },
+    include: { property: true },
+  });
+  if (someActive) {
+    await prisma.listing.update({
+      where: { id: someActive.id },
+      data: { agencyId: agency.id },
+    });
+
+    // A sample enquiry on that listing.
+    const existingInquiry = await prisma.inquiry.findFirst({
+      where: { listingId: someActive.id },
+      select: { id: true },
+    });
+    if (!existingInquiry) {
+      await prisma.inquiry.create({
+        data: {
+          listingId: someActive.id,
+          name: "Sample Buyer",
+          email: "buyer@example.com",
+          phone: "+968 9000 0000",
+          message:
+            "Is this still available? I'd like to arrange a viewing this week.",
+          status: "NEW",
+        },
+      });
+    }
+  }
+
   console.log(
-    `Done. ${GOVERNORATES.length} governorates, ${CITIES.length} cities, ${NEIGHBORHOODS.length} neighborhoods, +${statCount} market stats, +${propCount} properties, +${listingCount} listings, +${valuationCount} valuations.`,
+    `Done. ${GOVERNORATES.length} governorates, ${CITIES.length} cities, ${NEIGHBORHOODS.length} neighborhoods, +${statCount} market stats, +${propCount} properties, +${listingCount} listings, +${valuationCount} valuations, +1 sample agency (agency@example.com), +1 sample enquiry.`,
   );
 }
 

@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { FinancialAnalysisCard } from "@/components/marketplace/FinancialAnalysisCard";
 import { AiAnalystCard } from "@/components/marketplace/AiAnalystCard";
+import { EnquiryCard } from "@/components/marketplace/EnquiryCard";
 import { FavoriteButton } from "@/components/marketplace/FavoriteButton";
 import { PropertyMap } from "@/components/map/PropertyMap";
 import { Link } from "@/i18n/navigation";
@@ -181,6 +182,20 @@ export default async function PropertyDetailPage({
             propertyId={property.id}
             signedIn={!!session}
             redirectTo={here}
+          />
+
+          <EnquiryCard
+            listings={listings.map((l) => ({
+              id: l.id,
+              label: `${l.listingType === "SALE" ? t("sale") : t("rent")} · ${formatOMRWhole(
+                decimalToNumber(l.price)!,
+                locale,
+              )}${l.rentPeriod ? ` ${te(`rentPeriod.${l.rentPeriod}`)}` : ""}`,
+            }))}
+            signedIn={!!session}
+            defaultName={session?.user.name ?? ""}
+            defaultEmail={session?.user.email ?? ""}
+            registerHref={`/register?callbackUrl=${encodeURIComponent(here)}`}
           />
 
           {property.lat != null && property.lng != null && (

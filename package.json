@@ -9,7 +9,7 @@
     "lint": "eslint",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "test": "tsx src/lib/calculators/calculators.test.ts && tsx src/lib/ai/analystCore.test.ts"
+    "test": "tsx src/lib/calculators/calculators.test.ts && tsx src/lib/ai/analystCore.test.ts && tsx src/lib/tiers.test.ts && tsx src/lib/enquiry.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",
