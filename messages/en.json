@@ -367,5 +367,49 @@
     "add": "Save to favorites",
     "remove": "Remove from favorites",
     "signInToSave": "Sign in to save"
+  },
+  "analyst": {
+    "title": "Ask the AI analyst",
+    "subtitle": "Answers only from data stored on this platform — and says so when that data is too thin.",
+    "questionLabel": "Your question",
+    "placeholder": "e.g. Should I buy this apartment as an investment?",
+    "suggested1": "Should I buy this property?",
+    "suggested2": "Is the asking price fair?",
+    "suggested3": "How is the rental market here?",
+    "ask": "Ask",
+    "asking": "Analyzing stored data…",
+    "loginPrompt": "Log in to ask the AI analyst.",
+    "login": "Log in",
+    "rating": {
+      "BUY": "Buy",
+      "CONSIDER": "Consider",
+      "AVOID": "Avoid",
+      "INSUFFICIENT_DATA": "Not enough data"
+    },
+    "confidence": "Confidence",
+    "dataUsed": "Data this answer used",
+    "noCitations": "No stored data could support an answer — which is exactly why no rating is given.",
+    "disclaimer": "AI-estimated analysis of stored data. Not financial advice.",
+    "insufficientAnswer": "There is not enough stored market data for this property and its neighborhood to justify a rating. Rather than guess, the analyst declines to rate it. Check back once more market data has been added.",
+    "errors": {
+      "loginRequired": "Please log in to ask the analyst.",
+      "notConfigured": "The AI analyst is not switched on yet. The rest of this page still works.",
+      "dailyLimit": "You have used all {limit} questions for today. Come back tomorrow.",
+      "badQuestion": "Please enter a question of up to 300 characters.",
+      "apiError": "The analyst could not answer just now. Please try again in a minute."
+    },
+    "data": {
+      "avgSalePrice": "Average sale price — {scope}, {period}",
+      "avgPricePerSqm": "Average price per sqm — {scope}, {period}",
+      "avgRentMonthly": "Average monthly rent — {scope}, {period}",
+      "avgYield": "Average gross yield — {scope}, {period}",
+      "priceTrend": "Sale-price change — {scope}, {from} to {to}",
+      "storedValuation": "Stored valuation of this property",
+      "askingPrice": "This property's asking price",
+      "askingRent": "This property's asking rent",
+      "estimatedYield": "Estimated rental yield of this property",
+      "investmentScore": "Platform investment score",
+      "comparableListing": "Comparable listing nearby #{n}"
+    }
   }
 }

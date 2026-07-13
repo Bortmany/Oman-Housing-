@@ -77,7 +77,9 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
 - Pre-deploy command: `npx prisma db push`
 - Volume mounted at `/data`, env `DATA_DIR=/data`
 - Env vars: `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` (public app URL),
-  `DATA_DIR`, optional `NEXT_PUBLIC_MAP_TILE_URL`
+  `DATA_DIR`, `ANTHROPIC_API_KEY` (powers the AI analyst — without it the
+  analyst card shows a friendly "not switched on yet" message and everything
+  else works), optional `NEXT_PUBLIC_MAP_TILE_URL`
 - Health endpoint: `/api/health`
 - The default OSM tile server is fine for low traffic only; swap
   `NEXT_PUBLIC_MAP_TILE_URL` to Carto/Protomaps before real traffic.
@@ -90,8 +92,17 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
   derived figures are always AI_ESTIMATED with capped confidence),
   favorites (login-gated), listing comparison, admin listing moderation
   (`/admin/listings`). Query modules: `src/lib/db/{listings,favorites,valuations}.ts`.
-- **Phase 4 — AI analyst**: leashed Buy/Consider/Avoid answers that cite
-  stored data via `AiAnalysis`/`AiCitation` and refuse when data is thin.
+- **Phase 4 — AI analyst**: DONE — leashed Q&A on each property page
+  (`AiAnalystCard`, login-gated, 10 questions/user/day). The model
+  (`claude-opus-4-8`, structured output) sees ONLY tagged stored figures
+  gathered in `src/lib/ai/analyst.ts` (reusing `propertyFinancials` and
+  `nearestMarketStat`); `src/lib/ai/analystCore.ts` enforces the honesty
+  rules in code after every answer — citations must match offered figures,
+  confidence is capped by the weakest cited figure (≤ 0.75), an unsupported
+  verdict downgrades to INSUFFICIENT_DATA, and a deterministic sufficiency
+  gate skips the API call entirely when the data is too thin. Every answer
+  persists to `AiAnalysis` with value snapshots frozen in `AiCitation`.
+  Tests: `src/lib/ai/analystCore.test.ts` (runs in `npm test`).
 - **Phase 5 — Business**: agency portal (`Agency`, `Inquiry`), admin
   verification queue (`provenance = USER_SUBMITTED AND verifiedAt IS NULL`),
   subscriptions via a regional gateway (Thawani/PayTabs — Stripe does not

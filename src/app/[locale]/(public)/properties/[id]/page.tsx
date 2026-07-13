@@ -10,6 +10,7 @@ import { localName, isEnglishFallback } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { FinancialAnalysisCard } from "@/components/marketplace/FinancialAnalysisCard";
+import { AiAnalystCard } from "@/components/marketplace/AiAnalystCard";
 import { FavoriteButton } from "@/components/marketplace/FavoriteButton";
 import { PropertyMap } from "@/components/map/PropertyMap";
 import { Link } from "@/i18n/navigation";
@@ -175,6 +176,12 @@ export default async function PropertyDetailPage({
 
         <div className="space-y-6">
           <FinancialAnalysisCard financials={financials} />
+
+          <AiAnalystCard
+            propertyId={property.id}
+            signedIn={!!session}
+            redirectTo={here}
+          />
 
           {property.lat != null && property.lng != null && (
             <Card>
