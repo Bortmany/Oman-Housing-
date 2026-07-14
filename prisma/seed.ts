@@ -122,9 +122,16 @@ async function main() {
   console.log("Seeding…");
 
   // --- Admin user -----------------------------------------------------------
+  // This password is used for BOTH the seeded admin and the sample agency
+  // login below. Refuse to seed with a missing, placeholder, or short
+  // password — otherwise those two public logins would be easy to guess.
   const adminPassword = process.env.SEED_ADMIN_PASSWORD;
-  if (!adminPassword) {
-    throw new Error("Set SEED_ADMIN_PASSWORD in .env before seeding.");
+  if (!adminPassword || adminPassword === "change-me" || adminPassword.length < 12) {
+    throw new Error(
+      "SEED_ADMIN_PASSWORD is missing or still the \"change-me\" placeholder. " +
+        "Set a strong password (at least 12 characters) in .env before seeding — " +
+        "it protects both the admin and the sample agency login.",
+    );
   }
   await prisma.user.upsert({
     where: { email: "admin@example.com" },
