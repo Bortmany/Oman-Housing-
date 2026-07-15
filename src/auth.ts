@@ -2,8 +2,10 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import type { Role, Tier } from "@prisma/client";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -17,6 +19,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           .toLowerCase();
         const password = String(credentials?.password ?? "");
         if (!email || !password) return null;
+
+        // Throttle sign-in attempts to blunt password guessing: by visitor IP
+        // and by the email being tried. Denied attempts fail like a bad login.
+        const ip = getClientIp(await headers());
+        const byIp = checkRateLimit(`login:ip:${ip}`, {
+          limit: 20,
+          windowMs: 10 * 60 * 1000,
+        });
+        const byEmail = checkRateLimit(`login:email:${email}`, {
+          limit: 10,
+          windowMs: 10 * 60 * 1000,
+        });
+        if (!byIp.allowed || !byEmail.allowed) return null;
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user?.passwordHash) return null;
