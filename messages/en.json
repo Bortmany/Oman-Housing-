@@ -207,6 +207,7 @@
     "invalidCredentials": "Incorrect email or password.",
     "emailTaken": "An account with this email already exists.",
     "registerFailed": "Could not create the account. Check the fields and try again.",
+    "rateLimited": "Too many attempts. Please wait a few minutes and try again.",
     "genericError": "Something went wrong. Please try again."
   },
   "account": {
@@ -554,5 +555,10 @@
       "failed": "Please check the form and try again.",
       "save": "Save profile"
     }
+  },
+  "errors": {
+    "title": "Something went wrong",
+    "description": "Sorry, this page ran into a problem. You can try again, or come back in a moment.",
+    "tryAgain": "Try again"
   }
 }

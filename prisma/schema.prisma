@@ -413,6 +413,8 @@ model Inquiry {
   createdAt DateTime @default(now())
 
   @@index([listingId, status])
+  // Backs the per-email daily spam cap: filter by email, window on createdAt.
+  @@index([email, createdAt])
 }
 
 model Favorite {
