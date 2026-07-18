@@ -4,17 +4,12 @@ import { z } from "zod";
 import { getLocale } from "next-intl/server";
 import { revalidatePath } from "next/cache";
 import type { Tier } from "@prisma/client";
-import { auth } from "@/auth";
 import { redirect } from "@/i18n/navigation";
 import { setAgencyApproval, setAgencyTier } from "@/lib/db/agencies";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { requireAdmin } from "@/lib/require-admin";
 
 const TIERS = ["FREE", "PREMIUM", "BUSINESS"] as const;
-
-async function requireAdmin() {
-  const session = await auth();
-  return session?.user.role === "ADMIN" ? session : null;
-}
 
 /** Per-admin cap on mutations — a light guard against runaway loops/scripts. */
 function adminAllowed(userId: string): boolean {

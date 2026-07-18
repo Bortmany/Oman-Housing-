@@ -2,15 +2,16 @@
 
 import { z } from "zod";
 import { getLocale } from "next-intl/server";
-import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
+import { revalidatePath, updateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "@/i18n/navigation";
 import {
+  MARKET_DATA_CACHE_TAG,
   upsertMarketStat,
   type StatScope,
 } from "@/lib/db/market-stats";
 import { PROVENANCE_VALUES } from "@/lib/provenance";
+import { requireAdmin } from "@/lib/require-admin";
 
 const PROPERTY_TYPES = [
   "APARTMENT", "VILLA", "TOWNHOUSE", "PENTHOUSE",
@@ -56,8 +57,8 @@ export async function saveMarketStat(
   _prev: StatFormState,
   formData: FormData,
 ): Promise<StatFormState> {
-  const session = await auth();
-  if (session?.user.role !== "ADMIN") return { error: "validationFailed" };
+  const session = await requireAdmin();
+  if (!session) return { error: "validationFailed" };
 
   const parsed = statSchema.safeParse({
     scope: formData.get("scope"),
@@ -104,6 +105,7 @@ export async function saveMarketStat(
     verifiedById: session.user.id,
   });
 
+  updateTag(MARKET_DATA_CACHE_TAG); // cached public market pages refresh now
   revalidatePath("/", "layout");
   const locale = await getLocale();
   redirect({
@@ -114,12 +116,13 @@ export async function saveMarketStat(
 }
 
 export async function deleteMarketStat(formData: FormData) {
-  const session = await auth();
-  if (session?.user.role !== "ADMIN") return;
+  const session = await requireAdmin();
+  if (!session) return;
 
   const id = String(formData.get("id") ?? "");
   if (id) await prisma.marketStat.delete({ where: { id } });
 
+  updateTag(MARKET_DATA_CACHE_TAG); // cached public market pages refresh now
   revalidatePath("/", "layout");
   const locale = await getLocale();
   redirect({ href: "/admin/market-stats?deleted=1", locale });

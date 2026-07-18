@@ -2,10 +2,11 @@
 
 import { z } from "zod";
 import { getLocale } from "next-intl/server";
-import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
+import { revalidatePath, updateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "@/i18n/navigation";
+import { MARKET_DATA_CACHE_TAG } from "@/lib/db/market-stats";
+import { requireAdmin } from "@/lib/require-admin";
 import { savePropertyImage, deleteStoredFile } from "@/lib/storage";
 
 const PROPERTY_TYPES = [
@@ -54,8 +55,8 @@ export async function saveProperty(
   _prev: PropertyFormState,
   formData: FormData,
 ): Promise<PropertyFormState> {
-  const session = await auth();
-  if (session?.user.role !== "ADMIN") return { error: "validationFailed" };
+  const session = await requireAdmin();
+  if (!session) return { error: "validationFailed" };
 
   const parsed = propertySchema.safeParse({
     id: formData.get("id") || undefined,
@@ -137,6 +138,7 @@ export async function saveProperty(
     }
   }
 
+  updateTag(MARKET_DATA_CACHE_TAG); // cached public market pages refresh now
   revalidatePath("/", "layout");
   const locale = await getLocale();
   redirect({ href: `/admin/properties/${property.id}?saved=1`, locale });
@@ -144,8 +146,8 @@ export async function saveProperty(
 }
 
 export async function deleteProperty(formData: FormData) {
-  const session = await auth();
-  if (session?.user.role !== "ADMIN") return;
+  const session = await requireAdmin();
+  if (!session) return;
 
   const id = String(formData.get("id") ?? "");
   if (id) {
@@ -156,14 +158,15 @@ export async function deleteProperty(formData: FormData) {
     for (const img of images) await deleteStoredFile(img.storagePath);
   }
 
+  updateTag(MARKET_DATA_CACHE_TAG); // cached public market pages refresh now
   revalidatePath("/", "layout");
   const locale = await getLocale();
   redirect({ href: "/admin/properties?deleted=1", locale });
 }
 
 export async function deletePropertyImage(formData: FormData) {
-  const session = await auth();
-  if (session?.user.role !== "ADMIN") return;
+  const session = await requireAdmin();
+  if (!session) return;
 
   const id = String(formData.get("imageId") ?? "");
   if (!id) return;
@@ -179,8 +182,8 @@ export async function deletePropertyImage(formData: FormData) {
 }
 
 export async function makePrimaryImage(formData: FormData) {
-  const session = await auth();
-  if (session?.user.role !== "ADMIN") return;
+  const session = await requireAdmin();
+  if (!session) return;
 
   const id = String(formData.get("imageId") ?? "");
   if (!id) return;

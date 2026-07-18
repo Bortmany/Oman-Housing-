@@ -2,9 +2,9 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { PropertyType } from "@prisma/client";
 import {
   allNeighborhoods,
+  latestNeighborhoodStat,
   neighborhoodTrends,
 } from "@/lib/db/market-stats";
-import { prisma } from "@/lib/prisma";
 import { decimalToNumber, formatOMRWhole, formatPercent } from "@/lib/money";
 import { localName, formatMonth } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
@@ -43,7 +43,7 @@ export default async function ComparePage({
   let trendData: TrendPoint[] = [];
   let latest: Array<{
     hood: (typeof chosen)[number];
-    stat: Awaited<ReturnType<typeof prisma.marketStat.findFirst>>;
+    stat: Awaited<ReturnType<typeof latestNeighborhoodStat>>;
   }> = [];
 
   if (chosen.length === 2) {
@@ -62,10 +62,7 @@ export default async function ComparePage({
     latest = await Promise.all(
       chosen.map(async (hood) => ({
         hood,
-        stat: await prisma.marketStat.findFirst({
-          where: { neighborhoodId: hood.id, propertyType },
-          orderBy: { periodStart: "desc" },
-        }),
+        stat: await latestNeighborhoodStat(hood.id, propertyType),
       })),
     );
   }
