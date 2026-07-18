@@ -2,16 +2,12 @@
 
 import { z } from "zod";
 import { getLocale } from "next-intl/server";
-import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
+import { revalidatePath, updateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { MARKET_DATA_CACHE_TAG } from "@/lib/db/market-stats";
 import { redirect } from "@/i18n/navigation";
 import { checkRateLimit } from "@/lib/rate-limit";
-
-async function requireAdmin() {
-  const session = await auth();
-  return session?.user.role === "ADMIN" ? session : null;
-}
+import { requireAdmin } from "@/lib/require-admin";
 
 /** Per-admin cap on mutations — a light guard against runaway loops/scripts. */
 function adminAllowed(userId: string): boolean {
@@ -72,6 +68,7 @@ export async function verifyProperty(formData: FormData) {
         verifiedAt: new Date(),
       },
     });
+    updateTag(MARKET_DATA_CACHE_TAG); // cached public market pages refresh now
   }
   await backToReview();
 }
@@ -89,6 +86,7 @@ export async function verifyStat(formData: FormData) {
         verifiedAt: new Date(),
       },
     });
+    updateTag(MARKET_DATA_CACHE_TAG); // cached public market pages refresh now
   }
   await backToReview();
 }

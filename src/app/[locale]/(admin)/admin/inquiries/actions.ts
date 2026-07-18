@@ -4,10 +4,10 @@ import { z } from "zod";
 import { getLocale } from "next-intl/server";
 import { revalidatePath } from "next/cache";
 import type { InquiryStatus } from "@prisma/client";
-import { auth } from "@/auth";
 import { redirect } from "@/i18n/navigation";
 import { setInquiryStatus, INQUIRY_STATUSES } from "@/lib/db/inquiries";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { requireAdmin } from "@/lib/require-admin";
 
 const statusSchema = z.object({
   id: z.string().trim().min(1).max(64),
@@ -15,8 +15,8 @@ const statusSchema = z.object({
 });
 
 export async function setInquiryStatusAdmin(formData: FormData) {
-  const session = await auth();
-  if (session?.user.role !== "ADMIN") return;
+  const session = await requireAdmin();
+  if (!session) return;
 
   // Per-admin cap on mutations — a light guard against runaway loops/scripts.
   const { allowed } = checkRateLimit(`admin:user:${session.user.id}`, {

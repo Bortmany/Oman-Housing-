@@ -4,10 +4,10 @@ import { z } from "zod";
 import { getLocale } from "next-intl/server";
 import { revalidatePath } from "next/cache";
 import type { ListingStatus } from "@prisma/client";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "@/i18n/navigation";
 import { PROVENANCE_VALUES } from "@/lib/provenance";
+import { requireAdmin } from "@/lib/require-admin";
 
 const listingSchema = z.object({
   id: z.string().optional(),
@@ -20,11 +20,6 @@ const listingSchema = z.object({
 });
 
 export type ListingFormState = { error?: "validationFailed" } | null;
-
-async function requireAdmin() {
-  const session = await auth();
-  return session?.user.role === "ADMIN" ? session : null;
-}
 
 export async function saveListing(
   _prev: ListingFormState,
