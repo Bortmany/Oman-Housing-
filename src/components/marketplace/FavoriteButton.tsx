@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { toggleFavoriteAction } from "@/app/[locale]/(app)/favorites/actions";
 
 // Zero-JS favorite toggle: a plain server-action form when signed in, a link
@@ -25,27 +26,31 @@ export function FavoriteButton({
 
   if (!signedIn) {
     return (
-      <Link
-        href={{ pathname: "/login", query: { callbackUrl: redirectTo } }}
-        className={cls}
-        title={t("signInToSave")}
-      >
-        ♡
-      </Link>
+      <Tooltip label={t("signInToSave")}>
+        <Link
+          href={{ pathname: "/login", query: { callbackUrl: redirectTo } }}
+          className={cls}
+          aria-label={t("signInToSave")}
+        >
+          ♡
+        </Link>
+      </Tooltip>
     );
   }
 
+  // The label tells you what pressing the heart will do, and doubles as the
+  // screen-reader name for the button (saved vs. not saved).
+  const actionLabel = favorited ? t("remove") : t("add");
+
   return (
-    <form action={toggleFavoriteAction}>
-      <input type="hidden" name="listingId" value={listingId} />
-      <input type="hidden" name="redirectTo" value={redirectTo} />
-      <button
-        type="submit"
-        className={cls}
-        title={favorited ? t("remove") : t("add")}
-      >
-        {favorited ? "♥" : "♡"}
-      </button>
-    </form>
+    <Tooltip label={actionLabel}>
+      <form action={toggleFavoriteAction}>
+        <input type="hidden" name="listingId" value={listingId} />
+        <input type="hidden" name="redirectTo" value={redirectTo} />
+        <button type="submit" className={cls} aria-label={actionLabel}>
+          {favorited ? "♥" : "♡"}
+        </button>
+      </form>
+    </Tooltip>
   );
 }

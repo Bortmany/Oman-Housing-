@@ -60,7 +60,8 @@
     "USER_SUBMITTED": "User submitted",
     "AI_ESTIMATED": "AI estimated",
     "confidence": "Confidence",
-    "source": "Source"
+    "source": "Source",
+    "badgeHint": "Where this figure came from, and how sure we are of it."
   },
   "enums": {
     "propertyType": {

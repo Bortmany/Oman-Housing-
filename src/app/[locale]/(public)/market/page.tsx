@@ -7,6 +7,7 @@ import {
 import { decimalToNumber, formatOMRWhole, formatPercent } from "@/lib/money";
 import { localName, formatMonth } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
 import { Link } from "@/i18n/navigation";
@@ -140,12 +141,11 @@ export default async function MarketPage({
                         </p>
                       </div>
                       {hood.isITC && (
-                        <span
-                          className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-800 ring-1 ring-inset ring-teal-600/20"
-                          title={t("itcHint")}
-                        >
-                          {t("itcBadge")}
-                        </span>
+                        <Tooltip label={t("itcHint")}>
+                          <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-800 ring-1 ring-inset ring-teal-600/20">
+                            {t("itcBadge")}
+                          </span>
+                        </Tooltip>
                       )}
                     </div>
 

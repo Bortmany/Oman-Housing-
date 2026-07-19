@@ -60,7 +60,8 @@
     "USER_SUBMITTED": "مُدخل من المستخدمين",
     "AI_ESTIMATED": "تقدير ذكاء اصطناعي",
     "confidence": "درجة الثقة",
-    "source": "المصدر"
+    "source": "المصدر",
+    "badgeHint": "من أين جاء هذا الرقم، وما مدى ثقتنا به."
   },
   "enums": {
     "propertyType": {
