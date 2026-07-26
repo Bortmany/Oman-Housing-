@@ -5,6 +5,23 @@
     sans-serif;
 }
 
+/* Brand tokens — additive only. The existing raw stone and teal utility
+   classes keep working; these give new components a named ramp
+   (bg-brand-800, etc.). */
+@theme {
+  --color-brand-50: #f0fdfa;
+  --color-brand-100: #ccfbf1;
+  --color-brand-200: #99f6e4;
+  --color-brand-600: #0d9488;
+  --color-brand-700: #0f766e;
+  --color-brand-800: #115e59;
+  --color-brand-900: #134e4a;
+  --color-brand-950: #042f2e;
+  --color-surface: #fafaf9; /* stone-50 */
+  --color-surface-raised: #ffffff;
+  --color-surface-sunken: #f5f5f4; /* stone-100 */
+}
+
 body {
   font-family: var(--font-sans);
   background: #fafaf9; /* stone-50 */
@@ -15,4 +32,64 @@ body {
 [dir="rtl"] body {
   font-family: var(--font-arabic), var(--font-inter), ui-sans-serif, system-ui,
     sans-serif;
+}
+
+/* Scroll-reveal (landing page). Motion only when the visitor allows it —
+   with reduced motion the content simply stays visible. Vertical-only
+   movement, so it is RTL-safe. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal] {
+    opacity: 0;
+    translate: 0 18px;
+    transition:
+      opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+      translate 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  [data-reveal].reveal-visible {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* Range sliders for the landing-page mortgage teaser. 44px-tall hit area. */
+.range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 44px;
+  background: transparent;
+  cursor: pointer;
+}
+.range-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: #e7e5e4; /* stone-200 */
+}
+.range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -9px;
+  height: 24px;
+  width: 24px;
+  border-radius: 9999px;
+  background: var(--color-brand-800);
+  border: 3px solid #ffffff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+}
+.range-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: #e7e5e4;
+}
+.range-slider::-moz-range-thumb {
+  height: 24px;
+  width: 24px;
+  border-radius: 9999px;
+  background: var(--color-brand-800);
+  border: 3px solid #ffffff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+}
+.range-slider:focus-visible {
+  outline: 2px solid var(--color-brand-800);
+  outline-offset: 2px;
 }
