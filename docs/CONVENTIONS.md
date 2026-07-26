@@ -94,7 +94,7 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
   (`/admin/listings`). Query modules: `src/lib/db/{listings,favorites,valuations}.ts`.
 - **Phase 4 — AI analyst**: DONE — leashed Q&A on each property page
   (`AiAnalystCard`, login-gated, 10 questions/user/day). The model
-  (`claude-opus-4-8`, structured output) sees ONLY tagged stored figures
+  (`claude-opus-5`, structured output) sees ONLY tagged stored figures
   gathered in `src/lib/ai/analyst.ts` (reusing `propertyFinancials` and
   `nearestMarketStat`); `src/lib/ai/analystCore.ts` enforces the honesty
   rules in code after every answer — citations must match offered figures,
