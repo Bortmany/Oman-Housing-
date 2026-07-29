@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
 import { Link } from "@/i18n/navigation";
+import { DirectionalLink } from "@/components/ui/DirectionalLink";
 
 export async function generateMetadata() {
   const t = await getTranslations("market");
@@ -74,12 +75,13 @@ export default async function MarketPage({
             {t("subtitle")}
           </p>
         </div>
-        <Link
+        <DirectionalLink
+          direction="forward"
           href="/market/compare"
           className="text-sm font-semibold text-teal-800 hover:underline"
         >
-          {t("compare")} ←
-        </Link>
+          {t("compare")}
+        </DirectionalLink>
       </div>
 
       {/* Property-type filter — one row above the charts */}
@@ -141,7 +143,7 @@ export default async function MarketPage({
                       </div>
                       {hood.isITC && (
                         <span
-                          className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-800 ring-1 ring-inset ring-teal-600/20"
+                          className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-800 ring-1 ring-inset ring-teal-600/20 rtl:text-xs"
                           title={t("itcHint")}
                         >
                           {t("itcBadge")}
@@ -151,15 +153,15 @@ export default async function MarketPage({
 
                     <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                       <div>
-                        <dt className="text-xs text-stone-500">{t("avgSalePrice")}</dt>
-                        <dd className="font-semibold text-stone-900">
+                        <dt className="text-xs text-stone-500 rtl:text-sm">{t("avgSalePrice")}</dt>
+                        <dd className="text-lg font-bold text-teal-800">
                           {s.avgSalePrice
                             ? formatOMRWhole(s.avgSalePrice.toString(), locale)
                             : tc("none")}
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-stone-500">{t("avgRentMonthly")}</dt>
+                        <dt className="text-xs text-stone-500 rtl:text-sm">{t("avgRentMonthly")}</dt>
                         <dd className="font-semibold text-stone-900">
                           {s.avgRentMonthly
                             ? formatOMRWhole(s.avgRentMonthly.toString(), locale)
@@ -167,7 +169,7 @@ export default async function MarketPage({
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-stone-500">{t("avgPricePerSqm")}</dt>
+                        <dt className="text-xs text-stone-500 rtl:text-sm">{t("avgPricePerSqm")}</dt>
                         <dd className="font-semibold text-stone-900">
                           {s.avgPricePerSqm
                             ? formatOMRWhole(s.avgPricePerSqm.toString(), locale)
@@ -175,7 +177,7 @@ export default async function MarketPage({
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-stone-500">{t("grossYield")}</dt>
+                        <dt className="text-xs text-stone-500 rtl:text-sm">{t("grossYield")}</dt>
                         <dd className="font-semibold text-stone-900">
                           {s.grossYieldPct
                             ? formatPercent(s.grossYieldPct.toString(), locale)
@@ -189,7 +191,7 @@ export default async function MarketPage({
                         provenance={s.provenance}
                         confidence={s.confidence}
                       />
-                      <span className="text-xs text-stone-400">
+                      <span className="text-xs text-stone-400 rtl:text-sm">
                         {formatMonth(locale, s.periodStart)}
                       </span>
                     </div>

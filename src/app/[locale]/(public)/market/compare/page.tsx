@@ -122,7 +122,7 @@ export default async function ComparePage({
                     <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                       <div>
                         <dt className="text-xs text-stone-500">{t("avgSalePrice")}</dt>
-                        <dd className="font-semibold">
+                        <dd className="text-lg font-bold text-teal-800">
                           {stat.avgSalePrice
                             ? formatOMRWhole(stat.avgSalePrice.toString(), locale)
                             : tc("none")}

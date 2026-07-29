@@ -49,7 +49,14 @@ export function AgencySignupForm() {
             </div>
             <div>
               <Label htmlFor="email">{t("signup.email")}</Label>
-              <Input id="email" name="email" type="email" required maxLength={200} />
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                required
+                maxLength={200}
+                error={state?.error === "emailTaken"}
+              />
             </div>
           </div>
           <div className="mt-4">

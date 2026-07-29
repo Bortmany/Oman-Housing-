@@ -63,7 +63,7 @@ export function ListingCard({
         >
           {localName(locale, p.titleEn, p.titleAr)}
         </Link>
-        <p className="text-xs text-stone-500">
+        <p className="text-xs text-stone-500 rtl:text-sm">
           {localName(locale, p.neighborhood.nameEn, p.neighborhood.nameAr)},{" "}
           {localName(locale, p.neighborhood.city.nameEn, p.neighborhood.city.nameAr)}
           {" · "}{te(`propertyType.${p.type}`)}

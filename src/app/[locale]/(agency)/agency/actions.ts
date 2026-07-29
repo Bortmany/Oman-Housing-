@@ -55,7 +55,12 @@ const listingSchema = z.object({
 });
 
 export type AgencyListingState =
-  | { error: "validationFailed" | "atListingLimit" | "notAllowed" }
+  | {
+      error: "validationFailed" | "atListingLimit" | "notAllowed";
+      // Which input failed validation (e.g. "price"), so the form can put a
+      // red ring on the right box. Absent for form-wide errors.
+      field?: string;
+    }
   | null;
 
 export async function submitAgencyListing(
@@ -88,7 +93,13 @@ export async function submitAgencyListing(
     price: formData.get("price"),
     rentPeriod: formData.get("rentPeriod") || null,
   });
-  if (!parsed.success) return { error: "validationFailed" };
+  if (!parsed.success) {
+    const field = parsed.error.issues[0]?.path[0];
+    return {
+      error: "validationFailed",
+      field: typeof field === "string" ? field : undefined,
+    };
+  }
   const d = parsed.data;
 
   // Create the property (user-submitted, unverified) and the listing
