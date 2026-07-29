@@ -18,9 +18,11 @@ export function FavoriteButton({
   const t = useTranslations("favorites");
 
   // The pill stays visually small, but the invisible ::after box stretches the
-  // tappable area to roughly 44px — the minimum comfortable touch target.
+  // tappable area to roughly 44px tall — the minimum comfortable touch target.
+  // The sideways stretch stays at 4px so it can't swallow taps meant for the
+  // provenance badge sitting right beside it.
   const cls =
-    "relative inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm ring-1 ring-inset transition-colors after:absolute after:-inset-2 after:content-[''] " +
+    "relative inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm ring-1 ring-inset transition-colors after:absolute after:-inset-y-2 after:-inset-x-1 after:content-[''] " +
     (favorited
       ? "bg-rose-50 text-rose-700 ring-rose-600/30 hover:bg-rose-100"
       : "bg-white text-stone-500 ring-stone-300 hover:bg-stone-100");

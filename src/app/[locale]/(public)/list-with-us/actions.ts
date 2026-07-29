@@ -17,7 +17,7 @@ const signupSchema = z.object({
 });
 
 export type AgencySignupState =
-  | { error: "emailTaken" | "signupFailed" }
+  | { error: "emailTaken" | "signupFailed"; field?: string }
   | null;
 
 export async function signUpAgency(
@@ -33,7 +33,14 @@ export async function signUpAgency(
     email: formData.get("email"),
     password: formData.get("password"),
   });
-  if (!parsed.success) return { error: "signupFailed" };
+  if (!parsed.success) {
+    // Name the box that failed so the form can ring it, same as the other actions.
+    const field = parsed.error.issues[0]?.path[0];
+    return {
+      error: "signupFailed",
+      field: typeof field === "string" ? field : undefined,
+    };
+  }
   const d = parsed.data;
   const locale = await getLocale();
 

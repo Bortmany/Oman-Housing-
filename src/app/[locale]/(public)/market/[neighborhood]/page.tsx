@@ -125,7 +125,13 @@ export default async function NeighborhoodPage({
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <dt className="text-xs text-stone-500 rtl:text-sm">{t("avgSalePrice")}</dt>
-                    <dd className="text-lg font-bold text-teal-800">
+                    <dd
+                      className={
+                        stat!.avgSalePrice
+                          ? "text-lg font-bold text-teal-800"
+                          : "font-semibold text-stone-500"
+                      }
+                    >
                       {stat!.avgSalePrice
                         ? formatOMRWhole(stat!.avgSalePrice.toString(), locale)
                         : tc("none")}

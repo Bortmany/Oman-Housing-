@@ -154,7 +154,13 @@ export default async function MarketPage({
                     <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                       <div>
                         <dt className="text-xs text-stone-500 rtl:text-sm">{t("avgSalePrice")}</dt>
-                        <dd className="text-lg font-bold text-teal-800">
+                        <dd
+                          className={
+                            s.avgSalePrice
+                              ? "text-lg font-bold text-teal-800"
+                              : "font-semibold text-stone-500"
+                          }
+                        >
                           {s.avgSalePrice
                             ? formatOMRWhole(s.avgSalePrice.toString(), locale)
                             : tc("none")}

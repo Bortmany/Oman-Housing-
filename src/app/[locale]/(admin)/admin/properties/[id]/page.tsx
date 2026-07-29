@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StatusPill } from "@/components/marketplace/StatusPill";
 import { Link } from "@/i18n/navigation";
+import { DirectionalLink } from "@/components/ui/DirectionalLink";
 
 export default async function EditPropertyPage({
   params,
@@ -36,12 +37,13 @@ export default async function EditPropertyPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <Link
+      <DirectionalLink
+        direction="back"
         href="/admin/properties"
         className="text-sm text-teal-800 hover:underline"
       >
-        ‹ {t("properties")}
-      </Link>
+        {t("properties")}
+      </DirectionalLink>
       <div className="mt-3 flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-stone-900">
           {t("editProperty")}
