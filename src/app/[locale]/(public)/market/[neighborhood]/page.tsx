@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
 import { PropertyMap } from "@/components/map/PropertyMap";
-import { Link } from "@/i18n/navigation";
+import { DirectionalLink } from "@/components/ui/DirectionalLink";
 
 export default async function NeighborhoodPage({
   params,
@@ -71,9 +71,13 @@ export default async function NeighborhoodPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <Link href="/market" className="text-sm text-teal-800 hover:underline">
-        ‹ {t("title")}
-      </Link>
+      <DirectionalLink
+        direction="back"
+        href="/market"
+        className="text-sm text-teal-800 hover:underline"
+      >
+        {t("title")}
+      </DirectionalLink>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <h1 className="text-3xl font-bold text-stone-900">
@@ -81,7 +85,7 @@ export default async function NeighborhoodPage({
         </h1>
         {hood.isITC && (
           <span
-            className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800 ring-1 ring-inset ring-teal-600/20"
+            className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800 ring-1 ring-inset ring-teal-600/20 rtl:text-sm"
             title={t("itcHint")}
           >
             {t("itcBadge")}
@@ -120,15 +124,21 @@ export default async function NeighborhoodPage({
                 </div>
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <dt className="text-xs text-stone-500">{t("avgSalePrice")}</dt>
-                    <dd className="font-semibold">
+                    <dt className="text-xs text-stone-500 rtl:text-sm">{t("avgSalePrice")}</dt>
+                    <dd
+                      className={
+                        stat!.avgSalePrice
+                          ? "text-lg font-bold text-teal-800"
+                          : "font-semibold text-stone-500"
+                      }
+                    >
                       {stat!.avgSalePrice
                         ? formatOMRWhole(stat!.avgSalePrice.toString(), locale)
                         : tc("none")}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-stone-500">{t("avgRentMonthly")}</dt>
+                    <dt className="text-xs text-stone-500 rtl:text-sm">{t("avgRentMonthly")}</dt>
                     <dd className="font-semibold">
                       {stat!.avgRentMonthly
                         ? formatOMRWhole(stat!.avgRentMonthly.toString(), locale)
@@ -136,7 +146,7 @@ export default async function NeighborhoodPage({
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-stone-500">{t("avgPricePerSqm")}</dt>
+                    <dt className="text-xs text-stone-500 rtl:text-sm">{t("avgPricePerSqm")}</dt>
                     <dd className="font-semibold">
                       {stat!.avgPricePerSqm
                         ? formatOMRWhole(stat!.avgPricePerSqm.toString(), locale)
@@ -144,7 +154,7 @@ export default async function NeighborhoodPage({
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-stone-500">{t("grossYield")}</dt>
+                    <dt className="text-xs text-stone-500 rtl:text-sm">{t("grossYield")}</dt>
                     <dd className="font-semibold">
                       {stat!.grossYieldPct
                         ? formatPercent(stat!.grossYieldPct.toString(), locale)
@@ -152,7 +162,7 @@ export default async function NeighborhoodPage({
                     </dd>
                   </div>
                 </dl>
-                <p className="mt-3 text-end text-xs text-stone-400">
+                <p className="mt-3 text-end text-xs text-stone-400 rtl:text-sm">
                   {formatMonth(locale, stat!.periodStart)}
                 </p>
               </Card>

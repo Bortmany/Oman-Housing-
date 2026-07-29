@@ -1,9 +1,9 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
 export default async function HomePage() {
-  const t = await getTranslations("home");
+  const [t, locale] = await Promise.all([getTranslations("home"), getLocale()]);
 
   const features = [
     { title: t("featureMarketTitle"), body: t("featureMarketBody") },
@@ -14,7 +14,13 @@ export default async function HomePage() {
   return (
     <div className="mx-auto max-w-6xl px-4">
       <section className="py-16 text-center sm:py-24">
-        <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
+        {/* tracking-tight suits large Latin headings only — tightening breaks
+            Arabic's connected letterforms, so the Arabic heading keeps normal spacing. */}
+        <h1
+          className={`mx-auto max-w-3xl text-4xl font-bold text-stone-900 sm:text-5xl ${
+            locale === "ar" ? "" : "tracking-tight"
+          }`}
+        >
           {t("heroTitle")}
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-stone-600">

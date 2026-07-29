@@ -32,7 +32,12 @@ and ships its docs in `node_modules/next/dist/docs/`.**
 4. **RTL via logical properties only.** Use `ms-/me-/ps-/pe-/start-/end-/
    text-start/text-end`, never `ml-/mr-/pl-/pr-/left-/right-/text-left/
    text-right`. The only `dir` switch is in `src/app/[locale]/layout.tsx`.
-   Charts and maps are wrapped `dir="ltr"` on purpose.
+   Charts and maps are wrapped `dir="ltr"` on purpose. The one sanctioned
+   exception is Tailwind's `rtl:` variant, used only for things logical
+   properties cannot express: mirroring a glyph or icon
+   (`rtl:rotate-180`, as in `src/components/ui/DirectionalLink.tsx`) and
+   bumping type size for Arabic legibility (`rtl:text-sm`) — never for
+   spacing or alignment, which stay logical.
 5. **Navigation via `src/i18n/navigation.ts`** (`Link`, `redirect`,
    `useRouter`, `usePathname`) — never `next/link` or `next/navigation`
    directly, or locale prefixes break.

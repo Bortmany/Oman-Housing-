@@ -38,24 +38,28 @@ export function AgencyListingForm({
   );
   const [listingType, setListingType] = useState("SALE");
 
+  // Ring the specific box that failed, alongside the message text below.
+  const invalid = (name: string) =>
+    state?.error === "validationFailed" && state.field === name;
+
   return (
     <form action={action}>
       <Card className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="titleEn">{ta("property.titleEn")}</Label>
-            <Input id="titleEn" name="titleEn" required maxLength={200} />
+            <Input id="titleEn" name="titleEn" required maxLength={200} error={invalid("titleEn")} />
           </div>
           <div>
             <Label htmlFor="titleAr">{ta("property.titleAr")}</Label>
-            <Input id="titleAr" name="titleAr" dir="rtl" maxLength={200} />
+            <Input id="titleAr" name="titleAr" dir="rtl" maxLength={200} error={invalid("titleAr")} />
           </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <Label htmlFor="neighborhoodId">{ta("neighborhood")}</Label>
-            <Select id="neighborhoodId" name="neighborhoodId" required defaultValue="">
+            <Select id="neighborhoodId" name="neighborhoodId" required defaultValue="" error={invalid("neighborhoodId")}>
               <option value="" disabled>—</option>
               {neighborhoods.map((n) => (
                 <option key={n.id} value={n.id}>
@@ -86,19 +90,19 @@ export function AgencyListingForm({
         <div className="grid gap-4 sm:grid-cols-4">
           <div>
             <Label htmlFor="bedrooms">{ta("property.bedrooms")}</Label>
-            <Input id="bedrooms" name="bedrooms" type="number" min={0} />
+            <Input id="bedrooms" name="bedrooms" type="number" min={0} error={invalid("bedrooms")} />
           </div>
           <div>
             <Label htmlFor="bathrooms">{ta("property.bathrooms")}</Label>
-            <Input id="bathrooms" name="bathrooms" type="number" min={0} />
+            <Input id="bathrooms" name="bathrooms" type="number" min={0} error={invalid("bathrooms")} />
           </div>
           <div>
             <Label htmlFor="areaSqm">{ta("property.areaSqm")}</Label>
-            <Input id="areaSqm" name="areaSqm" type="number" step="any" min={0} />
+            <Input id="areaSqm" name="areaSqm" type="number" step="any" min={0} error={invalid("areaSqm")} />
           </div>
           <div>
             <Label htmlFor="yearBuilt">{ta("property.yearBuilt")}</Label>
-            <Input id="yearBuilt" name="yearBuilt" type="number" min={1900} max={2100} />
+            <Input id="yearBuilt" name="yearBuilt" type="number" min={1900} max={2100} error={invalid("yearBuilt")} />
           </div>
         </div>
 
@@ -118,7 +122,7 @@ export function AgencyListingForm({
           </div>
           <div>
             <Label htmlFor="price">{ta("listing.price")}</Label>
-            <Input id="price" name="price" type="number" step="any" min={0} required />
+            <Input id="price" name="price" type="number" step="any" min={0} required error={invalid("price")} />
           </div>
           {listingType === "RENT" && (
             <div>
@@ -134,11 +138,11 @@ export function AgencyListingForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="descriptionEn">{ta("property.descriptionEn")}</Label>
-            <Textarea id="descriptionEn" name="descriptionEn" maxLength={5000} />
+            <Textarea id="descriptionEn" name="descriptionEn" maxLength={5000} error={invalid("descriptionEn")} />
           </div>
           <div>
             <Label htmlFor="descriptionAr">{ta("property.descriptionAr")}</Label>
-            <Textarea id="descriptionAr" name="descriptionAr" dir="rtl" maxLength={5000} />
+            <Textarea id="descriptionAr" name="descriptionAr" dir="rtl" maxLength={5000} error={invalid("descriptionAr")} />
           </div>
         </div>
 

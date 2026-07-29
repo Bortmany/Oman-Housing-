@@ -8,7 +8,14 @@ import {
 } from "@/app/[locale]/(public)/properties/[id]/actions";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input, Textarea, Label, Hint, FieldError } from "@/components/ui/Field";
+import {
+  Input,
+  Select,
+  Textarea,
+  Label,
+  Hint,
+  FieldError,
+} from "@/components/ui/Field";
 import { Link } from "@/i18n/navigation";
 
 export type ListingOption = { id: string; label: string };
@@ -35,6 +42,10 @@ export function EnquiryCard({
   );
 
   if (listings.length === 0) return null;
+
+  // Ring the specific box that failed, alongside the message text below.
+  const invalid = (name: string) =>
+    state.status === "error" && state.code === "invalid" && state.field === name;
 
   if (state.status === "sent") {
     return (
@@ -70,18 +81,21 @@ export function EnquiryCard({
         ) : (
           <div>
             <Label htmlFor="enq-listing">{t("aboutListing")}</Label>
-            <select
+            <Select
               id="enq-listing"
               name="listingId"
-              className="block w-full rounded-lg border-0 bg-white px-3 py-2 text-sm text-stone-900 ring-1 ring-inset ring-stone-300 focus:ring-2 focus:ring-inset focus:ring-teal-700"
               disabled={pending}
+              error={
+                invalid("listingId") ||
+                (state.status === "error" && state.code === "unavailable")
+              }
             >
               {listings.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         )}
 
@@ -103,6 +117,7 @@ export function EnquiryCard({
               maxLength={120}
               disabled={pending}
               required
+              error={invalid("name")}
             />
           </div>
           <div>
@@ -115,13 +130,20 @@ export function EnquiryCard({
               maxLength={200}
               disabled={pending}
               required
+              error={invalid("email")}
             />
           </div>
         </div>
 
         <div>
           <Label htmlFor="enq-phone">{t("phone")}</Label>
-          <Input id="enq-phone" name="phone" maxLength={40} disabled={pending} />
+          <Input
+            id="enq-phone"
+            name="phone"
+            maxLength={40}
+            disabled={pending}
+            error={invalid("phone")}
+          />
           <Hint>{t("phoneHint")}</Hint>
         </div>
 
@@ -135,6 +157,7 @@ export function EnquiryCard({
             placeholder={t("messagePlaceholder")}
             disabled={pending}
             required
+            error={invalid("message")}
           />
         </div>
 

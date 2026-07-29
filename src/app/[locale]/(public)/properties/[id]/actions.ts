@@ -100,7 +100,13 @@ export async function askAnalystAction(
 
 export type EnquiryActionState =
   | { status: "idle" }
-  | { status: "error"; code: "invalid" | "rateLimited" | "unavailable" }
+  | {
+      status: "error";
+      code: "invalid" | "rateLimited" | "unavailable";
+      // Which input failed validation (e.g. "email"), so the form can put a
+      // red ring on the right box. Absent for form-wide errors.
+      field?: string;
+    }
   | { status: "sent"; savedToAccount: boolean };
 
 const enquirySchema = z.object({
@@ -124,7 +130,14 @@ export async function sendEnquiryAction(
     phone: formData.get("phone") || undefined,
     message: formData.get("message"),
   });
-  if (!parsed.success) return { status: "error", code: "invalid" };
+  if (!parsed.success) {
+    const field = parsed.error.issues[0]?.path[0];
+    return {
+      status: "error",
+      code: "invalid",
+      field: typeof field === "string" ? field : undefined,
+    };
+  }
   const d = parsed.data;
 
   // Spam guards: hidden honeypot must be empty, and cap enquiries per email/day.
