@@ -46,7 +46,12 @@ export default async function AgencyEnquiriesPage() {
                     <a href={`mailto:${q.email}`} className="text-teal-800 hover:underline">
                       {q.email}
                     </a>
-                    {q.phone && <span className="ms-2 text-stone-500">· {q.phone}</span>}
+                    {/* Phone numbers read left-to-right, so the + stays in front in Arabic. */}
+                    {q.phone && (
+                      <span className="ms-2 text-stone-500">
+                        · <span dir="ltr">{q.phone}</span>
+                      </span>
+                    )}
                   </p>
                 </div>
                 <p className="whitespace-pre-line text-sm text-stone-700">{q.message}</p>

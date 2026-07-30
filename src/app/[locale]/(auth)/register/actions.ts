@@ -7,10 +7,13 @@ import { getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { signIn } from "@/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { isPossibleEmail } from "@/lib/contact";
 
 const registerSchema = z.object({
   name: z.string().trim().min(1).max(100),
-  email: z.string().trim().toLowerCase().email(),
+  // Must look like a real address (name@domain.tld) — re-checked here because
+  // the browser check can always be skipped.
+  email: z.string().trim().toLowerCase().max(200).refine(isPossibleEmail),
   password: z.string().min(8).max(200),
 });
 

@@ -5,10 +5,17 @@ import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { registerUser, type RegisterState } from "./actions";
 import { Input, Label, Hint, FieldError } from "@/components/ui/Field";
+import {
+  EmailField,
+  blockImpossibleSubmit,
+  useEmailField,
+} from "@/components/ui/ContactFields";
 import { Button } from "@/components/ui/Button";
 
 export function RegisterForm() {
   const t = useTranslations("auth");
+  const tc = useTranslations("contact");
+  const email = useEmailField();
   const rawCallback = useSearchParams().get("callbackUrl");
   const callbackUrl =
     rawCallback?.startsWith("/") && !rawCallback.startsWith("//")
@@ -20,18 +27,33 @@ export function RegisterForm() {
   );
 
   return (
-    <form action={action} className="space-y-4">
+    <form
+      action={action}
+      onSubmit={(e) => blockImpossibleSubmit(e, [email])}
+      className="space-y-4"
+    >
       {callbackUrl && (
         <input type="hidden" name="callbackUrl" value={callbackUrl} />
       )}
       <div>
         <Label htmlFor="name">{t("name")}</Label>
-        <Input id="name" name="name" required maxLength={100} />
+        <Input
+          id="name"
+          name="name"
+          placeholder={tc("examples.name")}
+          required
+          maxLength={100}
+          disabled={pending}
+        />
       </div>
-      <div>
-        <Label htmlFor="email">{t("email")}</Label>
-        <Input id="email" name="email" type="email" required />
-      </div>
+      <EmailField
+        id="email"
+        label={t("email")}
+        field={email}
+        required
+        disabled={pending}
+        serverError={state?.error === "emailTaken"}
+      />
       <div>
         <Label htmlFor="password">{t("password")}</Label>
         <Input
@@ -40,6 +62,7 @@ export function RegisterForm() {
           type="password"
           required
           minLength={8}
+          disabled={pending}
         />
         <Hint>{t("passwordHint")}</Hint>
       </div>

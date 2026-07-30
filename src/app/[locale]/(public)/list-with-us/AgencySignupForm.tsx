@@ -4,22 +4,35 @@ import { useActionState } from "react";
 import { useTranslations } from "next-intl";
 import { signUpAgency, type AgencySignupState } from "./actions";
 import { Input, Label, Hint, FieldError } from "@/components/ui/Field";
+import {
+  EmailField,
+  PhoneField,
+  blockImpossibleSubmit,
+  useEmailField,
+  usePhoneField,
+} from "@/components/ui/ContactFields";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
 export function AgencySignupForm() {
   const t = useTranslations("agency");
+  const tc = useTranslations("contact");
   const [state, action, pending] = useActionState<AgencySignupState, FormData>(
     signUpAgency,
     null,
   );
+  const email = useEmailField();
+  const phone = usePhoneField();
 
   // Ring the specific box that failed, alongside the message text below.
   const invalid = (name: string) =>
     state?.error === "signupFailed" && state.field === name;
 
   return (
-    <form action={action}>
+    <form noValidate
+      action={action}
+      onSubmit={(e) => blockImpossibleSubmit(e, [email, phone])}
+    >
       <Card className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -27,8 +40,10 @@ export function AgencySignupForm() {
             <Input
               id="agencyNameEn"
               name="agencyNameEn"
+              placeholder={t("signup.nameEnExample")}
               required
               maxLength={120}
+              disabled={pending}
               error={invalid("agencyNameEn")}
             />
           </div>
@@ -38,7 +53,9 @@ export function AgencySignupForm() {
               id="agencyNameAr"
               name="agencyNameAr"
               dir="rtl"
+              placeholder={t("signup.nameArExample")}
               maxLength={120}
+              disabled={pending}
               error={invalid("agencyNameAr")}
             />
           </div>
@@ -50,20 +67,20 @@ export function AgencySignupForm() {
             <Input
               id="licenseNo"
               name="licenseNo"
+              placeholder={t("signup.licenseExample")}
               maxLength={60}
+              disabled={pending}
               error={invalid("licenseNo")}
             />
             <Hint>{t("signup.licenseHint")}</Hint>
           </div>
-          <div>
-            <Label htmlFor="phone">{t("signup.phone")}</Label>
-            <Input
-              id="phone"
-              name="phone"
-              maxLength={40}
-              error={invalid("phone")}
-            />
-          </div>
+          <PhoneField
+            id="phone"
+            label={t("signup.phone")}
+            field={phone}
+            disabled={pending}
+            serverError={invalid("phone")}
+          />
         </div>
 
         <div className="border-t border-stone-200 pt-4">
@@ -74,22 +91,21 @@ export function AgencySignupForm() {
               <Input
                 id="contactName"
                 name="contactName"
+                placeholder={tc("examples.name")}
                 required
                 maxLength={100}
+                disabled={pending}
                 error={invalid("contactName")}
               />
             </div>
-            <div>
-              <Label htmlFor="email">{t("signup.email")}</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                required
-                maxLength={200}
-                error={state?.error === "emailTaken" || invalid("email")}
-              />
-            </div>
+            <EmailField
+              id="email"
+              label={t("signup.email")}
+              field={email}
+              required
+              disabled={pending}
+              serverError={state?.error === "emailTaken" || invalid("email")}
+            />
           </div>
           <div className="mt-4">
             <Label htmlFor="password">{t("signup.password")}</Label>
@@ -99,6 +115,7 @@ export function AgencySignupForm() {
               type="password"
               required
               minLength={8}
+              disabled={pending}
               error={invalid("password")}
             />
             <Hint>{t("signup.passwordHint")}</Hint>
