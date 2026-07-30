@@ -21,6 +21,12 @@ import {
   ENQUIRY_WINDOW_MS,
   MAX_MESSAGE_LENGTH,
 } from "@/lib/enquiry";
+import {
+  DEFAULT_DIAL_CODE,
+  checkPhone,
+  combinePhone,
+  isPossibleEmail,
+} from "@/lib/contact";
 
 export type AnalystCitationView = {
   label: string;
@@ -109,13 +115,28 @@ export type EnquiryActionState =
     }
   | { status: "sent"; savedToAccount: boolean };
 
-const enquirySchema = z.object({
-  listingId: z.string().min(1),
-  name: z.string().trim().min(1).max(120),
-  email: z.string().trim().toLowerCase().email().max(200),
-  phone: z.string().trim().max(40).optional(),
-  message: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
-});
+const enquirySchema = z
+  .object({
+    listingId: z.string().min(1),
+    name: z.string().trim().min(1).max(120),
+    // Shape check as well as zod's own — an address must be able to exist.
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .max(200)
+      .refine(isPossibleEmail),
+    phoneCode: z.string().trim().default(DEFAULT_DIAL_CODE),
+    phone: z.string().trim().max(40).optional(),
+    message: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
+  })
+  // The number must be possible for the country code that was chosen.
+  .superRefine((v, ctx) => {
+    if (!v.phone) return;
+    if (checkPhone(v.phoneCode, v.phone) !== null) {
+      ctx.addIssue({ code: "custom", path: ["phone"], message: "impossible" });
+    }
+  });
 
 export async function sendEnquiryAction(
   _prev: EnquiryActionState,
@@ -127,6 +148,7 @@ export async function sendEnquiryAction(
     listingId: formData.get("listingId"),
     name: formData.get("name"),
     email: formData.get("email"),
+    phoneCode: formData.get("phoneCode") || DEFAULT_DIAL_CODE,
     phone: formData.get("phone") || undefined,
     message: formData.get("message"),
   });
@@ -159,7 +181,9 @@ export async function sendEnquiryAction(
     fromUserId: session?.user.id ?? null,
     name: d.name,
     email: d.email,
-    phone: d.phone ?? null,
+    // Code + number are stored as one string ("+968 91234567") in the existing
+    // phone column — the dropdown is a UI aid, not a new database field.
+    phone: d.phone ? combinePhone(d.phoneCode, d.phone) : null,
     message: d.message,
   });
 

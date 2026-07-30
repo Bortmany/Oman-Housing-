@@ -195,6 +195,41 @@
       "cumulativeCashFlow": "Cumulative cash flow"
     }
   },
+  "contact": {
+    "countryCode": "Country code",
+    "countries": {
+      "OM": "Oman",
+      "AE": "UAE",
+      "SA": "Saudi Arabia",
+      "KW": "Kuwait",
+      "QA": "Qatar",
+      "BH": "Bahrain",
+      "YE": "Yemen",
+      "IN": "India",
+      "PK": "Pakistan",
+      "BD": "Bangladesh",
+      "LK": "Sri Lanka",
+      "PH": "Philippines",
+      "EG": "Egypt",
+      "JO": "Jordan",
+      "GB": "United Kingdom",
+      "US": "USA / Canada",
+      "OTHER": "Other"
+    },
+    "examples": {
+      "name": "e.g. Ahmed Al Balushi",
+      "email": "e.g. ahmed@example.com",
+      "phone": "e.g. {example}"
+    },
+    "errors": {
+      "email": "That email doesn't look right — it should look like ahmed@example.com.",
+      "phoneDigits": "Use digits only — for example 9123 4567.",
+      "phoneTooShort": "That number is too short for {code}.",
+      "phoneTooLong": "That number is too long for {code}.",
+      "phoneMobilePrefix": "Omani mobile numbers are 8 digits starting with 9 or 7.",
+      "phoneCode": "Please choose a country code."
+    }
+  },
   "auth": {
     "signInTitle": "Sign in",
     "registerTitle": "Create your account",
@@ -256,6 +291,17 @@
       "transactionCount": "Transactions",
       "sampleSize": "Sample size",
       "atLeastOneMetric": "Enter at least one metric."
+    },
+    "examples": {
+      "titleEn": "e.g. 3-bedroom villa in Al Mouj",
+      "titleAr": "مثال: فيلا ٣ غرف في الموج",
+      "descriptionEn": "e.g. Corner villa with a private garden, 5 minutes from the beach.",
+      "descriptionAr": "مثال: فيلا ركنية بحديقة خاصة، على بُعد ٥ دقائق من الشاطئ.",
+      "bedrooms": "e.g. 3",
+      "bathrooms": "e.g. 2",
+      "areaSqm": "e.g. 180",
+      "yearBuilt": "e.g. 2018",
+      "price": "e.g. 95000"
     },
     "property": {
       "titleEn": "Title (English)",
@@ -493,7 +539,10 @@
       "signIn": "Sign in",
       "nameEn": "Agency name (English)",
       "nameAr": "Agency name (Arabic)",
+      "nameEnExample": "e.g. Al Mouj Real Estate",
+      "nameArExample": "مثال: الموج العقارية",
       "licenseNo": "License number",
+      "licenseExample": "e.g. 1234567",
       "licenseHint": "Optional — helps us verify you faster.",
       "phone": "Phone",
       "loginSection": "Your login",

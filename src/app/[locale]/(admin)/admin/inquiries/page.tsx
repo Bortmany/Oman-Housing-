@@ -88,7 +88,12 @@ export default async function AdminInquiriesPage({
                   <a href={`mailto:${q.email}`} className="text-teal-800 hover:underline">
                     {q.email}
                   </a>
-                  {q.phone && <span className="ms-1">· {q.phone}</span>}
+                  {/* Phone numbers read left-to-right, so the + stays in front in Arabic. */}
+                  {q.phone && (
+                    <span className="ms-1">
+                      · <span dir="ltr">{q.phone}</span>
+                    </span>
+                  )}
                   {q.listing.agency && (
                     <span className="ms-1 text-stone-400">
                       · {localName(locale, q.listing.agency.nameEn, q.listing.agency.nameAr)}

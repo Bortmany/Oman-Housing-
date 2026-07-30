@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 
 export function LoginForm() {
   const t = useTranslations("auth");
+  const tc = useTranslations("contact");
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawCallback = searchParams.get("callbackUrl");
@@ -43,11 +44,27 @@ export function LoginForm() {
     <form onSubmit={onSubmit} className="space-y-4">
       <div>
         <Label htmlFor="email">{t("email")}</Label>
-        <Input id="email" name="email" type="email" required />
+        {/* Addresses read left-to-right in both languages. */}
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          dir="ltr"
+          autoComplete="email"
+          placeholder={tc("examples.email")}
+          required
+          disabled={pending}
+        />
       </div>
       <div>
         <Label htmlFor="password">{t("password")}</Label>
-        <Input id="password" name="password" type="password" required />
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          required
+          disabled={pending}
+        />
       </div>
       <FieldError>{error}</FieldError>
       <Button type="submit" disabled={pending} className="w-full">

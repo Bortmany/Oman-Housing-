@@ -19,6 +19,12 @@ import {
   INQUIRY_STATUSES,
 } from "@/lib/db/inquiries";
 import { canAddListing } from "@/lib/tiers";
+import {
+  DEFAULT_DIAL_CODE,
+  checkPhone,
+  combinePhone,
+  isPossibleEmail,
+} from "@/lib/contact";
 
 /** Guard: a logged-in AGENCY user with an agency link. Returns both or null. */
 async function requireAgency(): Promise<
@@ -162,17 +168,33 @@ export async function setEnquiryStatusAgency(formData: FormData) {
 
 // ---------- Profile ----------
 
-const profileSchema = z.object({
-  nameEn: z.string().trim().min(2).max(120),
-  nameAr: z.string().trim().max(120).optional(),
-  licenseNo: z.string().trim().max(60).optional(),
-  email: z.string().trim().toLowerCase().email().max(200).optional(),
-  phone: z.string().trim().max(40).optional(),
-});
+const profileSchema = z
+  .object({
+    nameEn: z.string().trim().min(2).max(120),
+    nameAr: z.string().trim().max(120).optional(),
+    licenseNo: z.string().trim().max(60).optional(),
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .max(200)
+      .refine(isPossibleEmail)
+      .optional(),
+    phoneCode: z.string().trim().default(DEFAULT_DIAL_CODE),
+    phone: z.string().trim().max(40).optional(),
+  })
+  // The number must be possible for the country code that was chosen.
+  .superRefine((v, ctx) => {
+    if (!v.phone) return;
+    if (checkPhone(v.phoneCode, v.phone) !== null) {
+      ctx.addIssue({ code: "custom", path: ["phone"], message: "impossible" });
+    }
+  });
 
 export type AgencyProfileState =
   | { status: "saved" }
-  | { status: "error" }
+  // `field` names the box that failed, so the form can ring the right one.
+  | { status: "error"; field?: string }
   | null;
 
 export async function saveAgencyProfile(
@@ -187,9 +209,16 @@ export async function saveAgencyProfile(
     nameAr: formData.get("nameAr") || undefined,
     licenseNo: formData.get("licenseNo") || undefined,
     email: formData.get("email") || undefined,
+    phoneCode: formData.get("phoneCode") || DEFAULT_DIAL_CODE,
     phone: formData.get("phone") || undefined,
   });
-  if (!parsed.success) return { status: "error" };
+  if (!parsed.success) {
+    const field = parsed.error.issues[0]?.path[0];
+    return {
+      status: "error",
+      field: typeof field === "string" ? field : undefined,
+    };
+  }
   const d = parsed.data;
 
   await updateAgencyProfile(ctx.agencyId, {
@@ -197,7 +226,8 @@ export async function saveAgencyProfile(
     nameAr: d.nameAr ?? null,
     licenseNo: d.licenseNo ?? null,
     email: d.email ?? null,
-    phone: d.phone ?? null,
+    // Code + number stored as one string ("+968 91234567") — no schema change.
+    phone: d.phone ? combinePhone(d.phoneCode, d.phone) : null,
   });
 
   revalidatePath("/", "layout");

@@ -42,7 +42,12 @@ export default async function AdminAgenciesPage() {
                     <p className="text-sm text-stone-500">
                       {a.licenseNo && <span>{t("agencies.license")}: {a.licenseNo} · </span>}
                       {a.email ?? "—"}
-                      {a.phone && <span> · {a.phone}</span>}
+                      {/* Phone numbers read left-to-right, so the + stays in front in Arabic. */}
+                      {a.phone && (
+                        <span>
+                          · <span dir="ltr">{a.phone}</span>
+                        </span>
+                      )}
                     </p>
                     <p className="mt-1 text-xs text-stone-400">
                       {t("agencies.users", { count: a._count.users })} ·{" "}

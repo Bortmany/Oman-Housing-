@@ -195,6 +195,41 @@
       "cumulativeCashFlow": "التدفق النقدي التراكمي"
     }
   },
+  "contact": {
+    "countryCode": "رمز الدولة",
+    "countries": {
+      "OM": "عُمان",
+      "AE": "الإمارات",
+      "SA": "السعودية",
+      "KW": "الكويت",
+      "QA": "قطر",
+      "BH": "البحرين",
+      "YE": "اليمن",
+      "IN": "الهند",
+      "PK": "باكستان",
+      "BD": "بنغلاديش",
+      "LK": "سريلانكا",
+      "PH": "الفلبين",
+      "EG": "مصر",
+      "JO": "الأردن",
+      "GB": "المملكة المتحدة",
+      "US": "أمريكا / كندا",
+      "OTHER": "أخرى"
+    },
+    "examples": {
+      "name": "مثال: أحمد البلوشي",
+      "email": "مثال: ahmed@example.com",
+      "phone": "مثال: {example}"
+    },
+    "errors": {
+      "email": "هذا البريد الإلكتروني لا يبدو صحيحًا — يجب أن يكون بصيغة ahmed@example.com.",
+      "phoneDigits": "استخدم الأرقام فقط — مثال 9123 4567.",
+      "phoneTooShort": "هذا الرقم قصير جدًا لرمز الدولة {code}.",
+      "phoneTooLong": "هذا الرقم طويل جدًا لرمز الدولة {code}.",
+      "phoneMobilePrefix": "أرقام الهواتف العُمانية من 8 خانات وتبدأ بـ 9 أو 7.",
+      "phoneCode": "يرجى اختيار رمز الدولة."
+    }
+  },
   "auth": {
     "signInTitle": "تسجيل الدخول",
     "registerTitle": "أنشئ حسابك",
@@ -256,6 +291,17 @@
       "transactionCount": "عدد المعاملات",
       "sampleSize": "حجم العينة",
       "atLeastOneMetric": "أدخل مقياسًا واحدًا على الأقل."
+    },
+    "examples": {
+      "titleEn": "e.g. 3-bedroom villa in Al Mouj",
+      "titleAr": "مثال: فيلا ٣ غرف في الموج",
+      "descriptionEn": "e.g. Corner villa with a private garden, 5 minutes from the beach.",
+      "descriptionAr": "مثال: فيلا ركنية بحديقة خاصة، على بُعد ٥ دقائق من الشاطئ.",
+      "bedrooms": "مثال: 3",
+      "bathrooms": "مثال: 2",
+      "areaSqm": "مثال: 180",
+      "yearBuilt": "مثال: 2018",
+      "price": "مثال: 95000"
     },
     "property": {
       "titleEn": "العنوان (إنجليزي)",
@@ -493,7 +539,10 @@
       "signIn": "تسجيل الدخول",
       "nameEn": "اسم الوكالة (بالإنجليزية)",
       "nameAr": "اسم الوكالة (بالعربية)",
+      "nameEnExample": "e.g. Al Mouj Real Estate",
+      "nameArExample": "مثال: الموج العقارية",
       "licenseNo": "رقم الترخيص",
+      "licenseExample": "مثال: 1234567",
       "licenseHint": "اختياري — يساعدنا على التحقق منك أسرع.",
       "phone": "الهاتف",
       "loginSection": "بيانات دخولك",

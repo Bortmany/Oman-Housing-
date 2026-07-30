@@ -13,9 +13,15 @@ import {
   Select,
   Textarea,
   Label,
-  Hint,
   FieldError,
 } from "@/components/ui/Field";
+import {
+  EmailField,
+  PhoneField,
+  blockImpossibleSubmit,
+  useEmailField,
+  usePhoneField,
+} from "@/components/ui/ContactFields";
 import { Link } from "@/i18n/navigation";
 
 export type ListingOption = { id: string; label: string };
@@ -36,10 +42,13 @@ export function EnquiryCard({
   registerHref: string;
 }) {
   const t = useTranslations("enquiry");
+  const tc = useTranslations("contact");
   const [state, formAction, pending] = useActionState(
     sendEnquiryAction,
     initialState,
   );
+  const email = useEmailField(defaultEmail);
+  const phone = usePhoneField();
 
   if (listings.length === 0) return null;
 
@@ -75,7 +84,11 @@ export function EnquiryCard({
         </div>
       )}
 
-      <form action={formAction} className="mt-4 space-y-3">
+      <form
+        action={formAction}
+        onSubmit={(e) => blockImpossibleSubmit(e, [email, phone])}
+        className="mt-4 space-y-3"
+      >
         {listings.length === 1 ? (
           <input type="hidden" name="listingId" value={listings[0].id} />
         ) : (
@@ -114,38 +127,31 @@ export function EnquiryCard({
               id="enq-name"
               name="name"
               defaultValue={defaultName}
+              placeholder={tc("examples.name")}
               maxLength={120}
               disabled={pending}
               required
               error={invalid("name")}
             />
           </div>
-          <div>
-            <Label htmlFor="enq-email">{t("email")}</Label>
-            <Input
-              id="enq-email"
-              name="email"
-              type="email"
-              defaultValue={defaultEmail}
-              maxLength={200}
-              disabled={pending}
-              required
-              error={invalid("email")}
-            />
-          </div>
+          <EmailField
+            id="enq-email"
+            label={t("email")}
+            field={email}
+            disabled={pending}
+            required
+            serverError={invalid("email")}
+          />
         </div>
 
-        <div>
-          <Label htmlFor="enq-phone">{t("phone")}</Label>
-          <Input
-            id="enq-phone"
-            name="phone"
-            maxLength={40}
-            disabled={pending}
-            error={invalid("phone")}
-          />
-          <Hint>{t("phoneHint")}</Hint>
-        </div>
+        <PhoneField
+          id="enq-phone"
+          label={t("phone")}
+          field={phone}
+          hint={t("phoneHint")}
+          disabled={pending}
+          serverError={invalid("phone")}
+        />
 
         <div>
           <Label htmlFor="enq-message">{t("message")}</Label>
