@@ -33,7 +33,7 @@ export function AgencyProfileForm({ defaults }: { defaults: AgencyProfileDefault
   const phone = usePhoneField(defaults.phone);
 
   return (
-    <form
+    <form noValidate
       action={action}
       onSubmit={(e) => blockImpossibleSubmit(e, [email, phone])}
     >

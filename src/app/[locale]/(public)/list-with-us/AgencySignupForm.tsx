@@ -29,7 +29,7 @@ export function AgencySignupForm() {
     state?.error === "signupFailed" && state.field === name;
 
   return (
-    <form
+    <form noValidate
       action={action}
       onSubmit={(e) => blockImpossibleSubmit(e, [email, phone])}
     >

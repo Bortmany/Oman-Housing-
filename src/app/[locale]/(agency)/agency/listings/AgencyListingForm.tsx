@@ -43,7 +43,7 @@ export function AgencyListingForm({
     state?.error === "validationFailed" && state.field === name;
 
   return (
-    <form action={action}>
+    <form noValidate action={action}>
       <Card className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>

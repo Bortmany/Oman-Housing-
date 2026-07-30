@@ -84,7 +84,7 @@ export function EnquiryCard({
         </div>
       )}
 
-      <form
+      <form noValidate
         action={formAction}
         onSubmit={(e) => blockImpossibleSubmit(e, [email, phone])}
         className="mt-4 space-y-3"
