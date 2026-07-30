@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/ContactFields";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { typedOr } from "@/lib/formValues";
 
 export function AgencySignupForm() {
   const t = useTranslations("agency");
@@ -28,6 +29,10 @@ export function AgencySignupForm() {
   const invalid = (name: string) =>
     state?.error === "signupFailed" && state.field === name;
 
+  // A rejected signup comes back filled in — only the password is retyped.
+  // (Email and phone are driven by React state and keep their text themselves.)
+  const typed = state?.values;
+
   return (
     <form noValidate
       action={action}
@@ -40,6 +45,7 @@ export function AgencySignupForm() {
             <Input
               id="agencyNameEn"
               name="agencyNameEn"
+              defaultValue={typedOr(typed, "agencyNameEn")}
               placeholder={t("signup.nameEnExample")}
               required
               maxLength={120}
@@ -52,6 +58,7 @@ export function AgencySignupForm() {
             <Input
               id="agencyNameAr"
               name="agencyNameAr"
+              defaultValue={typedOr(typed, "agencyNameAr")}
               dir="rtl"
               placeholder={t("signup.nameArExample")}
               maxLength={120}
@@ -67,6 +74,7 @@ export function AgencySignupForm() {
             <Input
               id="licenseNo"
               name="licenseNo"
+              defaultValue={typedOr(typed, "licenseNo")}
               placeholder={t("signup.licenseExample")}
               maxLength={60}
               disabled={pending}
@@ -91,6 +99,7 @@ export function AgencySignupForm() {
               <Input
                 id="contactName"
                 name="contactName"
+                defaultValue={typedOr(typed, "contactName")}
                 placeholder={tc("examples.name")}
                 required
                 maxLength={100}

@@ -10,6 +10,7 @@ import { Input, Label, Select, Textarea, FieldError } from "@/components/ui/Fiel
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { localName } from "@/lib/i18nData";
+import { typedOr } from "@/lib/formValues";
 
 const PROPERTY_TYPES = [
   "APARTMENT", "VILLA", "TOWNHOUSE", "PENTHOUSE",
@@ -42,6 +43,10 @@ export function AgencyListingForm({
   const invalid = (name: string) =>
     state?.error === "validationFailed" && state.field === name;
 
+  // A rejected submission comes back filled in — a long listing is never
+  // retyped because one box was wrong.
+  const typed = state?.values;
+
   return (
     <form noValidate action={action}>
       <Card className="space-y-4">
@@ -49,12 +54,14 @@ export function AgencyListingForm({
           <div>
             <Label htmlFor="titleEn">{ta("property.titleEn")}</Label>
             <Input id="titleEn" name="titleEn" required maxLength={200}
+              defaultValue={typedOr(typed, "titleEn")}
               placeholder={ta("examples.titleEn")} disabled={pending}
               error={invalid("titleEn")} />
           </div>
           <div>
             <Label htmlFor="titleAr">{ta("property.titleAr")}</Label>
             <Input id="titleAr" name="titleAr" dir="rtl" maxLength={200}
+              defaultValue={typedOr(typed, "titleAr")}
               placeholder={ta("examples.titleAr")} disabled={pending}
               error={invalid("titleAr")} />
           </div>
@@ -63,7 +70,8 @@ export function AgencyListingForm({
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <Label htmlFor="neighborhoodId">{ta("neighborhood")}</Label>
-            <Select id="neighborhoodId" name="neighborhoodId" required defaultValue=""
+            <Select id="neighborhoodId" name="neighborhoodId" required
+              defaultValue={typedOr(typed, "neighborhoodId")}
               disabled={pending} error={invalid("neighborhoodId")}>
               <option value="" disabled>—</option>
               {neighborhoods.map((n) => (
@@ -76,7 +84,8 @@ export function AgencyListingForm({
           </div>
           <div>
             <Label htmlFor="type">{ta("property.type")}</Label>
-            <Select id="type" name="type" required defaultValue="APARTMENT" disabled={pending}>
+            <Select id="type" name="type" required
+              defaultValue={typedOr(typed, "type", "APARTMENT")} disabled={pending}>
               {PROPERTY_TYPES.map((pt) => (
                 <option key={pt} value={pt}>{te(`propertyType.${pt}`)}</option>
               ))}
@@ -84,7 +93,8 @@ export function AgencyListingForm({
           </div>
           <div>
             <Label htmlFor="ownership">{ta("property.ownership")}</Label>
-            <Select id="ownership" name="ownership" required defaultValue="UNKNOWN" disabled={pending}>
+            <Select id="ownership" name="ownership" required
+              defaultValue={typedOr(typed, "ownership", "UNKNOWN")} disabled={pending}>
               {OWNERSHIP.map((o) => (
                 <option key={o} value={o}>{te(`ownership.${o}`)}</option>
               ))}
@@ -96,24 +106,28 @@ export function AgencyListingForm({
           <div>
             <Label htmlFor="bedrooms">{ta("property.bedrooms")}</Label>
             <Input id="bedrooms" name="bedrooms" type="number" min={0}
+              defaultValue={typedOr(typed, "bedrooms")}
               placeholder={ta("examples.bedrooms")} disabled={pending}
               error={invalid("bedrooms")} />
           </div>
           <div>
             <Label htmlFor="bathrooms">{ta("property.bathrooms")}</Label>
             <Input id="bathrooms" name="bathrooms" type="number" min={0}
+              defaultValue={typedOr(typed, "bathrooms")}
               placeholder={ta("examples.bathrooms")} disabled={pending}
               error={invalid("bathrooms")} />
           </div>
           <div>
             <Label htmlFor="areaSqm">{ta("property.areaSqm")}</Label>
             <Input id="areaSqm" name="areaSqm" type="number" step="any" min={0}
+              defaultValue={typedOr(typed, "areaSqm")}
               placeholder={ta("examples.areaSqm")} disabled={pending}
               error={invalid("areaSqm")} />
           </div>
           <div>
             <Label htmlFor="yearBuilt">{ta("property.yearBuilt")}</Label>
             <Input id="yearBuilt" name="yearBuilt" type="number" min={1900} max={2100}
+              defaultValue={typedOr(typed, "yearBuilt")}
               placeholder={ta("examples.yearBuilt")} disabled={pending}
               error={invalid("yearBuilt")} />
           </div>
@@ -137,13 +151,15 @@ export function AgencyListingForm({
           <div>
             <Label htmlFor="price">{ta("listing.price")}</Label>
             <Input id="price" name="price" type="number" step="any" min={0} required
+              defaultValue={typedOr(typed, "price")}
               placeholder={ta("examples.price")} disabled={pending}
               error={invalid("price")} />
           </div>
           {listingType === "RENT" && (
             <div>
               <Label htmlFor="rentPeriod">{ta("listing.rentPeriod")}</Label>
-              <Select id="rentPeriod" name="rentPeriod" defaultValue="MONTHLY" disabled={pending}>
+              <Select id="rentPeriod" name="rentPeriod"
+                defaultValue={typedOr(typed, "rentPeriod", "MONTHLY")} disabled={pending}>
                 <option value="MONTHLY">{te("rentPeriod.MONTHLY")}</option>
                 <option value="ANNUAL">{te("rentPeriod.ANNUAL")}</option>
               </Select>
@@ -155,12 +171,14 @@ export function AgencyListingForm({
           <div>
             <Label htmlFor="descriptionEn">{ta("property.descriptionEn")}</Label>
             <Textarea id="descriptionEn" name="descriptionEn" maxLength={5000}
+              defaultValue={typedOr(typed, "descriptionEn")}
               placeholder={ta("examples.descriptionEn")} disabled={pending}
               error={invalid("descriptionEn")} />
           </div>
           <div>
             <Label htmlFor="descriptionAr">{ta("property.descriptionAr")}</Label>
             <Textarea id="descriptionAr" name="descriptionAr" dir="rtl" maxLength={5000}
+              defaultValue={typedOr(typed, "descriptionAr")}
               placeholder={ta("examples.descriptionAr")} disabled={pending}
               error={invalid("descriptionAr")} />
           </div>

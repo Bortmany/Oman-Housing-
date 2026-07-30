@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "@/i18n/navigation";
 import { PROVENANCE_VALUES } from "@/lib/provenance";
 import { requireAdmin } from "@/lib/require-admin";
+import { submittedValues, type SubmittedValues } from "@/lib/formValues";
 
 const listingSchema = z.object({
   id: z.string().optional(),
@@ -19,14 +20,25 @@ const listingSchema = z.object({
   confidence: z.preprocess((v) => Number(v), z.number().min(0).max(1)),
 });
 
-export type ListingFormState = { error?: "validationFailed" } | null;
+export type ListingFormState = {
+  error?: "validationFailed";
+  // What was typed, so a rejected listing is never re-keyed by hand.
+  values?: SubmittedValues;
+} | null;
+
+/** The boxes handed back when a listing is rejected. */
+const LISTING_FIELDS = [
+  "propertyId", "listingType", "price", "rentPeriod", "provenance", "confidence",
+] as const;
 
 export async function saveListing(
   _prev: ListingFormState,
   formData: FormData,
 ): Promise<ListingFormState> {
+  const typed = submittedValues(formData, LISTING_FIELDS);
+
   const session = await requireAdmin();
-  if (!session) return { error: "validationFailed" };
+  if (!session) return { error: "validationFailed", values: typed };
 
   const parsed = listingSchema.safeParse({
     id: formData.get("id") || undefined,
@@ -37,7 +49,7 @@ export async function saveListing(
     provenance: formData.get("provenance"),
     confidence: formData.get("confidence"),
   });
-  if (!parsed.success) return { error: "validationFailed" };
+  if (!parsed.success) return { error: "validationFailed", values: typed };
 
   const d = parsed.data;
   const data = {

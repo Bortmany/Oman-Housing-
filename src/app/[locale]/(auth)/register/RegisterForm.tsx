@@ -11,6 +11,7 @@ import {
   useEmailField,
 } from "@/components/ui/ContactFields";
 import { Button } from "@/components/ui/Button";
+import { typedOr } from "@/lib/formValues";
 
 export function RegisterForm() {
   const t = useTranslations("auth");
@@ -33,13 +34,17 @@ export function RegisterForm() {
       className="space-y-4"
     >
       {callbackUrl && (
-        <input type="hidden" name="callbackUrl" value={callbackUrl} />
+        // defaultValue, not value: a failed submit resets the form, and the
+        // page the visitor was heading to must survive that reset too.
+        <input type="hidden" name="callbackUrl" defaultValue={callbackUrl} />
       )}
       <div>
         <Label htmlFor="name">{t("name")}</Label>
         <Input
           id="name"
           name="name"
+          // A failed signup keeps the name; only the password is retyped.
+          defaultValue={typedOr(state?.values, "name")}
           placeholder={tc("examples.name")}
           required
           maxLength={100}
