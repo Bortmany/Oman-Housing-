@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { localName } from "@/lib/i18nData";
 import { PROVENANCE_VALUES } from "@/lib/provenance";
+import { typedOr } from "@/lib/formValues";
 
 const PROPERTY_TYPES = [
   "APARTMENT", "VILLA", "TOWNHOUSE", "PENTHOUSE",
@@ -59,6 +60,11 @@ export function PropertyForm({
     null,
   );
 
+  // A rejected save comes back with the edits in the boxes, not the old values.
+  // Any photos picked for upload do have to be chosen again — the browser
+  // clears its own file picker and no site can refill it.
+  const typed = state?.values;
+
   return (
     <form action={action}>
       <Card className="space-y-4">
@@ -68,12 +74,12 @@ export function PropertyForm({
           <div>
             <Label htmlFor="titleEn">{t("property.titleEn")}</Label>
             <Input id="titleEn" name="titleEn" required maxLength={200}
-              defaultValue={defaults.titleEn ?? ""} />
+              defaultValue={typedOr(typed, "titleEn", defaults.titleEn ?? "")} />
           </div>
           <div>
             <Label htmlFor="titleAr">{t("property.titleAr")}</Label>
             <Input id="titleAr" name="titleAr" dir="rtl" maxLength={200}
-              defaultValue={defaults.titleAr ?? ""} />
+              defaultValue={typedOr(typed, "titleAr", defaults.titleAr ?? "")} />
           </div>
         </div>
 
@@ -81,7 +87,7 @@ export function PropertyForm({
           <div>
             <Label htmlFor="neighborhoodId">{t("neighborhood")}</Label>
             <Select id="neighborhoodId" name="neighborhoodId" required
-              defaultValue={defaults.neighborhoodId ?? ""}>
+              defaultValue={typedOr(typed, "neighborhoodId", defaults.neighborhoodId ?? "")}>
               <option value="" disabled>—</option>
               {neighborhoods.map((n) => (
                 <option key={n.id} value={n.id}>
@@ -92,7 +98,7 @@ export function PropertyForm({
           </div>
           <div>
             <Label htmlFor="type">{t("property.type")}</Label>
-            <Select id="type" name="type" required defaultValue={defaults.type ?? "APARTMENT"}>
+            <Select id="type" name="type" required defaultValue={typedOr(typed, "type", defaults.type ?? "APARTMENT")}>
               {PROPERTY_TYPES.map((pt) => (
                 <option key={pt} value={pt}>{te(`propertyType.${pt}`)}</option>
               ))}
@@ -101,7 +107,7 @@ export function PropertyForm({
           <div>
             <Label htmlFor="ownership">{t("property.ownership")}</Label>
             <Select id="ownership" name="ownership" required
-              defaultValue={defaults.ownership ?? "UNKNOWN"}>
+              defaultValue={typedOr(typed, "ownership", defaults.ownership ?? "UNKNOWN")}>
               {OWNERSHIP.map((o) => (
                 <option key={o} value={o}>{te(`ownership.${o}`)}</option>
               ))}
@@ -113,22 +119,22 @@ export function PropertyForm({
           <div>
             <Label htmlFor="bedrooms">{t("property.bedrooms")}</Label>
             <Input id="bedrooms" name="bedrooms" type="number" min={0}
-              defaultValue={defaults.bedrooms ?? ""} />
+              defaultValue={typedOr(typed, "bedrooms", String(defaults.bedrooms ?? ""))} />
           </div>
           <div>
             <Label htmlFor="bathrooms">{t("property.bathrooms")}</Label>
             <Input id="bathrooms" name="bathrooms" type="number" min={0}
-              defaultValue={defaults.bathrooms ?? ""} />
+              defaultValue={typedOr(typed, "bathrooms", String(defaults.bathrooms ?? ""))} />
           </div>
           <div>
             <Label htmlFor="areaSqm">{t("property.areaSqm")}</Label>
             <Input id="areaSqm" name="areaSqm" type="number" step="any" min={0}
-              defaultValue={defaults.areaSqm ?? ""} />
+              defaultValue={typedOr(typed, "areaSqm", defaults.areaSqm ?? "")} />
           </div>
           <div>
             <Label htmlFor="plotSqm">{t("property.plotSqm")}</Label>
             <Input id="plotSqm" name="plotSqm" type="number" step="any" min={0}
-              defaultValue={defaults.plotSqm ?? ""} />
+              defaultValue={typedOr(typed, "plotSqm", defaults.plotSqm ?? "")} />
           </div>
         </div>
 
@@ -136,21 +142,21 @@ export function PropertyForm({
           <div>
             <Label htmlFor="yearBuilt">{t("property.yearBuilt")}</Label>
             <Input id="yearBuilt" name="yearBuilt" type="number" min={1900} max={2100}
-              defaultValue={defaults.yearBuilt ?? ""} />
+              defaultValue={typedOr(typed, "yearBuilt", String(defaults.yearBuilt ?? ""))} />
           </div>
           <div>
             <Label htmlFor="lat">{t("property.lat")}</Label>
             <Input id="lat" name="lat" type="number" step="any"
-              defaultValue={defaults.lat ?? ""} />
+              defaultValue={typedOr(typed, "lat", String(defaults.lat ?? ""))} />
           </div>
           <div>
             <Label htmlFor="lng">{t("property.lng")}</Label>
             <Input id="lng" name="lng" type="number" step="any"
-              defaultValue={defaults.lng ?? ""} />
+              defaultValue={typedOr(typed, "lng", String(defaults.lng ?? ""))} />
           </div>
           <div className="flex items-end gap-2 pb-2">
             <input id="furnished" name="furnished" type="checkbox"
-              defaultChecked={defaults.furnished ?? false}
+              defaultChecked={typed ? typed.furnished === "on" : (defaults.furnished ?? false)}
               className="size-4 rounded border-stone-300 text-teal-800" />
             <Label htmlFor="furnished" className="!mb-0">
               {t("property.furnished")}
@@ -162,12 +168,12 @@ export function PropertyForm({
           <div>
             <Label htmlFor="descriptionEn">{t("property.descriptionEn")}</Label>
             <Textarea id="descriptionEn" name="descriptionEn" maxLength={5000}
-              defaultValue={defaults.descriptionEn ?? ""} />
+              defaultValue={typedOr(typed, "descriptionEn", defaults.descriptionEn ?? "")} />
           </div>
           <div>
             <Label htmlFor="descriptionAr">{t("property.descriptionAr")}</Label>
             <Textarea id="descriptionAr" name="descriptionAr" dir="rtl" maxLength={5000}
-              defaultValue={defaults.descriptionAr ?? ""} />
+              defaultValue={typedOr(typed, "descriptionAr", defaults.descriptionAr ?? "")} />
           </div>
         </div>
 
@@ -175,7 +181,7 @@ export function PropertyForm({
           <div>
             <Label htmlFor="provenance">{t("provenance")}</Label>
             <Select id="provenance" name="provenance" required
-              defaultValue={defaults.provenance ?? "USER_SUBMITTED"}>
+              defaultValue={typedOr(typed, "provenance", defaults.provenance ?? "USER_SUBMITTED")}>
               {PROVENANCE_VALUES.map((p) => (
                 <option key={p} value={p}>{tp(p)}</option>
               ))}
@@ -185,12 +191,12 @@ export function PropertyForm({
             <Label htmlFor="confidence">{t("confidence")}</Label>
             <Input id="confidence" name="confidence" type="number"
               min={0} max={1} step={0.05} required
-              defaultValue={defaults.confidence ?? 0.5} />
+              defaultValue={typedOr(typed, "confidence", String(defaults.confidence ?? 0.5))} />
           </div>
           <div className="sm:col-span-2">
             <Label htmlFor="sourceNote">{t("sourceNote")}</Label>
             <Input id="sourceNote" name="sourceNote" maxLength={500}
-              defaultValue={defaults.sourceNote ?? ""} />
+              defaultValue={typedOr(typed, "sourceNote", defaults.sourceNote ?? "")} />
           </div>
         </div>
 

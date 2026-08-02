@@ -8,6 +8,7 @@ import { redirect } from "@/i18n/navigation";
 import { MARKET_DATA_CACHE_TAG } from "@/lib/db/market-stats";
 import { requireAdmin } from "@/lib/require-admin";
 import { savePropertyImage, deleteStoredFile } from "@/lib/storage";
+import { submittedValues, type SubmittedValues } from "@/lib/formValues";
 
 const PROPERTY_TYPES = [
   "APARTMENT", "VILLA", "TOWNHOUSE", "PENTHOUSE",
@@ -49,14 +50,28 @@ const propertySchema = z.object({
 
 export type PropertyFormState = {
   error?: "validationFailed" | "imageTooLarge" | "imageWrongType";
+  // What was typed, so a rejected property is never re-keyed by hand.
+  // (Chosen photo files cannot be handed back — the browser owns those.)
+  values?: SubmittedValues;
 } | null;
+
+/** The boxes handed back when a property is rejected. */
+const PROPERTY_FIELDS = [
+  "neighborhoodId", "type", "ownership", "titleEn", "titleAr",
+  "descriptionEn", "descriptionAr", "bedrooms", "bathrooms", "areaSqm",
+  "plotSqm", "yearBuilt", "furnished", "lat", "lng", "provenance",
+  "confidence", "sourceNote",
+] as const;
 
 export async function saveProperty(
   _prev: PropertyFormState,
   formData: FormData,
 ): Promise<PropertyFormState> {
+  // Held on to now so every "no" below can hand the typed form straight back.
+  const typed = submittedValues(formData, PROPERTY_FIELDS);
+
   const session = await requireAdmin();
-  if (!session) return { error: "validationFailed" };
+  if (!session) return { error: "validationFailed", values: typed };
 
   const parsed = propertySchema.safeParse({
     id: formData.get("id") || undefined,
@@ -79,7 +94,7 @@ export async function saveProperty(
     confidence: formData.get("confidence"),
     sourceNote: formData.get("sourceNote") ?? "",
   });
-  if (!parsed.success) return { error: "validationFailed" };
+  if (!parsed.success) return { error: "validationFailed", values: typed };
 
   const d = parsed.data;
   const data = {
@@ -124,6 +139,7 @@ export async function saveProperty(
       if ("error" in saved) {
         return {
           error: saved.error === "size" ? "imageTooLarge" : "imageWrongType",
+          values: typed,
         };
       }
       await prisma.propertyImage.create({

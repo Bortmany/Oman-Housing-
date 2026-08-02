@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/ContactFields";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { typedOr } from "@/lib/formValues";
 
 export type AgencyProfileDefaults = {
   nameEn: string;
@@ -32,6 +33,10 @@ export function AgencyProfileForm({ defaults }: { defaults: AgencyProfileDefault
   // Splits a stored "+968 91234567" back into the dropdown and the box.
   const phone = usePhoneField(defaults.phone);
 
+  // A rejected save comes back with the edits still in the boxes, not the old
+  // saved values. (Email and phone hold their own text in React state.)
+  const typed = state?.status === "error" ? state.values : undefined;
+
   return (
     <form noValidate
       action={action}
@@ -44,14 +49,14 @@ export function AgencyProfileForm({ defaults }: { defaults: AgencyProfileDefault
             <Input id="nameEn" name="nameEn" required maxLength={120}
               placeholder={t("signup.nameEnExample")}
               disabled={pending}
-              defaultValue={defaults.nameEn} />
+              defaultValue={typedOr(typed, "nameEn", defaults.nameEn)} />
           </div>
           <div>
             <Label htmlFor="nameAr">{t("signup.nameAr")}</Label>
             <Input id="nameAr" name="nameAr" dir="rtl" maxLength={120}
               placeholder={t("signup.nameArExample")}
               disabled={pending}
-              defaultValue={defaults.nameAr ?? ""} />
+              defaultValue={typedOr(typed, "nameAr", defaults.nameAr ?? "")} />
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
@@ -60,7 +65,7 @@ export function AgencyProfileForm({ defaults }: { defaults: AgencyProfileDefault
             <Input id="licenseNo" name="licenseNo" maxLength={60}
               placeholder={t("signup.licenseExample")}
               disabled={pending}
-              defaultValue={defaults.licenseNo ?? ""} />
+              defaultValue={typedOr(typed, "licenseNo", defaults.licenseNo ?? "")} />
           </div>
           <EmailField
             id="email"

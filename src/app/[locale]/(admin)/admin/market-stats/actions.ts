@@ -12,6 +12,7 @@ import {
 } from "@/lib/db/market-stats";
 import { PROVENANCE_VALUES } from "@/lib/provenance";
 import { requireAdmin } from "@/lib/require-admin";
+import { submittedValues, type SubmittedValues } from "@/lib/formValues";
 
 const PROPERTY_TYPES = [
   "APARTMENT", "VILLA", "TOWNHOUSE", "PENTHOUSE",
@@ -43,7 +44,16 @@ const statSchema = z.object({
 
 export type StatFormState = {
   error?: "validationFailed" | "atLeastOneMetric";
+  // What was typed, so a rejected row is never re-keyed by hand.
+  values?: SubmittedValues;
 } | null;
+
+/** The boxes handed back when a stat row is rejected. */
+const STAT_FIELDS = [
+  "scope", "propertyType", "period", "avgSalePrice", "medianSalePrice",
+  "avgRentMonthly", "avgPricePerSqm", "grossYieldPct", "transactionCount",
+  "sampleSize", "provenance", "confidence", "sourceNote", "sourceUrl",
+] as const;
 
 function parseScope(raw: string): StatScope {
   if (raw === "national") return { kind: "national" };
@@ -57,8 +67,11 @@ export async function saveMarketStat(
   _prev: StatFormState,
   formData: FormData,
 ): Promise<StatFormState> {
+  // Held on to now so every "no" below can hand the typed row straight back.
+  const typed = submittedValues(formData, STAT_FIELDS);
+
   const session = await requireAdmin();
-  if (!session) return { error: "validationFailed" };
+  if (!session) return { error: "validationFailed", values: typed };
 
   const parsed = statSchema.safeParse({
     scope: formData.get("scope"),
@@ -76,7 +89,7 @@ export async function saveMarketStat(
     sourceNote: formData.get("sourceNote") ?? "",
     sourceUrl: formData.get("sourceUrl") ?? "",
   });
-  if (!parsed.success) return { error: "validationFailed" };
+  if (!parsed.success) return { error: "validationFailed", values: typed };
 
   const d = parsed.data;
   const metrics = {
@@ -89,7 +102,7 @@ export async function saveMarketStat(
     sampleSize: d.sampleSize == null ? null : Math.round(d.sampleSize),
   };
   if (Object.values(metrics).every((v) => v == null)) {
-    return { error: "atLeastOneMetric" };
+    return { error: "atLeastOneMetric", values: typed };
   }
 
   const [year, month] = d.period.split("-").map(Number);

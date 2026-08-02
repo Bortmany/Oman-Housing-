@@ -23,6 +23,7 @@ import {
   usePhoneField,
 } from "@/components/ui/ContactFields";
 import { Link } from "@/i18n/navigation";
+import { typedOr } from "@/lib/formValues";
 
 export type ListingOption = { id: string; label: string };
 
@@ -55,6 +56,11 @@ export function EnquiryCard({
   // Ring the specific box that failed, alongside the message text below.
   const invalid = (name: string) =>
     state.status === "error" && state.code === "invalid" && state.field === name;
+
+  // A rejected enquiry comes back with the visitor's own words in it — nobody
+  // retypes their message because the email had a typo. (The email and phone
+  // boxes are driven by React state, so they keep their text by themselves.)
+  const typed = state.status === "error" ? state.values : undefined;
 
   if (state.status === "sent") {
     return (
@@ -97,6 +103,7 @@ export function EnquiryCard({
             <Select
               id="enq-listing"
               name="listingId"
+              defaultValue={typedOr(typed, "listingId", listings[0].id)}
               disabled={pending}
               error={
                 invalid("listingId") ||
@@ -126,7 +133,7 @@ export function EnquiryCard({
             <Input
               id="enq-name"
               name="name"
-              defaultValue={defaultName}
+              defaultValue={typedOr(typed, "name", defaultName)}
               placeholder={tc("examples.name")}
               maxLength={120}
               disabled={pending}
@@ -158,6 +165,7 @@ export function EnquiryCard({
           <Textarea
             id="enq-message"
             name="message"
+            defaultValue={typedOr(typed, "message")}
             rows={4}
             maxLength={1000}
             placeholder={t("messagePlaceholder")}

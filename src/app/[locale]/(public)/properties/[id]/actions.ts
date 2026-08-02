@@ -27,6 +27,7 @@ import {
   combinePhone,
   isPossibleEmail,
 } from "@/lib/contact";
+import { submittedValues, type SubmittedValues } from "@/lib/formValues";
 
 export type AnalystCitationView = {
   label: string;
@@ -112,8 +113,13 @@ export type EnquiryActionState =
       // Which input failed validation (e.g. "email"), so the form can put a
       // red ring on the right box. Absent for form-wide errors.
       field?: string;
+      // What the visitor typed, so a rejected enquiry is never retyped.
+      values?: SubmittedValues;
     }
   | { status: "sent"; savedToAccount: boolean };
+
+/** The boxes worth handing back when the enquiry is rejected. */
+const ENQUIRY_FIELDS = ["listingId", "name", "email", "phoneCode", "phone", "message"] as const;
 
 const enquirySchema = z
   .object({
@@ -143,6 +149,8 @@ export async function sendEnquiryAction(
   formData: FormData,
 ): Promise<EnquiryActionState> {
   const session = await auth();
+  // Held on to now so every "no" below can hand the typed text straight back.
+  const typed = submittedValues(formData, ENQUIRY_FIELDS);
 
   const parsed = enquirySchema.safeParse({
     listingId: formData.get("listingId"),
@@ -158,6 +166,7 @@ export async function sendEnquiryAction(
       status: "error",
       code: "invalid",
       field: typeof field === "string" ? field : undefined,
+      values: typed,
     };
   }
   const d = parsed.data;
@@ -167,14 +176,16 @@ export async function sendEnquiryAction(
   const recentCount = await countRecentInquiriesByEmail(d.email, ENQUIRY_WINDOW_MS);
   const verdict = evaluateEnquiry({ honeypot, recentCount });
   if (verdict === "honeypot") return { status: "sent", savedToAccount: false }; // silently drop bots
-  if (verdict === "rateLimited") return { status: "error", code: "rateLimited" };
+  if (verdict === "rateLimited") {
+    return { status: "error", code: "rateLimited", values: typed };
+  }
 
   // The listing must exist and be publicly active to receive enquiries.
   const listing = await prisma.listing.findFirst({
     where: { id: d.listingId, status: "ACTIVE" },
     select: { id: true },
   });
-  if (!listing) return { status: "error", code: "unavailable" };
+  if (!listing) return { status: "error", code: "unavailable", values: typed };
 
   await createInquiry({
     listingId: listing.id,

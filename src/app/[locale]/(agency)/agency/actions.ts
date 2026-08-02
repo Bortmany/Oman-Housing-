@@ -25,6 +25,7 @@ import {
   combinePhone,
   isPossibleEmail,
 } from "@/lib/contact";
+import { submittedValues, type SubmittedValues } from "@/lib/formValues";
 
 /** Guard: a logged-in AGENCY user with an agency link. Returns both or null. */
 async function requireAgency(): Promise<
@@ -66,22 +67,36 @@ export type AgencyListingState =
       // Which input failed validation (e.g. "price"), so the form can put a
       // red ring on the right box. Absent for form-wide errors.
       field?: string;
+      // What the agency typed, so a rejected listing is never retyped.
+      values?: SubmittedValues;
     }
   | null;
+
+/** The boxes handed back when a listing submission is rejected. */
+const LISTING_FIELDS = [
+  "neighborhoodId", "type", "ownership", "titleEn", "titleAr",
+  "descriptionEn", "descriptionAr", "bedrooms", "bathrooms", "areaSqm",
+  "yearBuilt", "listingType", "price", "rentPeriod",
+] as const;
 
 export async function submitAgencyListing(
   _prev: AgencyListingState,
   formData: FormData,
 ): Promise<AgencyListingState> {
+  // Held on to now so every "no" below can hand the typed text straight back.
+  const typed = submittedValues(formData, LISTING_FIELDS);
+
   const ctx = await requireAgency();
-  if (!ctx) return { error: "notAllowed" };
+  if (!ctx) return { error: "notAllowed", values: typed };
 
   const agency = await agencyById(ctx.agencyId);
-  if (!agency) return { error: "notAllowed" };
+  if (!agency) return { error: "notAllowed", values: typed };
 
   // Plan limit: block a new submission when the agency is already at its cap.
   const inPlay = await countListingsInPlay(ctx.agencyId);
-  if (!canAddListing(agency.tier, inPlay)) return { error: "atListingLimit" };
+  if (!canAddListing(agency.tier, inPlay)) {
+    return { error: "atListingLimit", values: typed };
+  }
 
   const parsed = listingSchema.safeParse({
     neighborhoodId: formData.get("neighborhoodId"),
@@ -104,6 +119,7 @@ export async function submitAgencyListing(
     return {
       error: "validationFailed",
       field: typeof field === "string" ? field : undefined,
+      values: typed,
     };
   }
   const d = parsed.data;
@@ -193,16 +209,24 @@ const profileSchema = z
 
 export type AgencyProfileState =
   | { status: "saved" }
-  // `field` names the box that failed, so the form can ring the right one.
-  | { status: "error"; field?: string }
+  // `field` names the box that failed, so the form can ring the right one;
+  // `values` carries the edits back so nothing typed is lost.
+  | { status: "error"; field?: string; values?: SubmittedValues }
   | null;
+
+/** The boxes handed back when a profile save is rejected. */
+const PROFILE_FIELDS = [
+  "nameEn", "nameAr", "licenseNo", "email", "phoneCode", "phone",
+] as const;
 
 export async function saveAgencyProfile(
   _prev: AgencyProfileState,
   formData: FormData,
 ): Promise<AgencyProfileState> {
+  const typed = submittedValues(formData, PROFILE_FIELDS);
+
   const ctx = await requireAgency();
-  if (!ctx) return { status: "error" };
+  if (!ctx) return { status: "error", values: typed };
 
   const parsed = profileSchema.safeParse({
     nameEn: formData.get("nameEn"),
@@ -217,6 +241,7 @@ export async function saveAgencyProfile(
     return {
       status: "error",
       field: typeof field === "string" ? field : undefined,
+      values: typed,
     };
   }
   const d = parsed.data;
