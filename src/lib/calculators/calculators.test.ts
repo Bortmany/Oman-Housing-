@@ -39,6 +39,34 @@ function expectClose(label: string, actual: number, expected: number, tol = 0.01
   expectClose("mortgage.zeroRate.totalCharge", m.totalCharge, 0);
 }
 
+// A huge/malformed "years" must never loop unbounded — the amortization
+// loop is capped, so this must return instantly with finite numbers and a
+// bounded schedule, regardless of what the UI is supposed to have validated.
+{
+  const started = Date.now();
+  const m = mortgage({ propertyPrice: 100_000, downPayment: 0, annualRatePct: 5, years: 999_999_999, mode: "conventional" });
+  const elapsedMs = Date.now() - started;
+  if (elapsedMs > 500) {
+    console.error(`FAIL mortgage.hugeYears.tooSlow: took ${elapsedMs}ms`);
+    failures++;
+  } else {
+    console.log(`ok   mortgage.hugeYears.tooSlow < 500ms (${elapsedMs}ms)`);
+  }
+  if (!Number.isFinite(m.monthlyPayment) || m.schedule.length > 100) {
+    console.error("FAIL mortgage.hugeYears.bounded");
+    failures++;
+  } else {
+    console.log("ok   mortgage.hugeYears.bounded");
+  }
+}
+
+// Negative/NaN "years" must not throw or loop — treated as zero.
+{
+  const m = mortgage({ propertyPrice: 100_000, downPayment: 0, annualRatePct: 5, years: NaN, mode: "conventional" });
+  expectClose("mortgage.nanYears.monthlyPayment", m.monthlyPayment, 0);
+  expectClose("mortgage.nanYears.scheduleLength", m.schedule.length, 0);
+}
+
 // ROI: 100k cash purchase (no financing), rent 600, expenses 100 → cash flow 500/mo,
 // 6000/yr, cash-on-cash 6%, break-even 200 months, 2%/yr growth over 10y
 {
@@ -64,6 +92,29 @@ function expectClose(label: string, actual: number, expected: number, tol = 0.01
     failures++;
   } else {
     console.log("ok   roi.neverBreaksEven = null");
+  }
+}
+
+// A huge/malformed "horizonYears" must never loop unbounded — capped, so
+// this must return instantly with a bounded yearly-projection array.
+{
+  const started = Date.now();
+  const r = roi({
+    purchasePrice: 100_000, downPayment: 20_000, monthlyRent: 600,
+    monthlyExpenses: 100, monthlyMortgage: 0, annualAppreciationPct: 2, horizonYears: 999_999_999,
+  });
+  const elapsedMs = Date.now() - started;
+  if (elapsedMs > 500) {
+    console.error(`FAIL roi.hugeHorizon.tooSlow: took ${elapsedMs}ms`);
+    failures++;
+  } else {
+    console.log(`ok   roi.hugeHorizon.tooSlow < 500ms (${elapsedMs}ms)`);
+  }
+  if (!Number.isFinite(r.totalReturn) || r.yearly.length > 100) {
+    console.error("FAIL roi.hugeHorizon.bounded");
+    failures++;
+  } else {
+    console.log("ok   roi.hugeHorizon.bounded");
   }
 }
 

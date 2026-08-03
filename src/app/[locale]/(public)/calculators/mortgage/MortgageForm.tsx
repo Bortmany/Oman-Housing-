@@ -5,8 +5,13 @@ import { useLocale, useTranslations } from "next-intl";
 import { mortgage, type MortgageMode } from "@/lib/calculators/mortgage";
 import { formatOMR, formatOMRWhole } from "@/lib/money";
 import { Card, CardTitle } from "@/components/ui/Card";
-import { Input, Label, Hint } from "@/components/ui/Field";
+import { Input, Label, Hint, FieldError } from "@/components/ui/Field";
 import { TrendChart } from "@/components/charts/TrendChart";
+
+// Matches the Input's min/max below — re-checked here because the browser's
+// HTML validation can always be bypassed (typed past it, pasted, autofill).
+const YEARS_MIN = 1;
+const YEARS_MAX = 35;
 
 export function MortgageForm() {
   const t = useTranslations("calculators.mortgage");
@@ -19,11 +24,16 @@ export function MortgageForm() {
   const [rate, setRate] = useState(5.0);
   const [years, setYears] = useState(25);
 
+  const yearsValid =
+    Number.isFinite(years) && years >= YEARS_MIN && years <= YEARS_MAX;
+
   const m = mortgage({
     propertyPrice: price,
     downPayment: down,
     annualRatePct: rate,
-    years,
+    // An out-of-range duration never reaches the amortization math — the
+    // calculator just shows zeros until the visitor enters a valid term.
+    years: yearsValid ? years : 0,
     mode,
   });
 
@@ -93,11 +103,20 @@ export function MortgageForm() {
           <Input
             id="years"
             type="number"
-            min={1}
-            max={35}
+            min={YEARS_MIN}
+            max={YEARS_MAX}
             value={years}
             onChange={(e) => setYears(Number(e.target.value))}
+            error={!yearsValid}
+            aria-describedby={!yearsValid ? "years-error" : undefined}
           />
+          {!yearsValid && (
+            <FieldError>
+              <span id="years-error">
+                {t("yearsRangeError", { min: YEARS_MIN, max: YEARS_MAX })}
+              </span>
+            </FieldError>
+          )}
         </div>
       </Card>
 

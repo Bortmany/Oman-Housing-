@@ -9,6 +9,7 @@ import { signIn } from "@/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { isPossibleEmail } from "@/lib/contact";
 import { submittedValues, type SubmittedValues } from "@/lib/formValues";
+import { safePath } from "@/lib/safePath";
 
 const registerSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -27,12 +28,6 @@ export type RegisterState = {
 
 /** The boxes handed back when signing up fails — never the password. */
 const REGISTER_FIELDS = ["name", "email"] as const;
-
-/** Only relative in-app paths — never an absolute URL (open-redirect guard). */
-function safePath(raw: unknown, fallback: string): string {
-  const s = String(raw ?? "");
-  return s.startsWith("/") && !s.startsWith("//") ? s : fallback;
-}
 
 export async function registerUser(
   _prev: RegisterState,

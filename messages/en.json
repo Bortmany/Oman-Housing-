@@ -171,7 +171,8 @@
       "totalPaid": "Total paid over the term",
       "totalInterest": "Total interest",
       "totalProfit": "Total profit charged",
-      "amortization": "Balance over time"
+      "amortization": "Balance over time",
+      "yearsRangeError": "Enter a duration between {min} and {max} years."
     },
     "roi": {
       "title": "Return on investment",
@@ -192,7 +193,8 @@
       "breakEvenMonths": "{months} months (~{years} years)",
       "neverBreaksEven": "Does not break even with these inputs",
       "totalReturn": "Estimated total return after {years} years",
-      "cumulativeCashFlow": "Cumulative cash flow"
+      "cumulativeCashFlow": "Cumulative cash flow",
+      "horizonRangeError": "Enter a horizon between {min} and {max} years."
     }
   },
   "contact": {

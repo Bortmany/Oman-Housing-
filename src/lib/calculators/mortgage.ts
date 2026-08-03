@@ -23,9 +23,19 @@ export type MortgageResult = {
   schedule: Array<{ month: number; balance: number }>; // yearly points for charting
 };
 
+// Hard ceiling on the amortization loop below. The mortgage form limits
+// "years" to 1-35 and validates it before calling this function, but this
+// pure function is a second, defensive line: no caller — malformed input,
+// a future integration, a bug — can ever make it loop an unbounded number
+// of times and freeze the browser tab.
+const MAX_MONTHS = 100 * 12;
+
 export function mortgage(input: MortgageInput): MortgageResult {
   const loanAmount = Math.max(input.propertyPrice - input.downPayment, 0);
-  const months = Math.round(input.years * 12);
+  const requestedYears = Number.isFinite(input.years)
+    ? Math.max(input.years, 0)
+    : 0;
+  const months = Math.min(Math.round(requestedYears * 12), MAX_MONTHS);
   if (loanAmount <= 0 || months <= 0) {
     return {
       loanAmount,
