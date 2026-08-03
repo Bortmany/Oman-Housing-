@@ -5,8 +5,13 @@ import { useLocale, useTranslations } from "next-intl";
 import { roi } from "@/lib/calculators/roi";
 import { formatOMR, formatOMRWhole, formatPercent } from "@/lib/money";
 import { Card, CardTitle } from "@/components/ui/Card";
-import { Input, Label, Hint } from "@/components/ui/Field";
+import { Input, Label, Hint, FieldError } from "@/components/ui/Field";
 import { TrendChart } from "@/components/charts/TrendChart";
+
+// Matches the Input's min/max below — re-checked here because the browser's
+// HTML validation can always be bypassed (typed past it, pasted, autofill).
+const HORIZON_MIN = 1;
+const HORIZON_MAX = 30;
 
 export function RoiForm() {
   const t = useTranslations("calculators.roi");
@@ -21,6 +26,9 @@ export function RoiForm() {
   const [growth, setGrowth] = useState(2);
   const [years, setYears] = useState(10);
 
+  const yearsValid =
+    Number.isFinite(years) && years >= HORIZON_MIN && years <= HORIZON_MAX;
+
   const r = roi({
     purchasePrice: price,
     downPayment: down,
@@ -28,7 +36,9 @@ export function RoiForm() {
     monthlyExpenses: expenses,
     monthlyMortgage: mortgagePmt,
     annualAppreciationPct: growth,
-    horizonYears: years,
+    // An out-of-range horizon never reaches the projection loop — the
+    // calculator just shows zeros until the visitor enters a valid term.
+    horizonYears: yearsValid ? years : 0,
   });
 
   const chartData = r.yearly.map((y) => ({
@@ -73,8 +83,23 @@ export function RoiForm() {
         </div>
         <div>
           <Label htmlFor="years">{t("horizon")}</Label>
-          <Input id="years" type="number" min={1} max={30} value={years}
-            onChange={(e) => setYears(Number(e.target.value))} />
+          <Input
+            id="years"
+            type="number"
+            min={HORIZON_MIN}
+            max={HORIZON_MAX}
+            value={years}
+            onChange={(e) => setYears(Number(e.target.value))}
+            error={!yearsValid}
+            aria-describedby={!yearsValid ? "years-error" : undefined}
+          />
+          {!yearsValid && (
+            <FieldError>
+              <span id="years-error">
+                {t("horizonRangeError", { min: HORIZON_MIN, max: HORIZON_MAX })}
+              </span>
+            </FieldError>
+          )}
         </div>
       </Card>
 

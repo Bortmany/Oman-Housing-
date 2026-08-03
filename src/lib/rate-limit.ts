@@ -108,16 +108,8 @@ export function checkRateLimit(
   return store.hit(key, limit, windowMs);
 }
 
-/**
- * The visitor's IP from `x-forwarded-for` (first hop, behind the Railway
- * proxy), falling back to `x-real-ip`, then a constant so anonymous traffic
- * still shares a bucket rather than bypassing the limit entirely.
- */
-export function getClientIp(headers: Headers): string {
-  const xff = headers.get("x-forwarded-for");
-  if (xff) {
-    const first = xff.split(",")[0]?.trim();
-    if (first) return first;
-  }
-  return headers.get("x-real-ip")?.trim() || "unknown";
-}
+// Re-exported so existing callers keep writing
+// `import { checkRateLimit, getClientIp } from "@/lib/rate-limit"` — the
+// implementation moved to clientIp.ts (not "server-only") so it can be unit
+// tested directly.
+export { getClientIp } from "./clientIp";

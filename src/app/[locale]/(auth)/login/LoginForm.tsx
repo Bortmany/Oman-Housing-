@@ -7,17 +7,14 @@ import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
 import { Input, Label, FieldError } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
+import { safePath } from "@/lib/safePath";
 
 export function LoginForm() {
   const t = useTranslations("auth");
   const tc = useTranslations("contact");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const rawCallback = searchParams.get("callbackUrl");
-  const callbackUrl =
-    rawCallback?.startsWith("/") && !rawCallback.startsWith("//")
-      ? rawCallback
-      : "/account";
+  const callbackUrl = safePath(searchParams.get("callbackUrl"), "/account");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 

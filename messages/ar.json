@@ -171,7 +171,8 @@
       "totalPaid": "الإجمالي المدفوع خلال المدة",
       "totalInterest": "إجمالي الفوائد",
       "totalProfit": "إجمالي الربح المحتسب",
-      "amortization": "الرصيد عبر الزمن"
+      "amortization": "الرصيد عبر الزمن",
+      "yearsRangeError": "أدخل مدة بين {min} و{max} سنة."
     },
     "roi": {
       "title": "العائد على الاستثمار",
@@ -192,7 +193,8 @@
       "breakEvenMonths": "{months} شهرًا (~{years} سنة)",
       "neverBreaksEven": "لا يصل إلى نقطة التعادل بهذه المدخلات",
       "totalReturn": "العائد الإجمالي المقدّر بعد {years} سنة",
-      "cumulativeCashFlow": "التدفق النقدي التراكمي"
+      "cumulativeCashFlow": "التدفق النقدي التراكمي",
+      "horizonRangeError": "أدخل أفقًا بين {min} و{max} سنة."
     }
   },
   "contact": {
