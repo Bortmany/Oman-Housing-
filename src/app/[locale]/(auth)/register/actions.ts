@@ -2,11 +2,10 @@
 
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { headers } from "next/headers";
 import { getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { signIn } from "@/auth";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
 import { isPossibleEmail } from "@/lib/contact";
 import { submittedValues, type SubmittedValues } from "@/lib/formValues";
 import { safePath } from "@/lib/safePath";
@@ -35,9 +34,11 @@ export async function registerUser(
 ): Promise<RegisterState> {
   const typed = submittedValues(formData, REGISTER_FIELDS);
 
-  // Throttle signups per visitor IP so no one can bulk-create accounts.
-  const ip = getClientIp(await headers());
-  const { allowed } = checkRateLimit(`register:ip:${ip}`, {
+  // Throttle signups per visitor (real IP when trusted, otherwise a stable
+  // per-browser cookie — see getAnonRateLimitKey) so no one can bulk-create
+  // accounts.
+  const anonKey = await getAnonRateLimitKey();
+  const { allowed } = checkRateLimit(`register:ip:${anonKey}`, {
     limit: 5,
     windowMs: 60 * 60 * 1000,
   });

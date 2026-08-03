@@ -30,8 +30,30 @@ export type MortgageResult = {
 // of times and freeze the browser tab.
 const MAX_MONTHS = 100 * 12;
 
+// Hard ceilings on price/rate, same defensive-second-line reasoning as
+// MAX_MONTHS above. Without them an extreme propertyPrice or annualRatePct
+// (still a perfectly finite JS number) can blow the compound-interest math
+// up into a monthly payment hundreds of digits long, which renders as an
+// unreadable wall of digits and breaks the results card's layout. The
+// mortgage form limits both before calling this function (see
+// PRICE_MAX/RATE_MAX in MortgageForm.tsx) — these are the belt-and-braces
+// backstop.
+const MAX_PROPERTY_PRICE = 10_000_000; // 10 million OMR — far beyond any
+// real Oman listing, but generous enough to never clip a legitimate value.
+const MAX_ANNUAL_RATE_PCT = 30; // 30% — no real mortgage/profit rate is
+// anywhere near this; it only exists to bound the math.
+
 export function mortgage(input: MortgageInput): MortgageResult {
-  const loanAmount = Math.max(input.propertyPrice - input.downPayment, 0);
+  const propertyPrice = Number.isFinite(input.propertyPrice)
+    ? Math.min(Math.max(input.propertyPrice, 0), MAX_PROPERTY_PRICE)
+    : 0;
+  const downPayment = Number.isFinite(input.downPayment)
+    ? Math.max(input.downPayment, 0)
+    : 0;
+  const annualRatePct = Number.isFinite(input.annualRatePct)
+    ? Math.min(Math.max(input.annualRatePct, 0), MAX_ANNUAL_RATE_PCT)
+    : 0;
+  const loanAmount = Math.max(propertyPrice - downPayment, 0);
   const requestedYears = Number.isFinite(input.years)
     ? Math.max(input.years, 0)
     : 0;
@@ -46,7 +68,7 @@ export function mortgage(input: MortgageInput): MortgageResult {
     };
   }
 
-  const r = input.annualRatePct / 100 / 12;
+  const r = annualRatePct / 100 / 12;
   const monthlyPayment =
     r === 0
       ? loanAmount / months

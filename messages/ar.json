@@ -172,7 +172,9 @@
       "totalInterest": "إجمالي الفوائد",
       "totalProfit": "إجمالي الربح المحتسب",
       "amortization": "الرصيد عبر الزمن",
-      "yearsRangeError": "أدخل مدة بين {min} و{max} سنة."
+      "yearsRangeError": "أدخل مدة بين {min} و{max} سنة.",
+      "priceRangeError": "أدخل سعر عقار حتى {max} ريال عماني.",
+      "rateRangeError": "أدخل معدلاً حتى {max}%."
     },
     "roi": {
       "title": "العائد على الاستثمار",
