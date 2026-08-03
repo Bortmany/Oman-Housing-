@@ -172,7 +172,9 @@
       "totalInterest": "Total interest",
       "totalProfit": "Total profit charged",
       "amortization": "Balance over time",
-      "yearsRangeError": "Enter a duration between {min} and {max} years."
+      "yearsRangeError": "Enter a duration between {min} and {max} years.",
+      "priceRangeError": "Enter a property price up to {max} OMR.",
+      "rateRangeError": "Enter a rate up to {max}%."
     },
     "roi": {
       "title": "Return on investment",
