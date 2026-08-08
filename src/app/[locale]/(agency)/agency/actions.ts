@@ -54,7 +54,7 @@ const listingSchema = z.object({
   descriptionAr: z.string().trim().max(5000).optional(),
   bedrooms: z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().int().min(0).max(50).nullable()),
   bathrooms: z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().int().min(0).max(50).nullable()),
-  areaSqm: z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().positive().nullable()),
+  areaSqm: z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().finite().positive().nullable()),
   yearBuilt: z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().int().min(1900).max(2100).nullable()),
   listingType: z.enum(["SALE", "RENT"]),
   price: z.preprocess((v) => Number(v), z.number().finite().positive()),

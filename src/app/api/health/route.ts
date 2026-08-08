@@ -1,22 +1,32 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 // Health endpoint for uptime checks (ops-watchdog / Railway).
-// Also reports which optional integrations are switched on (their env var set)
-// vs. dormant — the owner can confirm at a glance what is live in production.
+//
+// Anonymous callers (uptime pings, and anyone on the internet) get only the
+// minimal ok/db status they need. The integrations breakdown — which optional
+// services are switched on — is config detail that helps nobody but an
+// attacker fingerprinting the deployment, so it is shown ONLY to a signed-in
+// admin, who can still confirm at a glance what is live in production.
 export async function GET() {
-  const integrations = {
-    sentry: process.env.SENTRY_DSN ? "configured" : "dormant",
-    aiAnalyst: process.env.ANTHROPIC_API_KEY ? "configured" : "dormant",
-    rateLimitStore: process.env.REDIS_URL ? "redis" : "in-memory",
-  };
+  const session = await auth().catch(() => null);
+  const isAdmin = session?.user?.role === "ADMIN";
+
+  const integrations = isAdmin
+    ? {
+        sentry: process.env.SENTRY_DSN ? "configured" : "dormant",
+        aiAnalyst: process.env.ANTHROPIC_API_KEY ? "configured" : "dormant",
+        rateLimitStore: process.env.REDIS_URL ? "redis" : "in-memory",
+      }
+    : undefined;
 
   try {
     await prisma.$queryRaw`SELECT 1`;
-    return NextResponse.json({ ok: true, db: "up", integrations });
+    return NextResponse.json({ ok: true, db: "up", ...(integrations && { integrations }) });
   } catch {
     return NextResponse.json(
-      { ok: false, db: "down", integrations },
+      { ok: false, db: "down", ...(integrations && { integrations }) },
       { status: 503 },
     );
   }

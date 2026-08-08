@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { Role, Tier } from "@prisma/client";
 import { checkRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
-import { safePath } from "@/lib/safePath";
+import { safeRedirectUrl } from "@/lib/safePath";
 
 // A precomputed bcrypt hash (cost 10, same as every real password below) of
 // an arbitrary string nobody will ever type. Comparing against it for
@@ -141,27 +141,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     },
     redirect({ url, baseUrl }) {
-      // NextAuth's OWN default redirect callback does:
-      //   if (url.startsWith("/")) return baseUrl + url
-      //   else if (new URL(url).origin === baseUrl) return url
-      //   else return baseUrl
-      // `new URL(url)` THROWS on a malformed string (no scheme, spaces,
-      // etc). That callback runs on the raw `callbackUrl` posted straight to
-      // the sign-in endpoint — before our own form-level safePath() ever
-      // gets a chance to sanitize it — so a malformed callbackUrl crashed
-      // the request with "Invalid URL" and dumped the visitor to the
-      // generic error page, even with the correct password. Never let a bad
-      // value crash the redirect here.
-      const relative = safePath(url, "");
-      if (relative) return `${baseUrl}${relative}`;
-
-      try {
-        if (new URL(url, baseUrl).origin === baseUrl) return url;
-      } catch {
-        // Malformed callbackUrl — ignore it and fall back below instead of
-        // throwing.
-      }
-      return baseUrl;
+      // This callback decides where a post-login redirect goes AND what value
+      // Auth.js writes into the `authjs.callback-url` cookie. It runs on the
+      // raw `callbackUrl` posted to the sign-in endpoint AND on the value read
+      // back from that cookie on later requests. A malformed value must never
+      // (a) escape to another host or (b) crash the request — a poisoned
+      // cookie reaches this on EVERY page render. safeRedirectUrl() always
+      // returns a valid, same-origin absolute URL (or baseUrl), so a bad value
+      // is dropped and an already-poisoned cookie self-heals to baseUrl.
+      return safeRedirectUrl(url, baseUrl);
     },
   },
 });

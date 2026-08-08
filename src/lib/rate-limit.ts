@@ -184,7 +184,7 @@ export async function getAnonRateLimitKey(): Promise<string> {
   );
   if (existingId) return `browser:${existingId}`;
 
-  const { cookieValue } = mintSignedAnonId(secret);
+  const { id, cookieValue } = mintSignedAnonId(secret);
   jar.set(ANON_COOKIE_NAME, cookieValue, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -192,8 +192,13 @@ export async function getAnonRateLimitKey(): Promise<string> {
     path: "/",
     maxAge: ANON_COOKIE_MAX_AGE_S,
   });
-  // This request has no cookie yet — the browser won't send it back until
-  // the NEXT request, so this one request still shares the small "unknown"
-  // bucket rather than one keyed on the id we just minted.
-  return "unknown";
+  // First contact: the browser hasn't sent the cookie back yet, but we key
+  // THIS request on the id we just minted (unique per browser) rather than
+  // the shared "unknown" bucket. That's the fix for the shared-"unknown"
+  // finding: a flood of cookie-less requests can no longer pile into one
+  // bucket and lock out every genuine first-time visitor's first login —
+  // each first contact gets its own fresh bucket, and every request after it
+  // reuses the same signed id via the cookie. Per-email limits (checked by
+  // the caller) still bound abuse from a client that ignores our cookie.
+  return `browser:${id}`;
 }
