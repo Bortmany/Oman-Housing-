@@ -12,6 +12,7 @@ import {
 import { formatOMRWhole, formatPercent } from "@/lib/money";
 import type { OfferedDatum } from "@/lib/ai/analystCore";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
 import {
   createInquiry,
   countRecentInquiriesByEmail,
@@ -151,6 +152,20 @@ export async function sendEnquiryAction(
   const session = await auth();
   // Held on to now so every "no" below can hand the typed text straight back.
   const typed = submittedValues(formData, ENQUIRY_FIELDS);
+
+  // Request-rate throttle keyed on the visitor (real IP behind a trusted
+  // proxy, else a signed per-browser cookie id). The per-email daily cap
+  // below only limits how many one address can send — it does nothing against
+  // a script cycling a fresh unique email on every request. This caps the
+  // rate of submissions per visitor regardless of the email used.
+  const anonKey = await getAnonRateLimitKey();
+  const rl = checkRateLimit(`enquiry:anon:${anonKey}`, {
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!rl.allowed) {
+    return { status: "error", code: "rateLimited", values: typed };
+  }
 
   const parsed = enquirySchema.safeParse({
     listingId: formData.get("listingId"),
