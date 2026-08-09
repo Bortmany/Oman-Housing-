@@ -115,7 +115,7 @@ export function checkRateLimit(
 // `import { checkRateLimit, getClientIp } from "@/lib/rate-limit"` — the
 // implementation moved to clientIp.ts (not "server-only") so it can be unit
 // tested directly.
-export { getClientIp } from "./clientIp";
+export { getClientIp, getSocketIp, SOCKET_IP_HEADER } from "./clientIp";
 
 // ---------------------------------------------------------------------------
 // Anonymous rate-limit key — how we identify an unauthenticated visitor for
@@ -127,17 +127,27 @@ export { getClientIp } from "./clientIp";
 //      with AUTH_SECRET, so a script can't forge one or hop between buckets.
 //   2. A COOKIE-LESS caller (a first-contact request, or a client that
 //      deliberately ignores our cookie) → the REAL connection IP via
-//      getClientIp(), which only trusts forwarded headers behind a trusted
-//      proxy (TRUST_PROXY_HEADERS=true). We still hand this caller a cookie so
-//      a genuine browser's NEXT request upgrades to signal #1.
+//      getClientIp(), which trusts forwarded headers behind a trusted proxy
+//      (TRUST_PROXY_HEADERS=true), or — when that's off — the true TCP
+//      socket address stamped onto every request by the diagnostics-channel
+//      subscriber in instrumentation-node.ts (see clientIp.ts). We still
+//      hand this caller a cookie so a genuine browser's NEXT request
+//      upgrades to signal #1.
 //
 // Why not the previous behaviour: it keyed a cookie-less request on a
 // FRESHLY-MINTED per-request id. That silently disabled the limiter for any
 // client that ignores cookies — every request got a brand-new empty bucket,
 // so a flood could never trip the limit. Keying cookie-less callers on their
 // IP instead means an abuser who won't hold a cookie is bounded by their IP
-// bucket, and we never return a fresh-per-request id or a bare "unknown"
-// literal as the whole key.
+// bucket. A LATER bug repeated the same failure a different way: without a
+// trusted proxy, getClientIp() used to return the bare literal "unknown" for
+// every cookie-less caller, so they ALL collapsed onto one shared
+// `ip:unknown` bucket — a cookie-dropping flood from any one source could
+// exhaust it and block every other visitor's first request (the buyer
+// enquiry form hit exactly this). getClientIp() now falls back to the real
+// socket address instead of "unknown" whenever that signal is available, so
+// this key never returns a fresh-per-request id or a shared "unknown"
+// bucket for two different real sources.
 //
 // This import lives here (not clientIp.ts) specifically because it needs
 // `cookies()`/`headers()` from next/headers, which only work inside Next's
@@ -173,7 +183,9 @@ export async function getAnonRateLimitKey(): Promise<string> {
   }
 
   // Warn once (in production) that without a trusted proxy the cookie-less
-  // fallback below can only see "unknown" instead of a real IP.
+  // fallback below sees only the TCP socket peer address, not the visitor's
+  // real IP — which is the PROXY's own address (the same one for everyone)
+  // if this app actually sits behind one.
   if (
     process.env.NODE_ENV === "production" &&
     process.env.TRUST_PROXY_HEADERS !== "true" &&
@@ -182,10 +194,11 @@ export async function getAnonRateLimitKey(): Promise<string> {
     warnedNoTrustProxyInProd = true;
     console.warn(
       "[rate-limit] TRUST_PROXY_HEADERS is not set to \"true\" in production. " +
-        "Cookie-less anonymous callers are rate-limited on \"unknown\" instead " +
-        "of their real IP. If this app IS behind a trusted proxy that overwrites " +
-        "X-Forwarded-For (e.g. Railway's edge network), set TRUST_PROXY_HEADERS=" +
-        "true so limits key on the real connecting IP. See .env.example.",
+        "Cookie-less anonymous callers are rate-limited on the raw TCP socket " +
+        "address, not their real IP. If this app IS behind a trusted proxy that " +
+        "overwrites X-Forwarded-For (e.g. Railway's edge network), every visitor " +
+        "would share the proxy's own socket address — set TRUST_PROXY_HEADERS=" +
+        "true so limits key on the real connecting IP instead. See .env.example.",
     );
   }
 
