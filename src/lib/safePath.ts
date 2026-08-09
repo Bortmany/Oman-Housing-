@@ -37,7 +37,8 @@ export function safePath(raw: unknown, fallback: string): string {
  *  - A same-origin in-app path ("/properties/abc") → returned as `baseUrl` +
  *    that path (normalized by safePath, which also blocks the `//host` and
  *    backslash open-redirect tricks).
- *  - A genuine absolute URL on OUR OWN origin → kept as-is. We parse it
+ *  - A genuine absolute URL on OUR OWN origin → kept, but returned as its
+ *    NORMALIZED `.href` (never the raw input — see below). We parse it
  *    WITHOUT a base on purpose: with a base, a junk string resolves against
  *    baseUrl and would falsely look same-origin. Without a base, anything
  *    that isn't a real absolute URL throws and we fall back safely.
@@ -46,6 +47,20 @@ export function safePath(raw: unknown, fallback: string): string {
  * Because this always returns a valid absolute URL, Auth.js never stores a
  * malformed value back into the callback-url cookie, and a already-poisoned
  * cookie self-heals to `baseUrl` on the next request instead of 500-ing.
+ *
+ * Why `.href` and never the raw string: `new URL(s).origin` Unicode-
+ * normalizes the host before comparing (e.g. a fullwidth/homoglyph "o"
+ * collapses to a plain ASCII "o" under the URL parser's IDNA mapping), so a
+ * homoglyph host can pass the `origin === baseUrl` check while the RAW
+ * string `s` still contains the original non-ASCII character — in the host,
+ * or anywhere else in the URL (an emoji in the path also passes, since only
+ * the origin is compared). Handing that raw, non-Latin1 string to Auth.js
+ * means it eventually lands in a cookie/header value, and Node's Headers
+ * implementation throws a TypeError on any character above U+00FF, which
+ * Auth.js turns into a generic error=Configuration 500. `.href` is always
+ * the parsed, normalized, percent-encoded (therefore ASCII-safe) form of
+ * the SAME URL, so returning it keeps the redirect working without ever
+ * producing a value that can crash the response.
  */
 export function safeRedirectUrl(raw: unknown, baseUrl: string): string {
   const relative = safePath(raw, "");
@@ -53,7 +68,8 @@ export function safeRedirectUrl(raw: unknown, baseUrl: string): string {
 
   const s = String(raw ?? "");
   try {
-    if (new URL(s).origin === baseUrl) return s;
+    const u = new URL(s);
+    if (u.origin === baseUrl) return u.href;
   } catch {
     // Malformed value (poisoned cookie, junk param) — treat as absent.
   }

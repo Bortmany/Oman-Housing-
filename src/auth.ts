@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { Role, Tier } from "@prisma/client";
 import { checkRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
+import { computeLoginBackoffMs, computeOvershoot } from "@/lib/loginBackoff";
 import { safeRedirectUrl } from "@/lib/safePath";
 
 // A precomputed bcrypt hash (cost 10, same as every real password below) of
@@ -95,12 +96,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // is over its limit, add a delay before rejecting — a progressive
         // backoff instead of a hard, sticky deny. The delay grows with how
         // far over the limit the guesser is, up to LOGIN_BACKOFF_MAX_MS.
+        const ipLimit = 20;
+        const emailLimit = 10;
         const byIp = checkRateLimit(`login:ip:${anonKey}`, {
-          limit: 20,
+          limit: ipLimit,
           windowMs: 10 * 60 * 1000,
         });
         const byEmail = checkRateLimit(`login:email:${email}`, {
-          limit: 10,
+          limit: emailLimit,
           windowMs: 10 * 60 * 1000,
         });
         if (!byIp.allowed || !byEmail.allowed) {
@@ -108,10 +111,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // denial). Doubling the delay each guess past that first one is
           // what makes the ceiling "impractically slow" for a script while
           // the very first denial still feels like the original short delay.
-          const overshoot = Math.max(byIp.count - 20 - 1, byEmail.count - 10 - 1, 0);
-          const delayMs = Math.min(
+          // (Pure math lives in loginBackoff.ts so it's unit-testable —
+          // rate-limit.ts is "server-only" and can't be imported outside
+          // Next's bundler.)
+          const overshoot = computeOvershoot(
+            { count: byIp.count, limit: ipLimit },
+            { count: byEmail.count, limit: emailLimit },
+          );
+          const delayMs = computeLoginBackoffMs(
+            overshoot,
+            LOGIN_BACKOFF_BASE_MS,
             LOGIN_BACKOFF_MAX_MS,
-            LOGIN_BACKOFF_BASE_MS * 2 ** overshoot,
           );
           await new Promise((resolve) => setTimeout(resolve, delayMs));
 
