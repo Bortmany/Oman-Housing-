@@ -8,6 +8,7 @@ import { publishListing, rejectListing, archiveListing, deleteListing } from "..
 import { StatusPill } from "@/components/marketplace/StatusPill";
 import { Button } from "@/components/ui/Button";
 import { DirectionalLink } from "@/components/ui/DirectionalLink";
+import { enforceAdminPage } from "@/lib/require-admin";
 
 export default async function EditListingPage({
   params,
@@ -16,6 +17,7 @@ export default async function EditListingPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ saved?: string }>;
 }) {
+  await enforceAdminPage(); // guard BEFORE any DB query (see require-admin.ts)
   const [{ id }, { saved }] = await Promise.all([params, searchParams]);
   const [t, tc, locale, listing, properties] = await Promise.all([
     getTranslations("admin"),

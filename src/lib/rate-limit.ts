@@ -118,20 +118,26 @@ export function checkRateLimit(
 export { getClientIp } from "./clientIp";
 
 // ---------------------------------------------------------------------------
-// Anonymous rate-limit key — the fix for the shared-"unknown"-bucket finding.
+// Anonymous rate-limit key — how we identify an unauthenticated visitor for
+// the login/signup/enquiry limiters. Two signals, in priority order:
 //
-// getClientIp() above returns the real IP only when TRUST_PROXY_HEADERS=true.
-// With it off (the default — no trusted proxy in front of the app), every
-// anonymous visitor gets "unknown", which means EVERY visitor's login/signup
-// attempts count against the exact same bucket: one abusive visitor (or one
-// buggy script) can exhaust it and lock out login/signup for every other
-// real visitor at the same time — a platform-wide denial of service.
+//   1. A COOKIE-BEARING client → its stable, signed per-browser id (minted
+//      into a signed httpOnly cookie the first time we see it; sign/verify
+//      logic lives in anonId.ts, kept pure/testable). The id is HMAC-signed
+//      with AUTH_SECRET, so a script can't forge one or hop between buckets.
+//   2. A COOKIE-LESS caller (a first-contact request, or a client that
+//      deliberately ignores our cookie) → the REAL connection IP via
+//      getClientIp(), which only trusts forwarded headers behind a trusted
+//      proxy (TRUST_PROXY_HEADERS=true). We still hand this caller a cookie so
+//      a genuine browser's NEXT request upgrades to signal #1.
 //
-// Fix: when we cannot trust the IP, hand each browser a random id in a
-// signed, httpOnly cookie the first time we see it (mint+sign logic lives in
-// anonId.ts, kept pure/testable) and key the bucket on that id instead. Only
-// the single request that arrives BEFORE the browser has the cookie falls
-// back to "unknown" — every request after that gets its own bucket.
+// Why not the previous behaviour: it keyed a cookie-less request on a
+// FRESHLY-MINTED per-request id. That silently disabled the limiter for any
+// client that ignores cookies — every request got a brand-new empty bucket,
+// so a flood could never trip the limit. Keying cookie-less callers on their
+// IP instead means an abuser who won't hold a cookie is bounded by their IP
+// bucket, and we never return a fresh-per-request id or a bare "unknown"
+// literal as the whole key.
 //
 // This import lives here (not clientIp.ts) specifically because it needs
 // `cookies()`/`headers()` from next/headers, which only work inside Next's
@@ -148,57 +154,57 @@ const ANON_COOKIE_MAX_AGE_S = 60 * 60 * 24 * 365; // 1 year
 let warnedNoTrustProxyInProd = false;
 
 /**
- * The key to use when rate-limiting an anonymous visitor (login/signup by
- * IP). Prefer the real IP when TRUST_PROXY_HEADERS=true; otherwise fall back
- * to a stable per-browser cookie id so anonymous traffic isn't all lumped
- * into one shared bucket. See the block comment above for why.
+ * The key to use when rate-limiting an anonymous visitor. Cookie-bearing
+ * clients get their stable per-browser id; cookie-less callers are keyed on
+ * the real connection IP (never a fresh-minted-per-request id, never a bare
+ * "unknown" bucket). See the block comment above for the full rationale.
  */
 export async function getAnonRateLimitKey(): Promise<string> {
-  if (process.env.TRUST_PROXY_HEADERS === "true") {
-    return getRawClientIp(await headers());
+  const secret = process.env.AUTH_SECRET;
+  const jar = secret ? await cookies() : null;
+
+  // 1. Cookie-bearing client → its stable, forgery-proof per-browser id.
+  if (secret && jar) {
+    const existingId = verifySignedAnonId(
+      jar.get(ANON_COOKIE_NAME)?.value,
+      secret,
+    );
+    if (existingId) return `browser:${existingId}`;
   }
 
-  if (process.env.NODE_ENV === "production" && !warnedNoTrustProxyInProd) {
+  // Warn once (in production) that without a trusted proxy the cookie-less
+  // fallback below can only see "unknown" instead of a real IP.
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.TRUST_PROXY_HEADERS !== "true" &&
+    !warnedNoTrustProxyInProd
+  ) {
     warnedNoTrustProxyInProd = true;
     console.warn(
       "[rate-limit] TRUST_PROXY_HEADERS is not set to \"true\" in production. " +
-        "Anonymous login/signup rate limiting is falling back to a per-browser " +
-        "cookie instead of the real visitor IP. If this app IS behind a trusted " +
-        "proxy that overwrites X-Forwarded-For (e.g. Railway's edge network), " +
-        "set TRUST_PROXY_HEADERS=true so limits key on the real IP instead. " +
-        "See .env.example.",
+        "Cookie-less anonymous callers are rate-limited on \"unknown\" instead " +
+        "of their real IP. If this app IS behind a trusted proxy that overwrites " +
+        "X-Forwarded-For (e.g. Railway's edge network), set TRUST_PROXY_HEADERS=" +
+        "true so limits key on the real connecting IP. See .env.example.",
     );
   }
 
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) {
-    // No secret to sign the cookie with (misconfigured env) — fail safe to
-    // the shared bucket rather than throwing during login/signup.
-    return "unknown";
+  // Hand a real browser a signed cookie so its NEXT request upgrades to the
+  // stable per-browser key above. A client that never stores it stays pinned
+  // to its IP bucket below — exactly what we want for abuse.
+  if (secret && jar) {
+    const { cookieValue } = mintSignedAnonId(secret);
+    jar.set(ANON_COOKIE_NAME, cookieValue, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: ANON_COOKIE_MAX_AGE_S,
+    });
   }
 
-  const jar = await cookies();
-  const existingId = verifySignedAnonId(
-    jar.get(ANON_COOKIE_NAME)?.value,
-    secret,
-  );
-  if (existingId) return `browser:${existingId}`;
-
-  const { id, cookieValue } = mintSignedAnonId(secret);
-  jar.set(ANON_COOKIE_NAME, cookieValue, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: ANON_COOKIE_MAX_AGE_S,
-  });
-  // First contact: the browser hasn't sent the cookie back yet, but we key
-  // THIS request on the id we just minted (unique per browser) rather than
-  // the shared "unknown" bucket. That's the fix for the shared-"unknown"
-  // finding: a flood of cookie-less requests can no longer pile into one
-  // bucket and lock out every genuine first-time visitor's first login —
-  // each first contact gets its own fresh bucket, and every request after it
-  // reuses the same signed id via the cookie. Per-email limits (checked by
-  // the caller) still bound abuse from a client that ignores our cookie.
-  return `browser:${id}`;
+  // 2. Cookie-less caller → the real connection IP (or "unknown" only when we
+  // genuinely have no trustworthy IP). Namespaced so it can never collide with
+  // a `browser:` key.
+  return `ip:${getRawClientIp(await headers())}`;
 }

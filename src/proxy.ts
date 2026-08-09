@@ -1,11 +1,64 @@
 import createMiddleware from "next-intl/middleware";
 import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 import { routing } from "./i18n/routing";
 import { isValidCallbackCookie } from "./lib/safePath";
+import { gateDecision } from "./lib/adminGate";
 
-// Locale detection + /en//ar prefixing. Role-based access control lives in
-// the (admin)/(app)/(agency) route-group layouts, not here.
+// Locale detection + /en//ar prefixing.
 const intlMiddleware = createMiddleware(routing);
+
+// ---------------------------------------------------------------------------
+// Route-group access gate (the pentest fix). The (admin) route-group LAYOUT
+// calling redirect() does NOT protect data: in the App Router a layout and its
+// page render in parallel, so an admin page's Server Component still runs its
+// DB query and streams the result into the layout's 307 body — i.e. a
+// cookie-less `curl /en/admin/inquiries` got a 307→/login whose body still
+// contained every agency's buyer PII. So we STOP the request here, before any
+// Server Component can render/stream, and return an empty-bodied redirect.
+// (Per-page enforceAdminPage() in src/lib/require-admin.ts is the belt-and-
+// braces second layer.) Session strategy is JWT, so we read the role straight
+// off the signed session-token cookie.
+// ---------------------------------------------------------------------------
+async function sessionRole(request: NextRequest): Promise<string | null> {
+  try {
+    // The auth cookie is `__Secure-`prefixed only when it was set on HTTPS;
+    // detect that from the cookie actually present so this works in dev (http)
+    // and prod (https) without guessing.
+    const secureCookie = request.cookies.has(
+      "__Secure-authjs.session-token",
+    );
+    const token = await getToken({
+      req: request,
+      secret: process.env.AUTH_SECRET,
+      secureCookie,
+    });
+    return (token?.role as string | undefined) ?? null;
+  } catch {
+    // If the token can't be read (misconfig, tampered cookie), treat the caller
+    // as unauthenticated — the gate then bounces them, which fails safe.
+    return null;
+  }
+}
+
+/**
+ * If the request targets a protected route group and the caller lacks the
+ * required role, return an empty redirect to that locale's /login. Otherwise
+ * return null and let the request continue.
+ */
+async function gate(
+  request: NextRequest,
+  origin: string,
+): Promise<NextResponse | null> {
+  const pathname = request.nextUrl.pathname;
+  // Cheap pre-check so we only decode the JWT for admin/agency paths.
+  if (!/(^|\/)(admin|agency)(\/|$)/.test(pathname)) return null;
+
+  const role = await sessionRole(request);
+  const decision = gateDecision(pathname, role);
+  if (decision.action === "allow") return null;
+  return NextResponse.redirect(new URL(`/${decision.locale}/login`, origin));
+}
 
 // Auth.js re-validates the `authjs.callback-url` COOKIE on every request
 // (its internal `isValidHttpUrl` in @auth/core/lib/utils/assert.js). A
@@ -30,9 +83,14 @@ function safeDecode(value: string): string {
   }
 }
 
-export default function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const origin = request.nextUrl.origin;
   const cookieHeader = request.headers.get("cookie") ?? "";
+
+  // Role gate FIRST: refuse admin/agency requests from the wrong role before
+  // any Server Component can render/stream (see block comment above).
+  const blocked = await gate(request, origin);
+  if (blocked) return blocked;
 
   // Work off the RAW Cookie header, not request.cookies.get(): the latter
   // silently mishandles a badly percent-encoded value (e.g. "%%%") so a
