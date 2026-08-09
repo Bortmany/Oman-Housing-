@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { StatusPill } from "@/components/marketplace/StatusPill";
 import { Link } from "@/i18n/navigation";
 import { DirectionalLink } from "@/components/ui/DirectionalLink";
+import { enforceAdminPage } from "@/lib/require-admin";
 
 export default async function EditPropertyPage({
   params,
@@ -17,6 +18,7 @@ export default async function EditPropertyPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ saved?: string }>;
 }) {
+  await enforceAdminPage(); // guard BEFORE any DB query (see require-admin.ts)
   const [{ id }, { saved }] = await Promise.all([params, searchParams]);
   const [t, tc, property, neighborhoods] = await Promise.all([
     getTranslations("admin"),

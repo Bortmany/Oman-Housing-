@@ -5,6 +5,7 @@ import { localName, formatMonth } from "@/lib/i18nData";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { ButtonLink, Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { enforceAdminPage } from "@/lib/require-admin";
 import { deleteMarketStat } from "./actions";
 
 export default async function MarketStatsAdminPage({
@@ -12,6 +13,7 @@ export default async function MarketStatsAdminPage({
 }: {
   searchParams: Promise<{ saved?: string; updated?: string; deleted?: string }>;
 }) {
+  await enforceAdminPage(); // guard BEFORE any DB query (see require-admin.ts)
   const { saved, updated, deleted } = await searchParams;
   const [t, tm, te, locale, stats] = await Promise.all([
     getTranslations("admin"),

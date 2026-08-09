@@ -2,12 +2,14 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { ListingForm } from "../ListingForm";
 import { DirectionalLink } from "@/components/ui/DirectionalLink";
+import { enforceAdminPage } from "@/lib/require-admin";
 
 export default async function NewListingPage({
   searchParams,
 }: {
   searchParams: Promise<{ propertyId?: string }>;
 }) {
+  await enforceAdminPage(); // guard BEFORE any DB query (see require-admin.ts)
   const { propertyId } = await searchParams;
   const [t, properties] = await Promise.all([
     getTranslations("admin"),

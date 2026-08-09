@@ -2,8 +2,10 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { PropertyForm } from "../PropertyForm";
 import { DirectionalLink } from "@/components/ui/DirectionalLink";
+import { enforceAdminPage } from "@/lib/require-admin";
 
 export default async function NewPropertyPage() {
+  await enforceAdminPage(); // guard BEFORE any DB query (see require-admin.ts)
   const [t, neighborhoods] = await Promise.all([
     getTranslations("admin"),
     prisma.neighborhood.findMany({

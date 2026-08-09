@@ -3,6 +3,7 @@ import type { Tier } from "@prisma/client";
 import { allAgencies } from "@/lib/db/agencies";
 import { localName } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
+import { enforceAdminPage } from "@/lib/require-admin";
 import { approveAgency, unapproveAgency, grantTier } from "./actions";
 
 const TIERS: Tier[] = ["FREE", "PREMIUM", "BUSINESS"];
@@ -13,6 +14,7 @@ export async function generateMetadata() {
 }
 
 export default async function AdminAgenciesPage() {
+  await enforceAdminPage(); // guard BEFORE any DB query (see require-admin.ts)
   const [t, tag, locale, agencies] = await Promise.all([
     getTranslations("admin"),
     getTranslations("agency"),

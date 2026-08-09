@@ -2,8 +2,10 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { MarketStatForm } from "../MarketStatForm";
 import { DirectionalLink } from "@/components/ui/DirectionalLink";
+import { enforceAdminPage } from "@/lib/require-admin";
 
 export default async function NewMarketStatPage() {
+  await enforceAdminPage(); // guard BEFORE any DB query (see require-admin.ts)
   const [t, governorates, cities, neighborhoods] = await Promise.all([
     getTranslations("admin"),
     prisma.governorate.findMany({ orderBy: { nameEn: "asc" } }),

@@ -5,6 +5,7 @@ import { localName } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
 import { InquiryStatusPill } from "@/components/marketplace/InquiryStatusPill";
 import { Link } from "@/i18n/navigation";
+import { enforceAdminPage } from "@/lib/require-admin";
 import { setInquiryStatusAdmin } from "./actions";
 
 export async function generateMetadata() {
@@ -17,6 +18,7 @@ export default async function AdminInquiriesPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
+  await enforceAdminPage(); // guard BEFORE any DB query (see require-admin.ts)
   const { status } = await searchParams;
   const statusFilter = INQUIRY_STATUSES.includes(status as InquiryStatus)
     ? (status as InquiryStatus)

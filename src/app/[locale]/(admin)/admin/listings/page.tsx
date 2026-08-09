@@ -8,6 +8,7 @@ import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Link } from "@/i18n/navigation";
+import { enforceAdminPage } from "@/lib/require-admin";
 
 const STATUSES: ListingStatus[] = [
   "DRAFT", "PENDING_REVIEW", "ACTIVE", "REJECTED", "SOLD", "RENTED", "ARCHIVED",
@@ -18,6 +19,7 @@ export default async function ListingsAdminPage({
 }: {
   searchParams: Promise<{ status?: string; deleted?: string }>;
 }) {
+  await enforceAdminPage(); // guard BEFORE any DB query (see require-admin.ts)
   const { status, deleted } = await searchParams;
   const statusFilter = STATUSES.includes(status as ListingStatus)
     ? (status as ListingStatus)
