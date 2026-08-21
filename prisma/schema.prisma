@@ -113,6 +113,7 @@ model User {
   accounts           Account[]
   sessions           Session[]
   favorites          Favorite[]
+  savedSearches      SavedSearch[]
   inquiries          Inquiry[]
   listings           Listing[]           @relation("ListingCreator")
   aiAnalyses         AiAnalysis[]
@@ -415,6 +416,26 @@ model Inquiry {
   @@index([listingId, status])
   // Backs the per-email daily spam cap: filter by email, window on createdAt.
   @@index([email, createdAt])
+}
+
+// A search a signed-in visitor asked us to remember. `query` is the property
+// search's own query string ("hood=al-mouj&type=VILLA"), so re-running it is
+// just a link. `frequency` is how often they'd want an email about new matches
+// — kept as plain text ("instant" | "daily") and validated in code, because it
+// is a notification preference we expect to grow, not a fixed domain concept
+// like Role or ListingStatus. Email sending is not switched on yet.
+model SavedSearch {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  query     String
+  frequency String   @default("daily")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model Favorite {

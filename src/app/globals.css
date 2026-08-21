@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Dark mode is driven by a `dark` class on <html> (set before the page paints
+   by the small script in the locale layout), not by the device setting alone —
+   that is what lets a visitor choose Light / Dark / System. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --font-sans: var(--font-inter), var(--font-arabic), ui-sans-serif, system-ui,
     sans-serif;
@@ -9,6 +14,17 @@ body {
   font-family: var(--font-sans);
   background: #fafaf9; /* stone-50 */
   color: #1c1917; /* stone-900 */
+}
+
+.dark body {
+  background: #0c0a09; /* stone-950 */
+  color: #fafaf9; /* stone-50 */
+}
+
+/* Tells the browser to draw its own bits (scrollbars, date pickers, the
+   dropdown list inside a <select>) in dark too. */
+.dark {
+  color-scheme: dark;
 }
 
 /* Arabic-first font stack when the page is RTL */

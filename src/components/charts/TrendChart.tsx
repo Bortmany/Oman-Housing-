@@ -11,7 +11,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useLocale } from "next-intl";
-import { CHART_COLORS, CHART_GRID, CHART_AXIS } from "@/lib/chartPalette";
+import { chartTheme } from "@/lib/chartPalette";
+import { useTheme } from "@/components/theme/ThemeProvider";
 
 export type TrendSeries = { key: string; name: string };
 export type TrendPoint = { label: string } & Record<string, string | number | null>;
@@ -32,6 +33,8 @@ function makeFormatter(locale: string, kind: "omr" | "percent") {
 // One reusable time-series line chart: single y-axis, recessive grid, 2px
 // lines, hover crosshair + tooltip, legend only when there are >= 2 series.
 // Rendered LTR even in the Arabic UI — numeric time axes read left-to-right.
+// Colors come from the shared palette for whichever theme is on screen, so
+// flipping to dark re-draws the chart in the dark set.
 export function TrendChart({
   data,
   series,
@@ -44,22 +47,28 @@ export function TrendChart({
   height?: number;
 }) {
   const locale = useLocale();
+  const { resolvedTheme } = useTheme();
+  const palette = chartTheme(resolvedTheme);
   const fmt = makeFormatter(locale, valueKind);
 
   return (
     <div dir="ltr" className="w-full">
       <ResponsiveContainer width="100%" height={height}>
         <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke={CHART_GRID} strokeDasharray="0" vertical={false} />
+          <CartesianGrid
+            stroke={palette.grid}
+            strokeDasharray="0"
+            vertical={false}
+          />
           <XAxis
             dataKey="label"
-            tick={{ fill: CHART_AXIS, fontSize: 11 }}
+            tick={{ fill: palette.axis, fontSize: 11 }}
             tickLine={false}
-            axisLine={{ stroke: CHART_GRID }}
+            axisLine={{ stroke: palette.grid }}
             minTickGap={24}
           />
           <YAxis
-            tick={{ fill: CHART_AXIS, fontSize: 11 }}
+            tick={{ fill: palette.axis, fontSize: 11 }}
             tickLine={false}
             axisLine={false}
             tickFormatter={fmt}
@@ -69,9 +78,13 @@ export function TrendChart({
             formatter={(value) => fmt(Number(value))}
             contentStyle={{
               borderRadius: 8,
-              border: `1px solid ${CHART_GRID}`,
+              border: `1px solid ${palette.grid}`,
+              backgroundColor: palette.tooltipBg,
+              color: palette.tooltipText,
               fontSize: 12,
             }}
+            itemStyle={{ color: palette.tooltipText }}
+            labelStyle={{ color: palette.tooltipText }}
           />
           {series.length >= 2 && (
             <Legend wrapperStyle={{ fontSize: 12 }} iconType="plainline" />
@@ -82,10 +95,10 @@ export function TrendChart({
               type="monotone"
               dataKey={s.key}
               name={s.name}
-              stroke={CHART_COLORS[i % CHART_COLORS.length]}
+              stroke={palette.colors[i % palette.colors.length]}
               strokeWidth={2}
               dot={false}
-              activeDot={{ r: 4, strokeWidth: 2, stroke: "#ffffff" }}
+              activeDot={{ r: 4, strokeWidth: 2, stroke: palette.activeDotStroke }}
               connectNulls
             />
           ))}

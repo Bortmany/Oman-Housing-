@@ -128,6 +128,14 @@ export function normalizePhone(dialCode: string, raw: string): string {
   return candidates.find((c) => fitsRule(dialCode, c)) ?? cleaned;
 }
 
+/**
+ * Just the digits of a stored number ("+968 9123 4567" -> "96891234567") —
+ * the form a wa.me / tel: link needs. Empty when there is nothing usable.
+ */
+export function phoneDigits(stored: string | null | undefined): string {
+  return toLatinDigits(String(stored ?? "")).replace(/\D/g, "");
+}
+
 export type PhoneProblem =
   | "unknownCode"
   | "digits"

@@ -3,11 +3,13 @@ import { Link } from "@/i18n/navigation";
 
 const variants = {
   primary:
-    "bg-teal-800 text-white hover:bg-teal-700 focus-visible:outline-teal-800",
+    "bg-teal-800 text-white hover:bg-teal-700 focus-visible:outline-teal-800 dark:bg-teal-600 dark:hover:bg-teal-500",
   secondary:
-    "bg-white text-stone-900 ring-1 ring-stone-300 hover:bg-stone-100 focus-visible:outline-stone-400",
-  danger: "bg-rose-700 text-white hover:bg-rose-600 focus-visible:outline-rose-700",
-  ghost: "text-teal-800 hover:bg-teal-50 focus-visible:outline-teal-800",
+    "bg-white text-stone-900 ring-1 ring-stone-300 hover:bg-stone-100 focus-visible:outline-stone-400 dark:bg-stone-900 dark:text-stone-100 dark:ring-stone-700 dark:hover:bg-stone-800",
+  danger:
+    "bg-rose-700 text-white hover:bg-rose-600 focus-visible:outline-rose-700 dark:bg-rose-600 dark:hover:bg-rose-500",
+  ghost:
+    "text-teal-800 hover:bg-teal-50 focus-visible:outline-teal-800 dark:text-teal-300 dark:hover:bg-teal-950",
 } as const;
 
 // min-h-11 keeps every button at least 44px tall — a comfortable thumb target.

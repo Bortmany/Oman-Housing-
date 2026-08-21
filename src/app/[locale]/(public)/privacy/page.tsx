@@ -21,55 +21,60 @@ export default async function PrivacyPage() {
     "collectPhotos",
     "collectAi",
     "collectFavorites",
+    "collectSavedSearches",
     "collectTechnical",
   ] as const;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-14">
-      <h1 className="text-3xl font-bold text-stone-900">{t("title")}</h1>
-      <p className="mt-2 text-sm text-stone-500">{t("updated")}</p>
+      <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-100">
+        {t("title")}
+      </h1>
+      <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">{t("updated")}</p>
 
-      <div className="mt-6 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-inset ring-amber-600/20">
+      <div className="mt-6 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-950 dark:text-amber-100 dark:ring-amber-400/30">
         {tl("templateNotice")}
       </div>
 
-      <p className="mt-6 text-sm leading-6 text-stone-700">{t("intro")}</p>
+      <p className="mt-6 text-sm leading-6 text-stone-700 dark:text-stone-300">
+        {t("intro")}
+      </p>
 
-      <h2 className="mt-8 text-lg font-semibold text-stone-900">
+      <h2 className="mt-8 text-lg font-semibold text-stone-900 dark:text-stone-100">
         {t("collectTitle")}
       </h2>
-      <ul className="mt-3 space-y-2 text-sm leading-6 text-stone-700">
+      <ul className="mt-3 space-y-2 text-sm leading-6 text-stone-700 dark:text-stone-300">
         {collectKeys.map((key) => (
           <li key={key}>• {t(key)}</li>
         ))}
       </ul>
 
-      <h2 className="mt-8 text-lg font-semibold text-stone-900">
+      <h2 className="mt-8 text-lg font-semibold text-stone-900 dark:text-stone-100">
         {t("useTitle")}
       </h2>
-      <p className="mt-3 text-sm leading-6 text-stone-700">{t("useBody")}</p>
+      <p className="mt-3 text-sm leading-6 text-stone-700 dark:text-stone-300">{t("useBody")}</p>
 
-      <h2 className="mt-8 text-lg font-semibold text-stone-900">
+      <h2 className="mt-8 text-lg font-semibold text-stone-900 dark:text-stone-100">
         {t("shareTitle")}
       </h2>
-      <p className="mt-3 text-sm leading-6 text-stone-700">{t("shareBody")}</p>
+      <p className="mt-3 text-sm leading-6 text-stone-700 dark:text-stone-300">{t("shareBody")}</p>
 
-      <h2 className="mt-8 text-lg font-semibold text-stone-900">
+      <h2 className="mt-8 text-lg font-semibold text-stone-900 dark:text-stone-100">
         {t("retentionTitle")}
       </h2>
-      <p className="mt-3 text-sm leading-6 text-stone-700">
+      <p className="mt-3 text-sm leading-6 text-stone-700 dark:text-stone-300">
         {t("retentionBody")}
       </p>
 
-      <h2 className="mt-8 text-lg font-semibold text-stone-900">
+      <h2 className="mt-8 text-lg font-semibold text-stone-900 dark:text-stone-100">
         {t("pdplTitle")}
       </h2>
-      <p className="mt-3 text-sm leading-6 text-stone-700">{t("pdplBody")}</p>
+      <p className="mt-3 text-sm leading-6 text-stone-700 dark:text-stone-300">{t("pdplBody")}</p>
 
-      <h2 className="mt-8 text-lg font-semibold text-stone-900">
+      <h2 className="mt-8 text-lg font-semibold text-stone-900 dark:text-stone-100">
         {tl("contactTitle")}
       </h2>
-      <p className="mt-3 text-sm leading-6 text-stone-700">
+      <p className="mt-3 text-sm leading-6 text-stone-700 dark:text-stone-300">
         {tl("contactBody")}
       </p>
     </div>

@@ -76,6 +76,26 @@ export async function activeListingsForProperty(propertyId: string) {
   });
 }
 
+/**
+ * The agency behind a property's live listings, when there is one: used for
+ * the direct "Call" / "WhatsApp" buttons on the property page. Only approved
+ * agencies, and only their public contact details.
+ */
+export async function agencyContactForProperty(propertyId: string) {
+  const listing = await prisma.listing.findFirst({
+    where: {
+      propertyId,
+      status: "ACTIVE",
+      agency: { is: { isApproved: true } },
+    },
+    orderBy: { publishedAt: "desc" },
+    select: {
+      agency: { select: { nameEn: true, nameAr: true, phone: true } },
+    },
+  });
+  return listing?.agency ?? null;
+}
+
 export async function listingsForCompare(a: string, b: string) {
   const [la, lb] = await Promise.all([listingById(a), listingById(b)]);
   // Only ACTIVE listings are comparable publicly.

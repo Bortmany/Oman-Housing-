@@ -23,7 +23,10 @@ Plain-English list of what to set up before launch. Full context: `Agents/docs/g
 - **Thawani / PayTabs checkout is deferred (not built).** For now you grant Premium/Business tiers by hand from `/admin/agencies`. Stripe is not an option (it doesn't serve Oman merchants).
 
 ## Email
-- **Deferred.** Enquiry-notification emails to agencies are a `TODO(Phase 5 email)` — not wired to any provider yet. Core browsing and admin work without it.
+- **The wiring now exists, switched off.** `src/lib/email/send.ts` sends through [Resend](https://resend.com)'s API with no extra software installed. It stays completely inert — nothing sent, nothing broken — until BOTH of these are set:
+  - `RESEND_API_KEY` — the API key from your Resend account.
+  - `EMAIL_FROM` — the "from" address, e.g. `"Oman Property Intelligence <alerts@yourdomain.com>"`. The domain has to be verified in Resend first.
+- **What wakes up when you set them:** nothing automatically. Saved searches (visitors can already save a search from `/properties` and manage it on their account page) say plainly, in both languages, that email alerts start once the email service is connected. Actually sending those alerts needs a scheduled job, which is deliberately not built yet — as does the agency enquiry notification (`TODO(Phase 5 email)`). Core browsing and admin work without any of it.
 
 ## Security note
 No committed secrets; role checks are enforced in every admin action; uploads and image serving are path-traversal guarded. Just be sure to replace both `change-me` values before deploy.
