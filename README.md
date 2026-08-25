@@ -1,85 +1,144 @@
-# Oman Property Intelligence Platform
+# Oman Property Intelligence
 
-Real-estate data and analysis for Oman, in English and Arabic. Think
-"market dashboard + investment calculators for Muscat and Salalah", built so a
-marketplace, AI analysis, and agency tools can be added on top later.
+A bilingual (English/Arabic) real-estate analytics platform for Oman: a
+market dashboard per neighborhood, investment calculators (rental yield,
+mortgage, ROI), a public property marketplace, and admin/agency tools for
+data entry and listing management.
 
-**The core promise: honest data.** Every figure on the site carries a label —
-Verified, Official statistic, User submitted, or AI estimated — plus a
-confidence score. Estimates are never dressed up as facts.
+**The core promise: honest data.** Every data-bearing figure (market stats,
+property records, valuations) carries a provenance label — Verified,
+Official statistic, User submitted, or AI estimated — plus a confidence
+score, shown right next to the number. Estimates are never dressed up as
+facts.
 
-## What works today (all five phases built)
+## What's built
 
-**Market intelligence (Phases 1–2)**
+- **Market dashboard** — average sale price, monthly rent, price per square
+  metre, and gross rental yield for 11 Oman areas, with 24 months of
+  history, trend charts, and neighborhood comparison.
+- **Calculators** — rental yield, mortgage (conventional and Islamic
+  financing), and full ROI (cash flow, break-even, long-term return). All
+  money is OMR with its 3 decimal places (baisa).
+- **Marketplace** — public property search and listing pages with
+  provenance-labeled financials, favorites, and side-by-side comparison.
+- **AI analyst** — a leashed question-and-answer card on each property page.
+  It only ever sees stored, labeled figures; every answer's citations are
+  checked in code, confidence is capped by the weakest figure cited, and the
+  AI is skipped entirely when there isn't enough data to answer honestly.
+- **Business tools** — buyer enquiries (spam-guarded), agency self-signup
+  with an admin approval queue, and listing tiers (Free/Premium/Business).
+- **Accounts & roles** — email/password login (Auth.js) with user, agency,
+  and admin roles; every admin page and admin server action is role-checked.
+- **Full bilingual/RTL support** — not an afterthought: every UI string and
+  most data fields exist in English and Arabic, with a real right-to-left
+  layout for Arabic.
 
-- **Market dashboard** (`/en/market`, `/ar/market`) — average sale price,
-  monthly rent, price per square metre, and gross rental yield for 11 areas
-  (8 Muscat neighborhoods, Muscat Hills, Salalah Center, Hawana Salalah),
-  with 24 months of history, trend charts, and apartment/villa filters.
-- **Neighborhood pages** — trends, an interactive map with property pins,
-  recorded properties, and Integrated Tourism Complex badges where foreign
-  ownership may be possible.
-- **Compare** — any two areas side by side.
-- **Calculators** — rental yield; mortgage with conventional AND Islamic
-  financing modes; full ROI with cash flow, break-even, and long-term return.
-  All in OMR with its 3 decimal places.
-- **Accounts & roles** — email/password login; user, agency, and admin roles.
-- **Admin data entry** — screens for adding monthly market statistics
-  (with mandatory source labeling) and property records with photo uploads.
-- **Arabic throughout** — full right-to-left layout, not an afterthought.
+## Stack
 
-**Marketplace (Phase 3)**
+- **[Next.js 16](https://nextjs.org)** (App Router, Turbopack) + TypeScript
+- **[Prisma 6](https://www.prisma.io) + PostgreSQL** — schema in
+  `prisma/schema.prisma`, no other ORM or query builder
+- **[Auth.js v5](https://authjs.dev)** — email/password sessions, role-based
+  access
+- **[next-intl](https://next-intl.dev)** — English/Arabic i18n with RTL
+- **[Tailwind CSS v4](https://tailwindcss.com)**
+- **[MapLibre GL](https://maplibre.org)** — the interactive neighborhood map
+- **[Recharts](https://recharts.org)** — trend and comparison charts
+- **[Vitest](https://vitest.dev)** — unit tests
 
-- **Property search** (`/properties`) with filters, property pages with a
-  financial analysis card where every figure carries its own provenance
-  label, favorites (login required), and side-by-side listing comparison.
-- **Admin listing moderation** (`/admin/listings`).
+> This repo runs Next.js 16, which has breaking changes from earlier
+> versions — see `AGENTS.md` if you're used to an older Next.js.
 
-**AI analyst (Phase 4)**
+## Project layout
 
-- A **question-and-answer card on each property page** (login required,
-  10 questions per user per day). The AI sees ONLY stored, labeled figures —
-  the code checks every answer's citations, caps its confidence by the
-  weakest figure it cited, and skips the AI entirely when there isn't enough
-  data. Needs `ANTHROPIC_API_KEY`; without it the card politely says the
-  analyst isn't switched on.
-
-**Business (Phase 5)**
-
-- **Buyer enquiries** on every property (open to everyone, spam-guarded);
-  agencies get an enquiry inbox.
-- **Agency self-signup** (`/list-with-us`) → an agency portal for submitting
-  listings, which land in the **admin review queue** (`/admin/review`)
-  alongside unverified user-submitted data.
-- **Listing tiers** — Free (3 listings), Premium (25), Business (unlimited),
-  granted by hand from `/admin/agencies` until online payments arrive.
-
-**Deferred until external accounts exist:** enquiry-notification emails, and
-a Thawani/PayTabs checkout that grants tiers automatically (Stripe does not
-serve Oman merchants). Details in `GO-LIVE.md`.
-
-The seeded numbers are clearly-labeled sample data so the dashboards
-demonstrate themselves; real figures replace them through the admin screens.
-
-## Run it locally
-
-```bash
-cp .env.example .env          # fill in AUTH_SECRET and SEED_ADMIN_PASSWORD
-npm install
-npx prisma db push            # needs PostgreSQL (see .env DATABASE_URL)
-npm run db:seed
-npm run dev                   # http://localhost:3000
+```
+src/
+  app/[locale]/       Pages (App Router, locale-prefixed: /en/..., /ar/...)
+  app/api/             API routes (health check, image serving, auth)
+  components/          UI, split by area (calculators, charts, map,
+                        marketplace, provenance, layout)
+  lib/                 Business logic: calculators, AI analyst, auth
+                        helpers, rate limiting, tiers, enquiry handling
+  lib/db/              Database query modules (one per domain: listings,
+                        favorites, valuations, market-stats, ...)
+  i18n/                next-intl config and the app's own navigation
+                        wrapper (always import Link/redirect from here,
+                        never next/link or next/navigation directly)
+  types/               Shared TypeScript types
+prisma/
+  schema.prisma        Database schema
+  seed.ts              Seeds sample data + the demo admin/agency accounts
+messages/
+  en.json, ar.json     All UI strings, one key per pair
+tests/                 Vitest unit tests, mirroring the src/ layout
+docs/
+  CONVENTIONS.md        House rules and the full verify recipe (for anyone
+                        continuing development on this codebase)
 ```
 
-Sign in as `admin@example.com` with the password you set in
-`SEED_ADMIN_PASSWORD` to reach the admin screens.
+## Local setup
 
-## Tech
+1. **PostgreSQL.** Have a local Postgres running, with a database for this
+   app. Example one-time setup:
+   ```bash
+   createuser app --login --pwprompt --createdb   # password: app (or your own)
+   createdb opip --owner=app
+   ```
+2. **Environment.** Copy `.env.example` to `.env` and fill in the required
+   values (see the table below) — at minimum `DATABASE_URL`, `AUTH_SECRET`,
+   and `SEED_ADMIN_PASSWORD`.
+   ```bash
+   cp .env.example .env
+   ```
+3. **Install, sync the schema, seed, and run:**
+   ```bash
+   npm install
+   npx prisma db push     # creates/updates tables from prisma/schema.prisma
+   npm run db:seed        # idempotent — sample data + demo accounts
+   npm run dev             # http://localhost:3000
+   ```
+4. Sign in at `/en/login` with `admin@example.com` and the password you set
+   in `SEED_ADMIN_PASSWORD` to reach the admin screens (there's also a demo
+   `agency@example.com` account with the same password).
 
-Next.js 16 (App Router) · TypeScript · Tailwind v4 · PostgreSQL + Prisma 6 ·
-Auth.js v5 · next-intl (en/ar with RTL) · Recharts · MapLibre GL.
+## Environment variables
 
-House rules, the verify recipe, and deploy notes: `docs/CONVENTIONS.md` —
-its roadmap section at the end records what each phase delivered and where
-the code for it lives. What still needs the owner before a public launch is
-listed in `GO-LIVE.md`.
+All of these are documented with full context in `.env.example` — this is
+just the quick-reference list of names and what each one is for.
+
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `AUTH_SECRET` | Auth.js session-signing secret |
+| `AUTH_URL` | The app's own public URL, used by Auth.js |
+| `DATA_DIR` | Where uploaded property images are written |
+| `SEED_ADMIN_PASSWORD` | Password for the seeded admin + demo agency logins |
+| `ANTHROPIC_API_KEY` | Powers the AI analyst; without it the analyst card just says it's not switched on yet |
+| `NEXT_PUBLIC_MAP_TILE_URL` | Optional: swap the map's tile server (defaults to OpenStreetMap, fine for low traffic only) |
+| `SENTRY_DSN` | Optional: error tracking; leave unset to keep it off |
+| `REDIS_URL` | Optional: a shared rate-limit store across multiple instances; leave unset for the default in-memory limiter |
+| `TRUST_PROXY_HEADERS` | Set to `"true"` only when a reverse proxy in front of the app (e.g. Railway) overwrites the visitor-IP headers itself — see `.env.example` for why this matters |
+
+## Testing
+
+```bash
+npm test
+```
+
+Runs the Vitest suite in `tests/` — pure-function unit tests for the
+calculators, the AI analyst's honesty rules, auth/rate-limit guards, the
+admin route gate, and the open-redirect and contact-field validators. No
+database is required to run them.
+
+## Deploying (Railway)
+
+The included `railway.json` configures:
+
+- **Build:** `npm run build` (runs `prisma generate` then `next build`)
+- **Pre-deploy:** `npx prisma db push` — syncs the database schema before
+  each new release goes live
+- **Health check:** `GET /api/health` — must return `{"ok":true}`
+
+On Railway, also attach a persistent Volume mounted at `/data` and set
+`DATA_DIR=/data`, or uploaded property photos are wiped on every deploy.
+Full pre-launch checklist (secrets, payments, email) is in `GO-LIVE.md`.

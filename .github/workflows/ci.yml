@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      # No Postgres service: neither `npm test` nor `npm run build` touch a
+      # database (tests don't import the Prisma client; verified against
+      # tests/ and vitest.config.mts). This placeholder only satisfies
+      # `prisma generate` (run inside `npm run build`), which needs
+      # DATABASE_URL present even though it never connects.
+      DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+      # Auth.js reads this at build time too; an obviously-fake CI-only value.
+      AUTH_SECRET: ci-only-dummy-secret-32-characters!!
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build

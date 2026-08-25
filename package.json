@@ -2,6 +2,9 @@
   "name": "oman-property-intelligence",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
@@ -9,7 +12,7 @@
     "lint": "eslint",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "test": "tsx src/lib/calculators/calculators.test.ts && tsx src/lib/ai/analystCore.test.ts && tsx src/lib/tiers.test.ts && tsx src/lib/enquiry.test.ts && tsx src/lib/formValues.test.ts && tsx src/lib/safePath.test.ts && tsx src/lib/rate-limit.test.ts && tsx src/lib/anonId.test.ts && tsx src/lib/adminGate.test.ts && tsx src/lib/loginBackoff.test.ts && tsx src/instrumentation-node.test.ts"
+    "test": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",
@@ -39,7 +42,8 @@
     "prisma": "^6.19.3",
     "tailwindcss": "^4",
     "tsx": "^4.23.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
