@@ -10,7 +10,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
-    "test": "tsx src/lib/calculators/calculators.test.ts && tsx src/lib/ai/analystCore.test.ts && tsx src/lib/tiers.test.ts && tsx src/lib/enquiry.test.ts && tsx src/lib/formValues.test.ts && tsx src/lib/safePath.test.ts && tsx src/lib/rate-limit.test.ts && tsx src/lib/anonId.test.ts && tsx src/lib/adminGate.test.ts && tsx src/lib/loginBackoff.test.ts && tsx src/lib/signupMode.test.ts && tsx src/lib/sessionRefresh.test.ts && tsx src/instrumentation-node.test.ts"
+    "test": "tsx src/lib/calculators/calculators.test.ts && tsx src/lib/ai/analystCore.test.ts && tsx src/lib/tiers.test.ts && tsx src/lib/enquiry.test.ts && tsx src/lib/formValues.test.ts && tsx src/lib/safePath.test.ts && tsx src/lib/rate-limit.test.ts && tsx src/lib/anonId.test.ts && tsx src/lib/adminGate.test.ts && tsx src/lib/loginBackoff.test.ts && tsx src/lib/signupMode.test.ts && tsx src/lib/legalContact.test.ts && tsx src/lib/sessionRefresh.test.ts && tsx src/instrumentation-node.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",

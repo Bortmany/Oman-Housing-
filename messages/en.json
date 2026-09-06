@@ -642,7 +642,7 @@
   "legal": {
     "templateNotice": "This page is a plain-language template prepared for the site owner. It has not yet been reviewed by a lawyer — have it professionally reviewed in Oman before relying on it.",
     "contactTitle": "Contact",
-    "contactBody": "For questions about this page or your information: [owner contact email — add before launch].",
+    "contactBody": "For questions about this page or your information, email <mail>{contactEmail}</mail>.",
     "privacy": {
       "title": "Privacy Policy",
       "updated": "Last updated: 18 July 2026",

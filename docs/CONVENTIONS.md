@@ -112,6 +112,10 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
     tests: `src/lib/signupMode.ts`. Rotate by editing the variable.
   - `SIGNUPS_OPEN="true"` — opens sign-up to everyone (the switch for when
     payments exist). Leave unset for now.
+  - `PRIVACY_CONTACT_EMAIL` — optional; the contact address shown as a
+    mailto link on the Privacy Policy and Terms of Use pages. Defaults to
+    the owner's address (`naeljam@hotmail.com`). Logic and tests:
+    `src/lib/legalContact.ts`.
   - optional `NEXT_PUBLIC_MAP_TILE_URL`, `REDIS_URL`
 - Health endpoint: `/api/health` (a signed-in admin also sees which of the
   optional integrations — Sentry, AI analyst, CAPTCHA — are configured, plus
