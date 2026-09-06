@@ -53,6 +53,12 @@ and ships its docs in `node_modules/next/dist/docs/`.**
    `calculators.test.ts`. UI never contains financial math.
 10. **Chart colors come from `src/lib/chartPalette.ts`** (validated, fixed
     order). One y-axis per chart, always.
+11. **Schema changes are real migration files.** Edit `prisma/schema.prisma`,
+    then run `npx prisma migrate dev --name <what-changed>` against the local
+    dev database and commit the new folder under `prisma/migrations/`. Never
+    `prisma db push` — Railway applies the committed migrations with
+    `npx prisma migrate deploy` before every deploy, so a schema change that
+    has no migration file never reaches production.
 
 ## Verify recipe (what `verifier` runs, in order)
 
@@ -64,7 +70,8 @@ and ships its docs in `node_modules/next/dist/docs/`.**
 # .env needs DATABASE_URL, AUTH_SECRET, DATA_DIR, SEED_ADMIN_PASSWORD (see .env.example)
 
 npm install
-npx prisma db push        # schema sync (same as Railway pre-deploy)
+npx prisma migrate deploy # apply committed migrations (same as Railway pre-deploy)
+                          # (changing the schema? `npx prisma migrate dev --name <change>` instead — never `db push`)
 npm run db:seed           # idempotent
 npm test                  # calculator math
 npm run lint
@@ -79,13 +86,28 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
 
 ## Deploy (Railway, matching the owner's other apps)
 
-- Pre-deploy command: `npx prisma db push`
+- Pre-deploy command: `npx prisma migrate deploy` (applies the committed
+  migration files; see house rule 11). Node is pinned to 22 (`.nvmrc`,
+  `engines` in `package.json`).
 - Volume mounted at `/data`, env `DATA_DIR=/data`
-- Env vars: `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` (public app URL),
-  `DATA_DIR`, `ANTHROPIC_API_KEY` (powers the AI analyst — without it the
-  analyst card shows a friendly "not switched on yet" message and everything
-  else works), optional `NEXT_PUBLIC_MAP_TILE_URL`
-- Health endpoint: `/api/health`
+- Env vars:
+  - `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` (public app URL), `DATA_DIR`
+  - `SEED_ADMIN_PASSWORD` — password given to the seeded `admin@example.com`
+    and `agency@example.com` logins by `npm run db:seed`; set a strong one
+    before seeding, then remove/rotate those demo accounts before launch.
+  - `TRUST_PROXY_HEADERS="true"` — tells the app the `X-Forwarded-For` header
+    is trustworthy (true on Railway) so rate limits count per real visitor
+    IP. Leave unset locally.
+  - `ANTHROPIC_API_KEY` — powers the AI analyst; without it the analyst card
+    shows a friendly "not switched on yet" message and everything else works.
+  - `SENTRY_DSN` — error tracking; empty = off, nothing is sent.
+  - `TURNSTILE_SECRET_KEY` + `NEXT_PUBLIC_TURNSTILE_SITE_KEY` — Cloudflare
+    Turnstile (free CAPTCHA) on the login, register and list-with-us forms.
+    Dormant until BOTH are set: no widget is shown and nothing is verified.
+    Get the pair from the Cloudflare dashboard (Turnstile → Add site).
+  - optional `NEXT_PUBLIC_MAP_TILE_URL`, `REDIS_URL`
+- Health endpoint: `/api/health` (a signed-in admin also sees which of the
+  optional integrations — Sentry, AI analyst, CAPTCHA — are configured)
 - The default OSM tile server is fine for low traffic only; swap
   `NEXT_PUBLIC_MAP_TILE_URL` to Carto/Protomaps before real traffic.
 

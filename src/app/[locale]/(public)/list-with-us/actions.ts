@@ -12,6 +12,8 @@ import {
   isPossibleEmail,
 } from "@/lib/contact";
 import { submittedValues, type SubmittedValues } from "@/lib/formValues";
+import { checkRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
+import { CAPTCHA_FIELD, issueCaptchaPass, verifyCaptcha } from "@/lib/captcha";
 
 const signupSchema = z
   .object({
@@ -34,7 +36,7 @@ const signupSchema = z
 
 export type AgencySignupState =
   | {
-      error: "emailTaken" | "signupFailed";
+      error: "emailTaken" | "signupFailed" | "rateLimited" | "captchaFailed";
       field?: string;
       // What the agency typed, so a rejected signup is never retyped.
       // The password is never in here.
@@ -58,6 +60,20 @@ export async function signUpAgency(
   formData: FormData,
 ): Promise<AgencySignupState> {
   const typed = submittedValues(formData, SIGNUP_FIELDS);
+
+  // Throttle agency signups per visitor (same pattern as user registration)
+  // so nobody can bulk-create agencies and flood the approval queue.
+  const anonKey = await getAnonRateLimitKey();
+  const { allowed } = checkRateLimit(`agencysignup:ip:${anonKey}`, {
+    limit: 5,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!allowed) return { error: "rateLimited", values: typed };
+
+  // Dormant CAPTCHA (src/lib/captcha.ts) — always passes until keyed.
+  if (!(await verifyCaptcha(formData.get(CAPTCHA_FIELD)))) {
+    return { error: "captchaFailed", values: typed };
+  }
 
   const parsed = signupSchema.safeParse({
     agencyNameEn: formData.get("agencyNameEn"),
@@ -95,9 +111,12 @@ export async function signUpAgency(
   if (!result.ok) return { error: "emailTaken", values: typed };
 
   // Sign the new agency owner in and drop them into their portal.
+  // The visitor's CAPTCHA token was spent above (single use), so this
+  // server-side sign-in carries a one-time pass instead (see captcha.ts).
   await signIn("credentials", {
     email: d.email,
     password: d.password,
+    captchaPass: issueCaptchaPass(),
     redirectTo: `/${locale}/agency`,
   });
   return null;

@@ -3,7 +3,13 @@
 Plain-English list of what to set up before launch. Full context: `Agents/docs/go-live-and-security-audit.md`.
 
 ## Host
-- **Railway** (described in `docs/CONVENTIONS.md`). Pre-deploy runs `npx prisma db push`; health endpoint is `/api/health`.
+- **Railway** (described in `docs/CONVENTIONS.md`). Pre-deploy runs `npx prisma migrate deploy` (applies the committed database migration files); health endpoint is `/api/health`. Node is pinned to version 22.
+
+## Database migrations (one-time note)
+- The database schema is now managed by migration files in `prisma/migrations/`. The first one (`20260906000217_init`) creates every table from scratch.
+- **If a database was ever set up the old way (`prisma db push`)** — its tables already exist, so the init migration must be marked as already done, or the first deploy will try to create tables that are already there and fail. Run this **once** against that database before the first `migrate deploy`:
+  `npx prisma migrate resolve --applied 20260906000217_init`
+  A brand-new, empty database needs nothing — `migrate deploy` builds it.
 
 ## Must do before launch
 - [ ] **Postgres database** → set `DATABASE_URL`. Add `?connection_limit=5` to the end of the URL so the app never opens more database connections than a small Postgres plan allows — without it, Prisma sizes its connection pool automatically and a busy moment can exhaust the database's connection slots. (If the URL already has a `?` in it, append `&connection_limit=5` instead.)
@@ -17,6 +23,9 @@ Plain-English list of what to set up before launch. Full context: `Agents/docs/g
 
 ## Optional
 - [ ] `ANTHROPIC_API_KEY` — turns on the AI property analyst. Without it, the analyst card shows a "not switched on" message; everything else works.
+- [ ] **Cloudflare Turnstile (free CAPTCHA)** — `TURNSTILE_SECRET_KEY` + `NEXT_PUBLIC_TURNSTILE_SITE_KEY`. Create a free Cloudflare account, open Turnstile → Add site, enter the app's domain, and copy the site key and secret key. Once BOTH are set, a "verify you're human" box appears on the login, register and list-with-us forms and every submission is checked. Until then it's dormant — no box, no checks. Signed-in admins can confirm it at `/api/health` (`captcha: configured`).
+- [ ] `SENTRY_DSN` — error alerts. Empty = off.
+- **Password reset is not built.** The site is invitation-only for now; the owner resets a forgotten password by hand from the database.
 - [ ] `NEXT_PUBLIC_MAP_TILE_URL` — see "Swap the map tile server" under **Must do** above; treat it as required once real visitors arrive.
 
 ## Payments

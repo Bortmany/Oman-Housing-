@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
@@ -7,6 +7,14 @@ import type { Role, Tier } from "@prisma/client";
 import { checkRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
 import { computeLoginBackoffMs, computeOvershoot } from "@/lib/loginBackoff";
 import { safeRedirectUrl } from "@/lib/safePath";
+import { consumeCaptchaPass, verifyCaptcha } from "@/lib/captcha";
+import { applyFreshUser, shouldRefreshRole } from "@/lib/sessionRefresh";
+
+/** Thrown when the (optional) CAPTCHA check fails — the login form shows a
+ *  "please complete the check" message instead of "wrong password". */
+class CaptchaSignin extends CredentialsSignin {
+  code = "captcha";
+}
 
 // A precomputed bcrypt hash (cost 10, same as every real password below) of
 // an arbitrary string nobody will ever type. Comparing against it for
@@ -52,7 +60,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   providers: [
     Credentials({
-      credentials: { email: {}, password: {} },
+      credentials: { email: {}, password: {}, captchaToken: {}, captchaPass: {} },
       async authorize(credentials) {
         const email = String(credentials?.email ?? "")
           .trim()
@@ -60,8 +68,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = String(credentials?.password ?? "");
         if (!email || !password) return null;
 
+        // Dormant CAPTCHA (src/lib/captcha.ts): always passes until the
+        // Turnstile keys are set; then every login needs a verified token —
+        // or a one-time pass minted by register/list-with-us, which already
+        // verified the visitor's token before signing the new account in.
+        if (
+          !consumeCaptchaPass(credentials?.captchaPass) &&
+          !(await verifyCaptcha(credentials?.captchaToken))
+        ) {
+          throw new CaptchaSignin();
+        }
+
         const anonKey = await getAnonRateLimitKey();
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({
+          where: { email },
+          include: { agency: { select: { isApproved: true } } },
+        });
 
         // Always run a real bcrypt compare — even for an email that doesn't
         // exist, or an account with no password set — against the dummy
@@ -87,6 +109,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             role: user.role,
             tier: user.tier,
             agencyId: user.agencyId,
+            agencyApproved: user.agency?.isApproved ?? false,
           };
         }
 
@@ -134,12 +157,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
+      const now = Date.now();
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.tier = user.tier;
         token.agencyId = user.agencyId;
+        token.agencyApproved = user.agencyApproved ?? false;
+        token.roleCheckedAt = now;
+        return token;
+      }
+      // Fresh role on every request — but cheaply: the token remembers when
+      // it last asked the database, and asks again at most once per
+      // ROLE_REFRESH_MS (5 min). So un-approving an agency or changing a role
+      // takes effect within minutes without a sign-out, and without a
+      // database read on every page. A user who no longer exists is signed
+      // out (returning null discards the token).
+      if (token.id && shouldRefreshRole(token.roleCheckedAt, now)) {
+        const fresh = await prisma.user.findUnique({
+          where: { id: token.id },
+          select: {
+            role: true,
+            tier: true,
+            agencyId: true,
+            agency: { select: { isApproved: true } },
+          },
+        });
+        const updated = applyFreshUser(token, fresh, now);
+        if (!updated) return null;
+        return updated;
       }
       return token;
     },
@@ -148,6 +195,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.role = token.role as Role;
       session.user.tier = token.tier as Tier;
       session.user.agencyId = (token.agencyId as string | null) ?? null;
+      session.user.agencyApproved = token.agencyApproved === true;
       return session;
     },
     redirect({ url, baseUrl }) {

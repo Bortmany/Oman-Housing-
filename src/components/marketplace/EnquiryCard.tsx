@@ -188,6 +188,14 @@ export function EnquiryCard({
         <Button type="submit" disabled={pending}>
           {pending ? t("sending") : t("send")}
         </Button>
+
+        {/* Consent line: who receives the details typed above. */}
+        <p className="text-xs text-stone-500">
+          {t("consent")}{" "}
+          <Link href="/privacy" className="font-medium underline">
+            {t("consentLink")}
+          </Link>
+        </p>
       </form>
     </Card>
   );
