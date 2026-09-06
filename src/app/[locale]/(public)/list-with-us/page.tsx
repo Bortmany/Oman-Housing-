@@ -7,6 +7,7 @@ import { Link } from "@/i18n/navigation";
 import { Card } from "@/components/ui/Card";
 import { ACTIVE_LISTING_LIMIT, TIER_ORDER, TIER_PRICE_OMR } from "@/lib/tiers";
 import { formatOMRWhole } from "@/lib/money";
+import { getSignupMode } from "@/lib/signupMode";
 
 export async function generateMetadata() {
   const t = await getTranslations("agency");
@@ -22,6 +23,10 @@ export default async function ListWithUsPage() {
 
   // An agency owner already signed in goes straight to their portal.
   if (session?.user.role === "AGENCY") redirect({ href: "/agency", locale });
+
+  // Read on the server so the form knows whether to ask for an invite code
+  // (the action re-checks — this only decides what the visitor sees).
+  const signupMode = getSignupMode();
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-14">
@@ -75,7 +80,16 @@ export default async function ListWithUsPage() {
       </section>
 
       <div className="mt-8">
-        <AgencySignupForm />
+        {signupMode === "closed" ? (
+          <div
+            role="status"
+            className="rounded-lg bg-stone-100 px-4 py-3 text-sm text-stone-700 ring-1 ring-inset ring-stone-200"
+          >
+            {t("signup.closed")}
+          </div>
+        ) : (
+          <AgencySignupForm inviteRequired={signupMode === "invite"} />
+        )}
       </div>
 
       <p className="mt-6 text-sm text-stone-600">

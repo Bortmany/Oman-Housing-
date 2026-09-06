@@ -250,6 +250,11 @@
     "registerFailed": "Could not create the account. Check the fields and try again.",
     "rateLimited": "Too many attempts. Please wait a few minutes and try again.",
     "captchaFailed": "Please complete the \"I'm human\" check and try again.",
+    "inviteCode": "Invite code",
+    "inviteCodeExample": "e.g. ABCD-1234-EFGH",
+    "inviteCodeHint": "Sign-up is by invitation for now — enter the code you were given.",
+    "inviteRequired": "Sign-up is by invitation. Enter a valid invite code.",
+    "signupClosed": "Sign-up is closed for now.",
     "genericError": "Something went wrong. Please try again."
   },
   "account": {
@@ -574,6 +579,11 @@
       "failed": "Please check the form and try again.",
       "rateLimited": "Too many sign-up attempts from here. Please wait an hour and try again.",
       "captchaFailed": "Please complete the \"I'm human\" check and try again.",
+      "inviteCode": "Invite code",
+      "inviteCodeExample": "e.g. ABCD-1234-EFGH",
+      "inviteCodeHint": "Sign-up is by invitation for now — enter the code you were given.",
+      "inviteRequired": "Sign-up is by invitation. Enter a valid invite code.",
+      "closed": "Sign-up is closed for now.",
       "submit": "Create agency account",
       "submitting": "Creating…"
     },

@@ -14,6 +14,12 @@ import {
 import { submittedValues, type SubmittedValues } from "@/lib/formValues";
 import { checkRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
 import { CAPTCHA_FIELD, issueCaptchaPass, verifyCaptcha } from "@/lib/captcha";
+import {
+  INVITE_ATTEMPT_LIMIT,
+  INVITE_CODE_FIELD,
+  checkInviteCode,
+  getSignupMode,
+} from "@/lib/signupMode";
 
 const signupSchema = z
   .object({
@@ -36,7 +42,13 @@ const signupSchema = z
 
 export type AgencySignupState =
   | {
-      error: "emailTaken" | "signupFailed" | "rateLimited" | "captchaFailed";
+      error:
+        | "emailTaken"
+        | "signupFailed"
+        | "rateLimited"
+        | "captchaFailed"
+        | "inviteRequired"
+        | "signupClosed";
       field?: string;
       // What the agency typed, so a rejected signup is never retyped.
       // The password is never in here.
@@ -69,6 +81,18 @@ export async function signUpAgency(
     windowMs: 60 * 60 * 1000,
   });
   if (!allowed) return { error: "rateLimited", values: typed };
+
+  // Invitation-only gate (src/lib/signupMode.ts) — same rule as buyer
+  // registration. Checked before the CAPTCHA so a wrong code never burns a
+  // single-use CAPTCHA token for nothing.
+  const mode = getSignupMode();
+  if (mode === "closed") return { error: "signupClosed", values: typed };
+  if (mode === "invite" && !checkInviteCode(formData.get(INVITE_CODE_FIELD))) {
+    // Only FAILED code attempts count here; the signup limiter above already
+    // bounds total submissions. Never echo the code back.
+    const attempt = checkRateLimit(`invitecode:ip:${anonKey}`, INVITE_ATTEMPT_LIMIT);
+    return { error: attempt.allowed ? "inviteRequired" : "rateLimited", values: typed };
+  }
 
   // Dormant CAPTCHA (src/lib/captcha.ts) — always passes until keyed.
   if (!(await verifyCaptcha(formData.get(CAPTCHA_FIELD)))) {

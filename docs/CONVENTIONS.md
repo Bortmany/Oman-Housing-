@@ -105,9 +105,17 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
     Turnstile (free CAPTCHA) on the login, register and list-with-us forms.
     Dormant until BOTH are set: no widget is shown and nothing is verified.
     Get the pair from the Cloudflare dashboard (Turnstile → Add site).
+  - `SIGNUP_INVITE_CODES` — comma-separated invite codes (8+ chars each).
+    Sign-up (buyer register AND agency list-with-us) is invitation-only while
+    this is set; in production with it unset and `SIGNUPS_OPEN` unset, sign-up
+    is CLOSED. Locally sign-up stays open unless codes are set. Logic and
+    tests: `src/lib/signupMode.ts`. Rotate by editing the variable.
+  - `SIGNUPS_OPEN="true"` — opens sign-up to everyone (the switch for when
+    payments exist). Leave unset for now.
   - optional `NEXT_PUBLIC_MAP_TILE_URL`, `REDIS_URL`
 - Health endpoint: `/api/health` (a signed-in admin also sees which of the
-  optional integrations — Sentry, AI analyst, CAPTCHA — are configured)
+  optional integrations — Sentry, AI analyst, CAPTCHA — are configured, plus
+  `signups: open | invite | closed`)
 - The default OSM tile server is fine for low traffic only; swap
   `NEXT_PUBLIC_MAP_TILE_URL` to Carto/Protomaps before real traffic.
 
