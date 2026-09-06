@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { isCaptchaConfigured } from "@/lib/captcha";
+import { getSignupMode } from "@/lib/signupMode";
 
 // Health endpoint for uptime checks (ops-watchdog / Railway).
 //
@@ -20,6 +21,9 @@ export async function GET() {
         aiAnalyst: process.env.ANTHROPIC_API_KEY ? "configured" : "dormant",
         rateLimitStore: process.env.REDIS_URL ? "redis" : "in-memory",
         captcha: isCaptchaConfigured() ? "configured" : "dormant",
+        // "open" | "invite" | "closed" — see src/lib/signupMode.ts. Admin-only
+        // like the rest: the codes themselves are never shown anywhere.
+        signups: getSignupMode(),
       }
     : undefined;
 

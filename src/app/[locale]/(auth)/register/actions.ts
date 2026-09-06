@@ -10,6 +10,12 @@ import { isPossibleEmail } from "@/lib/contact";
 import { submittedValues, type SubmittedValues } from "@/lib/formValues";
 import { safePath } from "@/lib/safePath";
 import { CAPTCHA_FIELD, issueCaptchaPass, verifyCaptcha } from "@/lib/captcha";
+import {
+  INVITE_ATTEMPT_LIMIT,
+  INVITE_CODE_FIELD,
+  checkInviteCode,
+  getSignupMode,
+} from "@/lib/signupMode";
 
 const registerSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -20,7 +26,13 @@ const registerSchema = z.object({
 });
 
 export type RegisterState = {
-  error: "emailTaken" | "registerFailed" | "rateLimited" | "captchaFailed";
+  error:
+    | "emailTaken"
+    | "registerFailed"
+    | "rateLimited"
+    | "captchaFailed"
+    | "inviteRequired"
+    | "signupClosed";
   // Name and email come back so a failed signup is not retyped. The password
   // is never carried back.
   values?: SubmittedValues;
@@ -44,6 +56,17 @@ export async function registerUser(
     windowMs: 60 * 60 * 1000,
   });
   if (!allowed) return { error: "rateLimited", values: typed };
+
+  // Invitation-only gate (src/lib/signupMode.ts). Checked before the CAPTCHA
+  // so a wrong code never burns a single-use CAPTCHA token for nothing.
+  const mode = getSignupMode();
+  if (mode === "closed") return { error: "signupClosed", values: typed };
+  if (mode === "invite" && !checkInviteCode(formData.get(INVITE_CODE_FIELD))) {
+    // Only FAILED code attempts count here; the register limiter above
+    // already bounds total submissions. Never echo the code back.
+    const attempt = checkRateLimit(`invitecode:ip:${anonKey}`, INVITE_ATTEMPT_LIMIT);
+    return { error: attempt.allowed ? "inviteRequired" : "rateLimited", values: typed };
+  }
 
   // Dormant CAPTCHA (src/lib/captcha.ts) — always passes until keyed.
   if (!(await verifyCaptcha(formData.get(CAPTCHA_FIELD)))) {
