@@ -249,6 +249,7 @@
     "emailTaken": "An account with this email already exists.",
     "registerFailed": "Could not create the account. Check the fields and try again.",
     "rateLimited": "Too many attempts. Please wait a few minutes and try again.",
+    "captchaFailed": "Please complete the \"I'm human\" check and try again.",
     "genericError": "Something went wrong. Please try again."
   },
   "account": {
@@ -523,6 +524,8 @@
     "sending": "Sending…",
     "sent": "Your enquiry has been sent. The seller will be in touch.",
     "sentSaved": "Saved to your account — you can track it under My enquiries.",
+    "consent": "Your name, email and phone are shared with the listing agency. See our",
+    "consentLink": "Privacy Policy.",
     "errors": {
       "invalid": "Please fill in your name, a valid email, and a message.",
       "rateLimited": "You've sent several enquiries recently. Please try again later.",
@@ -569,6 +572,8 @@
       "passwordHint": "At least 8 characters.",
       "emailTaken": "That email is already registered. Try signing in instead.",
       "failed": "Please check the form and try again.",
+      "rateLimited": "Too many sign-up attempts from here. Please wait an hour and try again.",
+      "captchaFailed": "Please complete the \"I'm human\" check and try again.",
       "submit": "Create agency account",
       "submitting": "Creating…"
     },

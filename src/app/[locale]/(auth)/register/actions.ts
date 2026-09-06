@@ -9,6 +9,7 @@ import { checkRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
 import { isPossibleEmail } from "@/lib/contact";
 import { submittedValues, type SubmittedValues } from "@/lib/formValues";
 import { safePath } from "@/lib/safePath";
+import { CAPTCHA_FIELD, issueCaptchaPass, verifyCaptcha } from "@/lib/captcha";
 
 const registerSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -19,7 +20,7 @@ const registerSchema = z.object({
 });
 
 export type RegisterState = {
-  error: "emailTaken" | "registerFailed" | "rateLimited";
+  error: "emailTaken" | "registerFailed" | "rateLimited" | "captchaFailed";
   // Name and email come back so a failed signup is not retyped. The password
   // is never carried back.
   values?: SubmittedValues;
@@ -43,6 +44,11 @@ export async function registerUser(
     windowMs: 60 * 60 * 1000,
   });
   if (!allowed) return { error: "rateLimited", values: typed };
+
+  // Dormant CAPTCHA (src/lib/captcha.ts) — always passes until keyed.
+  if (!(await verifyCaptcha(formData.get(CAPTCHA_FIELD)))) {
+    return { error: "captchaFailed", values: typed };
+  }
 
   const parsed = registerSchema.safeParse({
     name: formData.get("name"),
@@ -68,9 +74,12 @@ export async function registerUser(
   });
 
   // Signs the new user in and redirects (throws a redirect internally).
+  // The visitor's CAPTCHA token was spent above (single use), so this
+  // server-side sign-in carries a one-time pass instead (see captcha.ts).
   await signIn("credentials", {
     email,
     password,
+    captchaPass: issueCaptchaPass(),
     redirectTo: `/${locale}${callbackUrl}`,
   });
   return null;

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/ContactFields";
 import { Button } from "@/components/ui/Button";
 import { typedOr } from "@/lib/formValues";
+import { Turnstile } from "@/components/ui/Turnstile";
 
 export function RegisterForm() {
   const t = useTranslations("auth");
@@ -71,6 +72,9 @@ export function RegisterForm() {
         />
         <Hint>{t("passwordHint")}</Hint>
       </div>
+      {/* Renders nothing until the Turnstile keys are set. A rejected
+          submit (new `state`) resets it, since each token is single use. */}
+      <Turnstile resetKey={state} />
       <FieldError>{state?.error ? t(state.error) : null}</FieldError>
       <Button type="submit" disabled={pending} className="w-full">
         {t("register")}

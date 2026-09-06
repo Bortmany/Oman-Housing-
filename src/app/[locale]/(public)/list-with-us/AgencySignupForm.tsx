@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { typedOr } from "@/lib/formValues";
+import { Turnstile } from "@/components/ui/Turnstile";
 
 export function AgencySignupForm() {
   const t = useTranslations("agency");
@@ -131,12 +132,19 @@ export function AgencySignupForm() {
           </div>
         </div>
 
+        {/* Renders nothing until the Turnstile keys are set. A rejected
+            submit (new `state`) resets it, since each token is single use. */}
+        <Turnstile resetKey={state} />
         <FieldError>
           {state?.error === "emailTaken"
             ? t("signup.emailTaken")
-            : state?.error
-              ? t("signup.failed")
-              : null}
+            : state?.error === "rateLimited"
+              ? t("signup.rateLimited")
+              : state?.error === "captchaFailed"
+                ? t("signup.captchaFailed")
+                : state?.error
+                  ? t("signup.failed")
+                  : null}
         </FieldError>
 
         <Button type="submit" disabled={pending} className="w-full">

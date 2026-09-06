@@ -28,11 +28,19 @@ const mapTileOrigin = tileOrigin(
   process.env.NEXT_PUBLIC_MAP_TILE_URL ?? DEFAULT_TILE_URL,
 );
 
+// Cloudflare Turnstile (dormant CAPTCHA) loads a script and an iframe from
+// challenges.cloudflare.com — allowed ONLY when its public site key is set,
+// so the policy stays as tight as before while the CAPTCHA is switched off.
+const turnstileOrigin = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  ? " https://challenges.cloudflare.com"
+  : "";
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   // Next.js needs inline scripts; the dev server additionally needs eval
   // and a WebSocket for fast refresh (dev only — never in production).
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}${turnstileOrigin}`,
+  ...(turnstileOrigin ? [`frame-src 'self'${turnstileOrigin}`] : []),
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${mapTileOrigin}`,
   `connect-src 'self' ${mapTileOrigin}${isDev ? " ws:" : ""}`,
