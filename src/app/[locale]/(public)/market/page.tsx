@@ -71,15 +71,15 @@ export default async function MarketPage({
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-stone-900">{t("title")}</h1>
-          <p className="mt-2 max-w-2xl text-sm text-stone-600">
+          <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-100">{t("title")}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-stone-600 dark:text-stone-300">
             {t("subtitle")}
           </p>
         </div>
         <DirectionalLink
           direction="forward"
           href="/market/compare"
-          className="text-sm font-semibold text-teal-800 hover:underline"
+          className="text-sm font-semibold text-teal-800 hover:underline dark:text-teal-300"
         >
           {t("compare")}
         </DirectionalLink>
@@ -94,7 +94,7 @@ export default async function MarketPage({
             className={`rounded-full px-4 py-1.5 text-sm font-medium ring-1 ${
               tab.active
                 ? "bg-teal-800 text-white ring-teal-800"
-                : "bg-white text-stone-600 ring-stone-300 hover:bg-stone-100"
+                : "bg-white text-stone-600 ring-stone-300 hover:bg-stone-100 dark:bg-stone-900 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800"
             }`}
           >
             {tab.label}
@@ -104,14 +104,14 @@ export default async function MarketPage({
 
       {stats.length === 0 ? (
         <Card className="mt-8 text-center">
-          <p className="font-medium text-stone-700">{t("noData")}</p>
-          <p className="mt-1 text-sm text-stone-500">{t("noDataHint")}</p>
+          <p className="font-medium text-stone-700 dark:text-stone-300">{t("noData")}</p>
+          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t("noDataHint")}</p>
         </Card>
       ) : (
         <>
           {trendData.length > 0 && (
             <Card className="mt-8">
-              <h2 className="text-base font-semibold text-stone-900">
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
                 {t("priceTrends")}
               </h2>
               <div className="mt-4">
@@ -120,7 +120,7 @@ export default async function MarketPage({
             </Card>
           )}
 
-          <h2 className="mt-10 text-lg font-semibold text-stone-900">
+          <h2 className="mt-10 text-lg font-semibold text-stone-900 dark:text-stone-100">
             {t("neighborhoods")}
           </h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -135,16 +135,16 @@ export default async function MarketPage({
                   <Card className="h-full transition-shadow group-hover:shadow-md">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="font-semibold text-stone-900 group-hover:text-teal-800">
+                        <h3 className="font-semibold text-stone-900 group-hover:text-teal-800 dark:text-stone-100 dark:group-hover:text-teal-300">
                           {localName(locale, hood.nameEn, hood.nameAr)}
                         </h3>
-                        <p className="text-xs text-stone-500">
+                        <p className="text-xs text-stone-500 dark:text-stone-400">
                           {localName(locale, hood.city.nameEn, hood.city.nameAr)}
                         </p>
                       </div>
                       {hood.isITC && (
                         <Tooltip label={t("itcHint")}>
-                          <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-800 ring-1 ring-inset ring-teal-600/20 rtl:text-xs">
+                          <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-800 ring-1 ring-inset ring-teal-600/20 rtl:text-xs dark:bg-teal-950 dark:text-teal-300 dark:ring-teal-400/30">
                             {t("itcBadge")}
                           </span>
                         </Tooltip>
@@ -153,12 +153,12 @@ export default async function MarketPage({
 
                     <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                       <div>
-                        <dt className="text-xs text-stone-500 rtl:text-sm">{t("avgSalePrice")}</dt>
+                        <dt className="text-xs text-stone-500 rtl:text-sm dark:text-stone-400">{t("avgSalePrice")}</dt>
                         <dd
                           className={
                             s.avgSalePrice
-                              ? "text-lg font-bold text-teal-800"
-                              : "font-semibold text-stone-500"
+                              ? "text-lg font-bold text-teal-800 dark:text-teal-300"
+                              : "font-semibold text-stone-500 dark:text-stone-400"
                           }
                         >
                           {s.avgSalePrice
@@ -167,24 +167,24 @@ export default async function MarketPage({
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-stone-500 rtl:text-sm">{t("avgRentMonthly")}</dt>
-                        <dd className="font-semibold text-stone-900">
+                        <dt className="text-xs text-stone-500 rtl:text-sm dark:text-stone-400">{t("avgRentMonthly")}</dt>
+                        <dd className="font-semibold text-stone-900 dark:text-stone-100">
                           {s.avgRentMonthly
                             ? formatOMRWhole(s.avgRentMonthly.toString(), locale)
                             : tc("none")}
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-stone-500 rtl:text-sm">{t("avgPricePerSqm")}</dt>
-                        <dd className="font-semibold text-stone-900">
+                        <dt className="text-xs text-stone-500 rtl:text-sm dark:text-stone-400">{t("avgPricePerSqm")}</dt>
+                        <dd className="font-semibold text-stone-900 dark:text-stone-100">
                           {s.avgPricePerSqm
                             ? formatOMRWhole(s.avgPricePerSqm.toString(), locale)
                             : tc("none")}
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-stone-500 rtl:text-sm">{t("grossYield")}</dt>
-                        <dd className="font-semibold text-stone-900">
+                        <dt className="text-xs text-stone-500 rtl:text-sm dark:text-stone-400">{t("grossYield")}</dt>
+                        <dd className="font-semibold text-stone-900 dark:text-stone-100">
                           {s.grossYieldPct
                             ? formatPercent(s.grossYieldPct.toString(), locale)
                             : tc("none")}
@@ -197,7 +197,7 @@ export default async function MarketPage({
                         provenance={s.provenance}
                         confidence={s.confidence}
                       />
-                      <span className="text-xs text-stone-400 rtl:text-sm">
+                      <span className="text-xs text-stone-400 rtl:text-sm dark:text-stone-500">
                         {formatMonth(locale, s.periodStart)}
                       </span>
                     </div>

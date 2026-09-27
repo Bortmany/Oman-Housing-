@@ -157,7 +157,7 @@ export function PropertyForm({
           <div className="flex items-end gap-2 pb-2">
             <input id="furnished" name="furnished" type="checkbox"
               defaultChecked={typed ? typed.furnished === "on" : (defaults.furnished ?? false)}
-              className="size-4 rounded border-stone-300 text-teal-800" />
+              className="size-4 rounded border-stone-300 text-teal-800 dark:border-stone-700 dark:text-teal-300" />
             <Label htmlFor="furnished" className="!mb-0">
               {t("property.furnished")}
             </Label>
@@ -177,7 +177,7 @@ export function PropertyForm({
           </div>
         </div>
 
-        <div className="grid gap-4 border-t border-stone-200 pt-4 sm:grid-cols-2">
+        <div className="grid gap-4 border-t border-stone-200 pt-4 sm:grid-cols-2 dark:border-stone-800">
           <div>
             <Label htmlFor="provenance">{t("provenance")}</Label>
             <Select id="provenance" name="provenance" required
@@ -200,7 +200,7 @@ export function PropertyForm({
           </div>
         </div>
 
-        <div className="border-t border-stone-200 pt-4">
+        <div className="border-t border-stone-200 pt-4 dark:border-stone-800">
           <Label htmlFor="images">{t("property.addImages")}</Label>
           <input
             id="images"
@@ -208,7 +208,7 @@ export function PropertyForm({
             type="file"
             accept="image/jpeg,image/png,image/webp"
             multiple
-            className="block w-full text-sm text-stone-600 file:me-3 file:rounded-lg file:border-0 file:bg-teal-800 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white hover:file:bg-teal-700"
+            className="block w-full text-sm text-stone-600 file:me-3 file:rounded-lg file:border-0 file:bg-teal-800 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white hover:file:bg-teal-700 dark:text-stone-300"
           />
           <Hint>
             {t("property.imageTooLarge")} {t("property.imageWrongType")}

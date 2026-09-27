@@ -33,20 +33,20 @@ export default async function PropertiesAdminPage({
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-stone-900">{t("properties")}</h1>
+        <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t("properties")}</h1>
         <ButtonLink href="/admin/properties/new">{t("newProperty")}</ButtonLink>
       </div>
 
       {deleted && (
-        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-600/20">
+        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-400/30">
           {t("deleted")}
         </p>
       )}
 
       {properties.length === 0 ? (
         <Card className="mt-6 text-center">
-          <p className="font-medium text-stone-700">{t("table.empty")}</p>
-          <p className="mt-1 text-sm text-stone-500">
+          <p className="font-medium text-stone-700 dark:text-stone-300">{t("table.empty")}</p>
+          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
             {t("table.emptyPropertiesHint")}
           </p>
         </Card>
@@ -63,10 +63,10 @@ export default async function PropertiesAdminPage({
                     className="mb-3 h-36 w-full rounded-lg object-cover"
                   />
                 )}
-                <p className="font-medium text-stone-900 group-hover:text-teal-800">
+                <p className="font-medium text-stone-900 group-hover:text-teal-800 dark:text-stone-100 dark:group-hover:text-teal-300">
                   {localName(locale, p.titleEn, p.titleAr)}
                 </p>
-                <p className="mt-1 text-xs text-stone-500">
+                <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
                   {localName(locale, p.neighborhood.nameEn, p.neighborhood.nameAr)}{" "}
                   · {te(`propertyType.${p.type}`)}
                   {p.bedrooms != null && <> · {p.bedrooms} {tc("beds")}</>}

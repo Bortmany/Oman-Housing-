@@ -37,8 +37,8 @@ export default async function AdminInquiriesPage({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="text-2xl font-bold text-stone-900">{t("inquiries.title")}</h1>
-      <p className="mt-2 text-sm text-stone-600">{t("inquiries.subtitle")}</p>
+      <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t("inquiries.title")}</h1>
+      <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">{t("inquiries.subtitle")}</p>
 
       {/* Status filter chips */}
       <div className="mt-4 flex flex-wrap gap-2">
@@ -47,7 +47,7 @@ export default async function AdminInquiriesPage({
           className={`rounded-full px-3 py-1 text-xs font-medium ring-1 ${
             !statusFilter
               ? "bg-teal-800 text-white ring-teal-800"
-              : "bg-white text-stone-600 ring-stone-300 hover:bg-stone-100"
+              : "bg-white text-stone-600 ring-stone-300 hover:bg-stone-100 dark:bg-stone-900 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800"
           }`}
         >
           {t("allStatuses")}
@@ -59,7 +59,7 @@ export default async function AdminInquiriesPage({
             className={`rounded-full px-3 py-1 text-xs font-medium ring-1 ${
               statusFilter === s
                 ? "bg-teal-800 text-white ring-teal-800"
-                : "bg-white text-stone-600 ring-stone-300 hover:bg-stone-100"
+                : "bg-white text-stone-600 ring-stone-300 hover:bg-stone-100 dark:bg-stone-900 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800"
             }`}
           >
             {te(`inquiryStatus.${s}`)}
@@ -68,7 +68,7 @@ export default async function AdminInquiriesPage({
       </div>
 
       {inquiries.length === 0 ? (
-        <Card className="mt-6 text-center text-sm text-stone-500">
+        <Card className="mt-6 text-center text-sm text-stone-500 dark:text-stone-400">
           {t("inquiries.empty")}
         </Card>
       ) : (
@@ -79,15 +79,15 @@ export default async function AdminInquiriesPage({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <Link
                     href={`/properties/${q.listing.propertyId}`}
-                    className="font-medium text-stone-900 hover:text-teal-800"
+                    className="font-medium text-stone-900 hover:text-teal-800 dark:text-stone-100 dark:hover:text-teal-300"
                   >
                     {localName(locale, q.listing.property.titleEn, q.listing.property.titleAr)}
                   </Link>
                   <InquiryStatusPill status={q.status} />
                 </div>
-                <div className="text-sm text-stone-600">
-                  <span className="font-medium text-stone-800">{q.name}</span> ·{" "}
-                  <a href={`mailto:${q.email}`} className="text-teal-800 hover:underline">
+                <div className="text-sm text-stone-600 dark:text-stone-300">
+                  <span className="font-medium text-stone-800 dark:text-stone-200">{q.name}</span> ·{" "}
+                  <a href={`mailto:${q.email}`} className="text-teal-800 hover:underline dark:text-teal-300">
                     {q.email}
                   </a>
                   {/* Phone numbers read left-to-right, so the + stays in front in Arabic. */}
@@ -97,15 +97,15 @@ export default async function AdminInquiriesPage({
                     </span>
                   )}
                   {q.listing.agency && (
-                    <span className="ms-1 text-stone-400">
+                    <span className="ms-1 text-stone-400 dark:text-stone-500">
                       · {localName(locale, q.listing.agency.nameEn, q.listing.agency.nameAr)}
                     </span>
                   )}
                 </div>
-                <p className="whitespace-pre-line text-sm text-stone-700">{q.message}</p>
-                <p className="text-xs text-stone-400">{dateFmt.format(q.createdAt)}</p>
+                <p className="whitespace-pre-line text-sm text-stone-700 dark:text-stone-300">{q.message}</p>
+                <p className="text-xs text-stone-400 dark:text-stone-500">{dateFmt.format(q.createdAt)}</p>
 
-                <div className="flex flex-wrap gap-2 border-t border-stone-100 pt-3">
+                <div className="flex flex-wrap gap-2 border-t border-stone-100 pt-3 dark:border-stone-800">
                   {INQUIRY_STATUSES.map((s) => (
                     <form key={s} action={setInquiryStatusAdmin}>
                       <input type="hidden" name="id" value={q.id} />
@@ -113,7 +113,7 @@ export default async function AdminInquiriesPage({
                       <button
                         type="submit"
                         disabled={q.status === s}
-                        className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-600 hover:bg-stone-200 disabled:opacity-40"
+                        className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-600 hover:bg-stone-200 disabled:opacity-40 dark:bg-stone-800 dark:text-stone-300"
                       >
                         {te(`inquiryStatus.${s}`)}
                       </button>

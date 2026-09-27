@@ -75,24 +75,24 @@ export default async function NeighborhoodPage({
       <DirectionalLink
         direction="back"
         href="/market"
-        className="text-sm text-teal-800 hover:underline"
+        className="text-sm text-teal-800 hover:underline dark:text-teal-300"
       >
         {t("title")}
       </DirectionalLink>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <h1 className="text-3xl font-bold text-stone-900">
+        <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-100">
           {localName(locale, hood.nameEn, hood.nameAr)}
         </h1>
         {hood.isITC && (
           <Tooltip label={t("itcHint")}>
-            <span className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800 ring-1 ring-inset ring-teal-600/20 rtl:text-sm">
+            <span className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800 ring-1 ring-inset ring-teal-600/20 rtl:text-sm dark:bg-teal-950 dark:text-teal-300 dark:ring-teal-400/30">
               {t("itcBadge")}
             </span>
           </Tooltip>
         )}
       </div>
-      <p className="mt-1 text-sm text-stone-500">
+      <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
         {localName(locale, hood.city.nameEn, hood.city.nameAr)},{" "}
         {localName(
           locale,
@@ -103,20 +103,20 @@ export default async function NeighborhoodPage({
 
       {latest.length === 0 ? (
         <Card className="mt-8 text-center">
-          <p className="font-medium text-stone-700">{t("noData")}</p>
-          <p className="mt-1 text-sm text-stone-500">{t("noDataHint")}</p>
+          <p className="font-medium text-stone-700 dark:text-stone-300">{t("noData")}</p>
+          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t("noDataHint")}</p>
         </Card>
       ) : (
         <>
           {/* Overview cards, one per property type with data */}
-          <h2 className="mt-8 text-lg font-semibold text-stone-900">
+          <h2 className="mt-8 text-lg font-semibold text-stone-900 dark:text-stone-100">
             {t("overview")}
           </h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {latest.map(({ label, stat }) => (
               <Card key={label}>
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-stone-900">{label}</h3>
+                  <h3 className="font-semibold text-stone-900 dark:text-stone-100">{label}</h3>
                   <ProvenanceBadge
                     provenance={stat!.provenance}
                     confidence={stat!.confidence}
@@ -124,12 +124,12 @@ export default async function NeighborhoodPage({
                 </div>
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <dt className="text-xs text-stone-500 rtl:text-sm">{t("avgSalePrice")}</dt>
+                    <dt className="text-xs text-stone-500 rtl:text-sm dark:text-stone-400">{t("avgSalePrice")}</dt>
                     <dd
                       className={
                         stat!.avgSalePrice
-                          ? "text-lg font-bold text-teal-800"
-                          : "font-semibold text-stone-500"
+                          ? "text-lg font-bold text-teal-800 dark:text-teal-300"
+                          : "font-semibold text-stone-500 dark:text-stone-400"
                       }
                     >
                       {stat!.avgSalePrice
@@ -138,7 +138,7 @@ export default async function NeighborhoodPage({
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-stone-500 rtl:text-sm">{t("avgRentMonthly")}</dt>
+                    <dt className="text-xs text-stone-500 rtl:text-sm dark:text-stone-400">{t("avgRentMonthly")}</dt>
                     <dd className="font-semibold">
                       {stat!.avgRentMonthly
                         ? formatOMRWhole(stat!.avgRentMonthly.toString(), locale)
@@ -146,7 +146,7 @@ export default async function NeighborhoodPage({
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-stone-500 rtl:text-sm">{t("avgPricePerSqm")}</dt>
+                    <dt className="text-xs text-stone-500 rtl:text-sm dark:text-stone-400">{t("avgPricePerSqm")}</dt>
                     <dd className="font-semibold">
                       {stat!.avgPricePerSqm
                         ? formatOMRWhole(stat!.avgPricePerSqm.toString(), locale)
@@ -154,7 +154,7 @@ export default async function NeighborhoodPage({
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-stone-500 rtl:text-sm">{t("grossYield")}</dt>
+                    <dt className="text-xs text-stone-500 rtl:text-sm dark:text-stone-400">{t("grossYield")}</dt>
                     <dd className="font-semibold">
                       {stat!.grossYieldPct
                         ? formatPercent(stat!.grossYieldPct.toString(), locale)
@@ -162,7 +162,7 @@ export default async function NeighborhoodPage({
                     </dd>
                   </div>
                 </dl>
-                <p className="mt-3 text-end text-xs text-stone-400 rtl:text-sm">
+                <p className="mt-3 text-end text-xs text-stone-400 rtl:text-sm dark:text-stone-500">
                   {formatMonth(locale, stat!.periodStart)}
                 </p>
               </Card>
@@ -170,7 +170,7 @@ export default async function NeighborhoodPage({
           </div>
 
           <Card className="mt-6">
-            <h2 className="text-base font-semibold text-stone-900">
+            <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
               {t("trend")}
             </h2>
             <div className="mt-4">
@@ -179,7 +179,7 @@ export default async function NeighborhoodPage({
           </Card>
 
           <Card className="mt-6">
-            <h2 className="text-base font-semibold text-stone-900">
+            <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
               {t("rentTrend")}
             </h2>
             <div className="mt-4">
@@ -191,7 +191,7 @@ export default async function NeighborhoodPage({
 
       {pins.length > 0 && hood.lat != null && hood.lng != null && (
         <div className="mt-8">
-          <h2 className="text-lg font-semibold text-stone-900">
+          <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100">
             {t("mapTitle")}
           </h2>
           <div className="mt-4">
@@ -202,24 +202,24 @@ export default async function NeighborhoodPage({
 
       {hood.properties.length > 0 && (
         <div className="mt-8">
-          <h2 className="text-lg font-semibold text-stone-900">
+          <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100">
             {t("properties")}
           </h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {hood.properties.map((p) => (
               <Card key={p.id} className="text-sm">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="font-medium text-stone-900">
+                  <p className="font-medium text-stone-900 dark:text-stone-100">
                     {localName(locale, p.titleEn, p.titleAr)}
                     {isEnglishFallback(locale, p.titleAr) && (
-                      <span className="ms-2 text-xs text-stone-400">
+                      <span className="ms-2 text-xs text-stone-400 dark:text-stone-500">
                         ({tc("englishOnly")})
                       </span>
                     )}
                   </p>
                   <ProvenanceBadge provenance={p.provenance} confidence={p.confidence} />
                 </div>
-                <p className="mt-2 text-xs text-stone-500">
+                <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
                   {te(`propertyType.${p.type}`)}
                   {p.bedrooms != null && <> · {p.bedrooms} {tc("beds")}</>}
                   {p.bathrooms != null && <> · {p.bathrooms} {tc("baths")}</>}
@@ -227,7 +227,7 @@ export default async function NeighborhoodPage({
                     <> · {decimalToNumber(p.areaSqm)} {tc("sqm")}</>
                   )}
                 </p>
-                <p className="mt-1 text-xs text-stone-500">
+                <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
                   {te(`ownership.${p.ownership}`)}
                 </p>
               </Card>

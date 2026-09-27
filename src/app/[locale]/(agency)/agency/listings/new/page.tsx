@@ -27,8 +27,8 @@ export default async function NewAgencyListingPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
-      <h1 className="text-2xl font-bold text-stone-900">{t("listings.newListing")}</h1>
-      <p className="mt-1 text-sm text-stone-500">{t("listings.newLede")}</p>
+      <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t("listings.newListing")}</h1>
+      <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t("listings.newLede")}</p>
       <div className="mt-6">
         <AgencyListingForm neighborhoods={neighborhoods} />
       </div>

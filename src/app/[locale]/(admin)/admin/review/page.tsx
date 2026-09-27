@@ -50,11 +50,11 @@ export default async function AdminReviewPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="text-2xl font-bold text-stone-900">{t("review.title")}</h1>
-      <p className="mt-2 text-sm text-stone-600">{t("review.subtitle")}</p>
+      <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t("review.title")}</h1>
+      <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">{t("review.subtitle")}</p>
 
       {total === 0 && (
-        <Card className="mt-6 text-center text-sm text-stone-500">
+        <Card className="mt-6 text-center text-sm text-stone-500 dark:text-stone-400">
           {t("review.allClear")}
         </Card>
       )}
@@ -62,7 +62,7 @@ export default async function AdminReviewPage() {
       {/* Agency listings awaiting publish */}
       {pendingListings.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-lg font-semibold text-stone-900">
+          <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100">
             {t("review.pendingListings")} ({pendingListings.length})
           </h2>
           <ul className="mt-3 space-y-3">
@@ -70,10 +70,10 @@ export default async function AdminReviewPage() {
               <li key={l.id}>
                 <Card className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="font-medium text-stone-900">
+                    <p className="font-medium text-stone-900 dark:text-stone-100">
                       {localName(locale, l.property.titleEn, l.property.titleAr)}
                     </p>
-                    <p className="text-sm text-stone-500">
+                    <p className="text-sm text-stone-500 dark:text-stone-400">
                       {l.listingType === "SALE" ? tp("sale") : tp("rent")} ·{" "}
                       {formatOMRWhole(decimalToNumber(l.price)!, locale)}
                       {l.agency && (
@@ -92,7 +92,7 @@ export default async function AdminReviewPage() {
                     </form>
                     <form action={rejectListing}>
                       <input type="hidden" name="id" value={l.id} />
-                      <button className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-rose-700 ring-1 ring-stone-300 hover:bg-stone-100">
+                      <button className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-rose-700 ring-1 ring-stone-300 hover:bg-stone-100 dark:bg-stone-900 dark:text-rose-400 dark:ring-stone-700 dark:hover:bg-stone-800">
                         {t("review.reject")}
                       </button>
                     </form>
@@ -107,7 +107,7 @@ export default async function AdminReviewPage() {
       {/* User-submitted properties awaiting verification */}
       {unverifiedProps.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-lg font-semibold text-stone-900">
+          <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100">
             {t("review.unverifiedProperties")} ({unverifiedProps.length})
           </h2>
           <ul className="mt-3 space-y-3">
@@ -117,11 +117,11 @@ export default async function AdminReviewPage() {
                   <div>
                     <Link
                       href={`/admin/properties/${p.id}`}
-                      className="font-medium text-stone-900 hover:text-teal-800"
+                      className="font-medium text-stone-900 hover:text-teal-800 dark:text-stone-100 dark:hover:text-teal-300"
                     >
                       {localName(locale, p.titleEn, p.titleAr)}
                     </Link>
-                    <p className="text-sm text-stone-500">
+                    <p className="text-sm text-stone-500 dark:text-stone-400">
                       {te(`propertyType.${p.type}`)} ·{" "}
                       {localName(locale, p.neighborhood.nameEn, p.neighborhood.nameAr)}
                       <span className="ms-2">
@@ -132,7 +132,7 @@ export default async function AdminReviewPage() {
                   <div className="flex gap-2">
                     <Link
                       href={`/admin/properties/${p.id}`}
-                      className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-stone-700 ring-1 ring-stone-300 hover:bg-stone-100"
+                      className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-stone-700 ring-1 ring-stone-300 hover:bg-stone-100 dark:bg-stone-900 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800"
                     >
                       {t("review.openEditor")}
                     </Link>
@@ -153,7 +153,7 @@ export default async function AdminReviewPage() {
       {/* User-submitted market stats awaiting verification */}
       {unverifiedStats.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-lg font-semibold text-stone-900">
+          <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100">
             {t("review.unverifiedStats")} ({unverifiedStats.length})
           </h2>
           <ul className="mt-3 space-y-3">
@@ -167,8 +167,8 @@ export default async function AdminReviewPage() {
                 <li key={s.id}>
                   <Card className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="font-medium text-stone-900">{scope}</p>
-                      <p className="text-sm text-stone-500">
+                      <p className="font-medium text-stone-900 dark:text-stone-100">{scope}</p>
+                      <p className="text-sm text-stone-500 dark:text-stone-400">
                         {s.periodStart.toISOString().slice(0, 7)}
                         {s.propertyType && ` · ${te(`propertyType.${s.propertyType}`)}`}
                         <span className="ms-2">
