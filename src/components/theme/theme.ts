@@ -18,8 +18,13 @@ export const DARK_MEDIA_QUERY = "(prefers-color-scheme: dark)";
  * the `dark` class on <html>; everything else is CSS. Wrapped in try/catch
  * because localStorage throws in private-mode / storage-blocked browsers, and a
  * theme preference must never break the page.
+ *
+ * It also marks <html> with a `js` class (outside the try, so it always
+ * happens). CSS that hides content until a script reveals it — the landing
+ * page's scroll-reveal — only applies under `.js`, so with scripts blocked
+ * or failing, that content is simply visible.
  */
-export const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem(${JSON.stringify(
+export const THEME_INIT_SCRIPT = `(function(){document.documentElement.classList.add("js");try{var t=localStorage.getItem(${JSON.stringify(
   THEME_STORAGE_KEY,
 )});var d=t==="dark"||(t==="system"&&window.matchMedia(${JSON.stringify(
   DARK_MEDIA_QUERY,

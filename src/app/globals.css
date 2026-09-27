@@ -50,18 +50,20 @@ body {
     sans-serif;
 }
 
-/* Scroll-reveal (landing page). Motion only when the visitor allows it —
-   with reduced motion the content simply stays visible. Vertical-only
-   movement, so it is RTL-safe. */
+/* Scroll-reveal (landing page). Content is only hidden when the `js` class
+   is on <html> (added by the start-up script in the locale layout), so if
+   scripts are blocked or fail, everything stays visible. Motion only when
+   the visitor allows it — with reduced motion the content simply stays
+   visible. Vertical-only movement, so it is RTL-safe. */
 @media (prefers-reduced-motion: no-preference) {
-  [data-reveal] {
+  .js [data-reveal] {
     opacity: 0;
     translate: 0 18px;
     transition:
       opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
       translate 0.6s cubic-bezier(0.22, 1, 0.36, 1);
   }
-  [data-reveal].reveal-visible {
+  .js [data-reveal].reveal-visible {
     opacity: 1;
     translate: 0 0;
   }

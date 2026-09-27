@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 
-// Fade-and-rise on first scroll into view. The CSS lives in globals.css and
-// only applies when the visitor has not asked for reduced motion — without
-// JavaScript or with reduced motion the content is simply visible.
+// Fade-and-rise on first scroll into view. The CSS lives in globals.css: it
+// hides the content only when the `js` class is on <html> (set by the
+// start-up script in the locale layout) and the visitor has not asked for
+// reduced motion. So with scripts blocked or failing, or with reduced motion,
+// the content is simply visible; otherwise this component reveals it.
 export function Reveal({
   children,
   delay = 0,

@@ -59,7 +59,8 @@ export default async function LocaleLayout({
     >
       <head>
         {/* Applies the saved light/dark choice before the first paint, so a
-            dark-mode visitor never sees a white flash. */}
+            dark-mode visitor never sees a white flash, and adds the `js`
+            class that scroll-reveal content waits for. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="flex min-h-screen flex-col">
