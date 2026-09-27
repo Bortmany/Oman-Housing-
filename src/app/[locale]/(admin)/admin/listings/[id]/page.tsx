@@ -54,14 +54,14 @@ export default async function EditListingPage({
       <DirectionalLink
         direction="back"
         href="/admin/listings"
-        className="text-sm text-teal-800 hover:underline"
+        className="text-sm text-teal-800 hover:underline dark:text-teal-300"
       >
         {t("listings")}
       </DirectionalLink>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-stone-900">{t("editListing")}</h1>
+          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t("editListing")}</h1>
           <StatusPill status={listing.status} />
         </div>
         <div className="flex flex-wrap gap-2">
@@ -78,7 +78,7 @@ export default async function EditListingPage({
         </div>
       </div>
 
-      <p className="mt-2 text-sm text-stone-500">
+      <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
         {localName(locale, listing.property.titleEn, listing.property.titleAr)}
         {listing.publishedAt && (
           <> · {t("listing.publishedAt")}: {formatMonth(locale, listing.publishedAt)}</>
@@ -86,7 +86,7 @@ export default async function EditListingPage({
       </p>
 
       {saved && (
-        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-600/20">
+        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-400/30">
           {t("saved")}
         </p>
       )}

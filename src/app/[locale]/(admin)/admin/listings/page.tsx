@@ -35,12 +35,12 @@ export default async function ListingsAdminPage({
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-stone-900">{t("listings")}</h1>
+        <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t("listings")}</h1>
         <ButtonLink href="/admin/listings/new">{t("newListing")}</ButtonLink>
       </div>
 
       {deleted && (
-        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-600/20">
+        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-400/30">
           {t("deleted")}
         </p>
       )}
@@ -52,7 +52,7 @@ export default async function ListingsAdminPage({
           className={`rounded-full px-3 py-1 text-xs font-medium ring-1 ${
             !statusFilter
               ? "bg-teal-800 text-white ring-teal-800"
-              : "bg-white text-stone-600 ring-stone-300 hover:bg-stone-100"
+              : "bg-white text-stone-600 ring-stone-300 hover:bg-stone-100 dark:bg-stone-900 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800"
           }`}
         >
           {t("allStatuses")}
@@ -64,7 +64,7 @@ export default async function ListingsAdminPage({
             className={`rounded-full px-3 py-1 text-xs font-medium ring-1 ${
               statusFilter === s
                 ? "bg-teal-800 text-white ring-teal-800"
-                : "bg-white text-stone-600 ring-stone-300 hover:bg-stone-100"
+                : "bg-white text-stone-600 ring-stone-300 hover:bg-stone-100 dark:bg-stone-900 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800"
             }`}
           >
             <StatusPillLabel status={s} />
@@ -74,14 +74,14 @@ export default async function ListingsAdminPage({
 
       {listings.length === 0 ? (
         <Card className="mt-6 text-center">
-          <p className="font-medium text-stone-700">{t("table.empty")}</p>
-          <p className="mt-1 text-sm text-stone-500">{t("table.emptyListingsHint")}</p>
+          <p className="font-medium text-stone-700 dark:text-stone-300">{t("table.empty")}</p>
+          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t("table.emptyListingsHint")}</p>
         </Card>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-stone-200">
+        <div className="mt-6 overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-800">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
-              <tr className="border-b border-stone-200 text-xs text-stone-500">
+              <tr className="border-b border-stone-200 text-xs text-stone-500 dark:border-stone-800 dark:text-stone-400">
                 <th className="px-4 py-3 text-start font-medium">{t("listing.property")}</th>
                 <th className="px-4 py-3 text-start font-medium">{t("listing.listingType")}</th>
                 <th className="px-4 py-3 text-start font-medium">{t("listing.price")}</th>
@@ -91,16 +91,16 @@ export default async function ListingsAdminPage({
             </thead>
             <tbody>
               {listings.map((l) => (
-                <tr key={l.id} className="border-b border-stone-100 last:border-0">
+                <tr key={l.id} className="border-b border-stone-100 last:border-0 dark:border-stone-800">
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/listings/${l.id}`}
-                      className="font-medium text-stone-900 hover:text-teal-800"
+                      className="font-medium text-stone-900 hover:text-teal-800 dark:text-stone-100 dark:hover:text-teal-300"
                     >
                       {localName(locale, l.property.titleEn, l.property.titleAr)}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-stone-600">
+                  <td className="px-4 py-3 text-stone-600 dark:text-stone-300">
                     {l.listingType === "SALE" ? tp("sale") : tp("rent")}
                   </td>
                   <td className="px-4 py-3">

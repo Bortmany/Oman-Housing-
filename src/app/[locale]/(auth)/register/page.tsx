@@ -16,14 +16,14 @@ export default async function RegisterPage() {
 
   return (
     <div className="mx-auto max-w-sm px-4 py-16">
-      <h1 className="text-2xl font-bold text-stone-900">
+      <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">
         {t("registerTitle")}
       </h1>
       <div className="mt-6">
         {signupMode === "closed" ? (
           <div
             role="status"
-            className="rounded-lg bg-stone-100 px-4 py-3 text-sm text-stone-700 ring-1 ring-inset ring-stone-200"
+            className="rounded-lg bg-stone-100 px-4 py-3 text-sm text-stone-700 ring-1 ring-inset ring-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:ring-stone-800"
           >
             {t("signupClosed")}
           </div>
@@ -31,9 +31,9 @@ export default async function RegisterPage() {
           <RegisterForm inviteRequired={signupMode === "invite"} />
         )}
       </div>
-      <p className="mt-6 text-sm text-stone-600">
+      <p className="mt-6 text-sm text-stone-600 dark:text-stone-300">
         {t("haveAccount")}{" "}
-        <Link href="/login" className="font-semibold text-teal-800">
+        <Link href="/login" className="font-semibold text-teal-800 dark:text-teal-300">
           {t("signIn")}
         </Link>
       </p>

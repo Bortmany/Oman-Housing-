@@ -68,7 +68,7 @@ export function MortgageForm() {
                 className={`rounded-full px-4 py-1.5 text-sm font-medium ring-1 ${
                   mode === value
                     ? "bg-teal-800 text-white ring-teal-800"
-                    : "bg-white text-stone-600 ring-stone-300 hover:bg-stone-100"
+                    : "bg-white text-stone-600 ring-stone-300 hover:bg-stone-100 dark:bg-stone-900 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800"
                 }`}
               >
                 {t(value)}
@@ -151,31 +151,31 @@ export function MortgageForm() {
       </Card>
 
       <Card>
-        <h2 className="text-base font-semibold text-stone-900">
+        <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
           {tc("results")}
         </h2>
         <dl className="mt-4 space-y-4">
           <div>
             <CardTitle>{t("monthlyPayment")}</CardTitle>
-            <dd className="text-3xl font-bold text-teal-800">
+            <dd className="text-3xl font-bold text-teal-800 dark:text-teal-300">
               {formatOMR(m.monthlyPayment, locale)}
             </dd>
           </div>
-          <div className="grid grid-cols-2 gap-3 border-t border-stone-200 pt-4 text-sm">
+          <div className="grid grid-cols-2 gap-3 border-t border-stone-200 pt-4 text-sm dark:border-stone-800">
             <div>
-              <dt className="text-xs text-stone-500">{t("loanAmount")}</dt>
+              <dt className="text-xs text-stone-500 dark:text-stone-400">{t("loanAmount")}</dt>
               <dd className="font-semibold">
                 {formatOMRWhole(m.loanAmount, locale)}
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-stone-500">{t("totalPaid")}</dt>
+              <dt className="text-xs text-stone-500 dark:text-stone-400">{t("totalPaid")}</dt>
               <dd className="font-semibold">
                 {formatOMRWhole(m.totalPaid, locale)}
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-stone-500">
+              <dt className="text-xs text-stone-500 dark:text-stone-400">
                 {mode === "islamic" ? t("totalProfit") : t("totalInterest")}
               </dt>
               <dd className="font-semibold">

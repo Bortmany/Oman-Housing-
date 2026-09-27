@@ -19,11 +19,11 @@ export default async function NewPropertyPage() {
       <DirectionalLink
         direction="back"
         href="/admin/properties"
-        className="text-sm text-teal-800 hover:underline"
+        className="text-sm text-teal-800 hover:underline dark:text-teal-300"
       >
         {t("properties")}
       </DirectionalLink>
-      <h1 className="mt-3 text-2xl font-bold text-stone-900">
+      <h1 className="mt-3 text-2xl font-bold text-stone-900 dark:text-stone-100">
         {t("newProperty")}
       </h1>
       <div className="mt-6">

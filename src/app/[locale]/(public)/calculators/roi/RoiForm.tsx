@@ -104,29 +104,29 @@ export function RoiForm() {
       </Card>
 
       <Card>
-        <h2 className="text-base font-semibold text-stone-900">{tc("results")}</h2>
+        <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{tc("results")}</h2>
         <dl className="mt-4 space-y-4">
           <div>
             <CardTitle>{t("monthlyCashFlow")}</CardTitle>
             <dd
               className={`text-3xl font-bold ${
-                r.monthlyCashFlow >= 0 ? "text-teal-800" : "text-rose-700"
+                r.monthlyCashFlow >= 0 ? "text-teal-800 dark:text-teal-300" : "text-rose-700 dark:text-rose-400"
               }`}
             >
               {formatOMR(r.monthlyCashFlow, locale)}
             </dd>
           </div>
-          <div className="grid grid-cols-2 gap-3 border-t border-stone-200 pt-4 text-sm">
+          <div className="grid grid-cols-2 gap-3 border-t border-stone-200 pt-4 text-sm dark:border-stone-800">
             <div>
-              <dt className="text-xs text-stone-500">{t("annualCashFlow")}</dt>
+              <dt className="text-xs text-stone-500 dark:text-stone-400">{t("annualCashFlow")}</dt>
               <dd className="font-semibold">{formatOMR(r.annualCashFlow, locale)}</dd>
             </div>
             <div>
-              <dt className="text-xs text-stone-500">{t("cashOnCash")}</dt>
+              <dt className="text-xs text-stone-500 dark:text-stone-400">{t("cashOnCash")}</dt>
               <dd className="font-semibold">{formatPercent(r.cashOnCashPct, locale)}</dd>
             </div>
             <div>
-              <dt className="text-xs text-stone-500">{t("breakEven")}</dt>
+              <dt className="text-xs text-stone-500 dark:text-stone-400">{t("breakEven")}</dt>
               <dd className="font-semibold">
                 {r.breakEvenMonths != null
                   ? t("breakEvenMonths", {
@@ -137,7 +137,7 @@ export function RoiForm() {
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-stone-500">
+              <dt className="text-xs text-stone-500 dark:text-stone-400">
                 {t("totalReturn", { years })}
               </dt>
               <dd className="font-semibold">{formatOMRWhole(r.totalReturn, locale)}</dd>

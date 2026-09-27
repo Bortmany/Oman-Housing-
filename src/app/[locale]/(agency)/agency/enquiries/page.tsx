@@ -22,11 +22,11 @@ export default async function AgencyEnquiriesPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
-      <h1 className="text-2xl font-bold text-stone-900">{t("nav.enquiries")}</h1>
-      <p className="mt-1 text-sm text-stone-500">{t("enquiries.subtitle")}</p>
+      <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t("nav.enquiries")}</h1>
+      <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t("enquiries.subtitle")}</p>
 
       {enquiries.length === 0 ? (
-        <Card className="mt-6 text-center text-sm text-stone-500">
+        <Card className="mt-6 text-center text-sm text-stone-500 dark:text-stone-400">
           {t("enquiries.empty")}
         </Card>
       ) : (
@@ -35,29 +35,29 @@ export default async function AgencyEnquiriesPage() {
             <li key={q.id}>
               <Card className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-medium text-stone-900">
+                  <span className="font-medium text-stone-900 dark:text-stone-100">
                     {localName(locale, q.listing.property.titleEn, q.listing.property.titleAr)}
                   </span>
                   <InquiryStatusPill status={q.status} />
                 </div>
-                <div className="text-sm text-stone-600">
-                  <p className="font-medium text-stone-800">{q.name}</p>
+                <div className="text-sm text-stone-600 dark:text-stone-300">
+                  <p className="font-medium text-stone-800 dark:text-stone-200">{q.name}</p>
                   <p>
-                    <a href={`mailto:${q.email}`} className="text-teal-800 hover:underline">
+                    <a href={`mailto:${q.email}`} className="text-teal-800 hover:underline dark:text-teal-300">
                       {q.email}
                     </a>
                     {/* Phone numbers read left-to-right, so the + stays in front in Arabic. */}
                     {q.phone && (
-                      <span className="ms-2 text-stone-500">
+                      <span className="ms-2 text-stone-500 dark:text-stone-400">
                         · <span dir="ltr">{q.phone}</span>
                       </span>
                     )}
                   </p>
                 </div>
-                <p className="whitespace-pre-line text-sm text-stone-700">{q.message}</p>
-                <p className="text-xs text-stone-400">{dateFmt.format(q.createdAt)}</p>
+                <p className="whitespace-pre-line text-sm text-stone-700 dark:text-stone-300">{q.message}</p>
+                <p className="text-xs text-stone-400 dark:text-stone-500">{dateFmt.format(q.createdAt)}</p>
 
-                <div className="flex flex-wrap gap-2 border-t border-stone-100 pt-3">
+                <div className="flex flex-wrap gap-2 border-t border-stone-100 pt-3 dark:border-stone-800">
                   {(["CONTACTED", "CLOSED", "SPAM"] as const).map((s) => (
                     <form key={s} action={setEnquiryStatusAgency}>
                       <input type="hidden" name="id" value={q.id} />
@@ -65,7 +65,7 @@ export default async function AgencyEnquiriesPage() {
                       <button
                         type="submit"
                         disabled={q.status === s}
-                        className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-600 hover:bg-stone-200 disabled:opacity-40"
+                        className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-600 hover:bg-stone-200 disabled:opacity-40 dark:bg-stone-800 dark:text-stone-300"
                       >
                         {t(`enquiries.mark.${s}`)}
                       </button>

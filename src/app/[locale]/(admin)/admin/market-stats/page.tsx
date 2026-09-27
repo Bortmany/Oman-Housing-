@@ -43,26 +43,26 @@ export default async function MarketStatsAdminPage({
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-stone-900">{t("marketStats")}</h1>
+        <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t("marketStats")}</h1>
         <ButtonLink href="/admin/market-stats/new">{t("newStat")}</ButtonLink>
       </div>
 
       {(saved || deleted) && (
-        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-600/20">
+        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-400/30">
           {deleted ? t("deleted") : updated ? t("duplicateUpdated") : t("saved")}
         </p>
       )}
 
       {stats.length === 0 ? (
         <Card className="mt-6 text-center">
-          <p className="font-medium text-stone-700">{t("table.empty")}</p>
-          <p className="mt-1 text-sm text-stone-500">{t("table.emptyStatsHint")}</p>
+          <p className="font-medium text-stone-700 dark:text-stone-300">{t("table.empty")}</p>
+          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t("table.emptyStatsHint")}</p>
         </Card>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-stone-200">
+        <div className="mt-6 overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-800">
           <table className="w-full min-w-[720px] text-sm">
             <thead>
-              <tr className="border-b border-stone-200 text-start text-xs text-stone-500">
+              <tr className="border-b border-stone-200 text-start text-xs text-stone-500 dark:border-stone-800 dark:text-stone-400">
                 <th className="px-4 py-3 text-start font-medium">{t("table.area")}</th>
                 <th className="px-4 py-3 text-start font-medium">{t("table.type")}</th>
                 <th className="px-4 py-3 text-start font-medium">{t("table.period")}</th>
@@ -75,16 +75,16 @@ export default async function MarketStatsAdminPage({
             </thead>
             <tbody>
               {stats.map((s) => (
-                <tr key={s.id} className="border-b border-stone-100 last:border-0">
-                  <td className="px-4 py-3 font-medium text-stone-900">
+                <tr key={s.id} className="border-b border-stone-100 last:border-0 dark:border-stone-800">
+                  <td className="px-4 py-3 font-medium text-stone-900 dark:text-stone-100">
                     {scopeName(s)}
                   </td>
-                  <td className="px-4 py-3 text-stone-600">
+                  <td className="px-4 py-3 text-stone-600 dark:text-stone-300">
                     {s.propertyType
                       ? te(`propertyType.${s.propertyType}`)
                       : tm("allTypes")}
                   </td>
-                  <td className="px-4 py-3 text-stone-600">
+                  <td className="px-4 py-3 text-stone-600 dark:text-stone-300">
                     {formatMonth(locale, s.periodStart)}
                   </td>
                   <td className="px-4 py-3">

@@ -21,8 +21,8 @@ export default function AdminError({
 
   return (
     <div className="mx-auto max-w-lg px-4 py-16 text-center">
-      <h1 className="text-2xl font-semibold text-stone-900">{t("title")}</h1>
-      <p className="mt-3 text-stone-600">{t("description")}</p>
+      <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">{t("title")}</h1>
+      <p className="mt-3 text-stone-600 dark:text-stone-300">{t("description")}</p>
       <div className="mt-6 flex items-center justify-center">
         <Button onClick={() => unstable_retry()}>{t("tryAgain")}</Button>
       </div>
