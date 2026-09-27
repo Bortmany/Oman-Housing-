@@ -8,6 +8,8 @@ declare module "next-auth" {
       role: Role;
       tier: Tier;
       agencyId: string | null;
+      /** Whether the user's agency (if any) has been approved by an admin. */
+      agencyApproved: boolean;
     } & DefaultSession["user"];
   }
 
@@ -15,6 +17,7 @@ declare module "next-auth" {
     role?: Role;
     tier?: Tier;
     agencyId?: string | null;
+    agencyApproved?: boolean;
   }
 }
 
@@ -24,5 +27,8 @@ declare module "next-auth/jwt" {
     role?: Role;
     tier?: Tier;
     agencyId?: string | null;
+    agencyApproved?: boolean;
+    /** Epoch ms of the last database re-read of role/agency (src/auth.ts). */
+    roleCheckedAt?: number;
   }
 }

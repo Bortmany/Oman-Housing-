@@ -1,5 +1,11 @@
 // Tier / listing-allowance tests. Run with: npm test
-import { ACTIVE_LISTING_LIMIT, canAddListing, listingAllowance } from "./tiers";
+import {
+  ACTIVE_LISTING_LIMIT,
+  TIER_ORDER,
+  TIER_PRICE_OMR,
+  canAddListing,
+  listingAllowance,
+} from "./tiers";
 
 let failures = 0;
 
@@ -48,6 +54,32 @@ expectEqual("business.canAdd", canAddListing("BUSINESS", 100000), true);
   const a = listingAllowance("BUSINESS", 5);
   expectEqual("allowance.business.remaining", a.remaining, Infinity);
 }
+
+// Published monthly prices (OMR). These are what the public page shows.
+expectEqual("price.free", TIER_PRICE_OMR.FREE, 0);
+expectEqual("price.premium", TIER_PRICE_OMR.PREMIUM, 19);
+expectEqual("price.business", TIER_PRICE_OMR.BUSINESS, 49);
+
+// Every tier that has a listing cap also has a price, and vice versa —
+// so the pricing table can never miss a plan.
+for (const tier of Object.keys(ACTIVE_LISTING_LIMIT) as (keyof typeof ACTIVE_LISTING_LIMIT)[]) {
+  expectEqual(`price.exists.${tier}`, typeof TIER_PRICE_OMR[tier], "number");
+  expectEqual(`price.finite.${tier}`, Number.isFinite(TIER_PRICE_OMR[tier]), true);
+  expectEqual(`price.notNegative.${tier}`, TIER_PRICE_OMR[tier] >= 0, true);
+  expectEqual(`order.includes.${tier}`, TIER_ORDER.includes(tier), true);
+}
+expectEqual("order.length", TIER_ORDER.length, Object.keys(ACTIVE_LISTING_LIMIT).length);
+expectEqual("order.cheapestFirst", TIER_ORDER[0], "FREE");
+
+// A bigger price must buy at least as many listing slots.
+expectEqual(
+  "price.tracksAllowance",
+  TIER_PRICE_OMR.PREMIUM < TIER_PRICE_OMR.BUSINESS &&
+    ACTIVE_LISTING_LIMIT.PREMIUM < ACTIVE_LISTING_LIMIT.BUSINESS &&
+    TIER_PRICE_OMR.FREE < TIER_PRICE_OMR.PREMIUM &&
+    ACTIVE_LISTING_LIMIT.FREE < ACTIVE_LISTING_LIMIT.PREMIUM,
+  true,
+);
 
 if (failures > 0) {
   console.error(`\n${failures} tier test(s) failed`);

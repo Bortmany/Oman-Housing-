@@ -12,6 +12,20 @@ export const ACTIVE_LISTING_LIMIT: Record<Tier, number> = {
   BUSINESS: Infinity,
 };
 
+// What each tier costs an agency per month, in whole Omani rials.
+// Billing is manual for now: there is no payment gateway in the app, so the
+// owner agrees the price with the agency and switches the tier by hand from
+// /admin/agencies. These numbers are the single source of truth for the price
+// shown on the public "list with us" page.
+export const TIER_PRICE_OMR: Record<Tier, number> = {
+  FREE: 0,
+  PREMIUM: 19,
+  BUSINESS: 49,
+};
+
+/** The tiers in the order they are shown to the public, cheapest first. */
+export const TIER_ORDER: Tier[] = ["FREE", "PREMIUM", "BUSINESS"];
+
 export type ListingAllowance = {
   limit: number; // Infinity for unlimited
   used: number; // current live (ACTIVE) listings

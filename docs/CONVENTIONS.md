@@ -53,23 +53,51 @@ and ships its docs in `node_modules/next/dist/docs/`.**
    `calculators.test.ts`. UI never contains financial math.
 10. **Chart colors come from `src/lib/chartPalette.ts`** (validated, fixed
     order). One y-axis per chart, always.
+11. **Schema changes are real migration files.** Edit `prisma/schema.prisma`,
+    then run `npx prisma migrate dev --name <what-changed>` against the local
+    dev database and commit the new folder under `prisma/migrations/`. Never
+    `prisma db push` — Railway applies the committed migrations with
+    `npx prisma migrate deploy` before every deploy, so a schema change that
+    has no migration file never reaches production.
 
 ## Verify recipe (what `verifier` runs, in order)
 
 ```bash
 # One-time per machine: Postgres running, role+db created
-#   service postgresql start
+#   service postgresql start            (Mac with Homebrew: brew services start postgresql@16)
 #   su postgres -c "psql -c \"CREATE ROLE app LOGIN PASSWORD 'app' CREATEDB;\""
 #   su postgres -c "psql -c 'CREATE DATABASE opip OWNER app;'"
 # .env needs DATABASE_URL, AUTH_SECRET, DATA_DIR, SEED_ADMIN_PASSWORD (see .env.example)
+# (Homebrew Postgres on a Mac: DATABASE_URL="postgresql://<your-mac-username>@localhost:5432/opip"
+#  — no password, no role setup needed.)
 
-npm install
-npx prisma db push        # schema sync (same as Railway pre-deploy)
+npm install               # also switches on the pre-push hook (see below)
+npx prisma migrate deploy # apply committed migrations to the DEV database (same as Railway pre-deploy)
+                          # (changing the schema? `npx prisma migrate dev --name <change>` instead — never `db push`)
 npm run db:seed           # idempotent
-npm test                  # calculator math
-npm run lint
-npm run build             # prisma generate && next build
+npm run verify            # lint → typecheck → build → tests, stopping at the first failure
 ```
+
+`npm run verify` is the whole check in one command:
+`npm run lint && npm run typecheck && npm run build && npm test`.
+
+**Tests use their own database, never the development one.** `npm test`
+first brings the test database up to date with `npx prisma migrate deploy`
+(creating it if it doesn't exist — never `db push`, never `migrate dev`),
+then runs every test with `DATABASE_URL` pointed at it
+(`scripts/with-test-db.mjs`). The test database is `TEST_DATABASE_URL` if set,
+otherwise `DATABASE_URL` with `_test` added to the name (`opip` → `opip_test`).
+The script refuses to run if the two addresses are the same. To prepare the
+test database without running tests: `npm run db:test:prepare`. (Today's
+tests are pure logic and don't query the database; the separation is there so
+the first test that does can never touch development data.)
+
+**Pre-push hook.** `git push` runs `.husky/pre-push` automatically (installed
+by `npm install` via husky). It first checks Postgres is running
+(`pg_isready`) and stops with a plain-English note if not, then runs
+`npm run verify`; if anything fails, the push is cancelled. In a genuine
+emergency, `git push --no-verify` skips it — run `npm run verify` yourself
+straight afterwards.
 
 Dev-server smoke checks: `/en` 200 · `/ar` contains `dir="rtl"` ·
 `/en/market` shows figures · `/en/admin` redirects (307) when signed out ·
@@ -79,13 +107,40 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
 
 ## Deploy (Railway, matching the owner's other apps)
 
-- Pre-deploy command: `npx prisma db push`
+- Pre-deploy command: `npx prisma migrate deploy` (applies the committed
+  migration files; see house rule 11). Node is pinned to 22 (`.nvmrc`,
+  `engines` in `package.json`).
 - Volume mounted at `/data`, env `DATA_DIR=/data`
-- Env vars: `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` (public app URL),
-  `DATA_DIR`, `ANTHROPIC_API_KEY` (powers the AI analyst — without it the
-  analyst card shows a friendly "not switched on yet" message and everything
-  else works), optional `NEXT_PUBLIC_MAP_TILE_URL`
-- Health endpoint: `/api/health`
+- Env vars:
+  - `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` (public app URL), `DATA_DIR`
+  - `SEED_ADMIN_PASSWORD` — password given to the seeded `admin@example.com`
+    and `agency@example.com` logins by `npm run db:seed`; set a strong one
+    before seeding, then remove/rotate those demo accounts before launch.
+  - `TRUST_PROXY_HEADERS="true"` — tells the app the `X-Forwarded-For` header
+    is trustworthy (true on Railway) so rate limits count per real visitor
+    IP. Leave unset locally.
+  - `ANTHROPIC_API_KEY` — powers the AI analyst; without it the analyst card
+    shows a friendly "not switched on yet" message and everything else works.
+  - `SENTRY_DSN` — error tracking; empty = off, nothing is sent.
+  - `TURNSTILE_SECRET_KEY` + `NEXT_PUBLIC_TURNSTILE_SITE_KEY` — Cloudflare
+    Turnstile (free CAPTCHA) on the login, register and list-with-us forms.
+    Dormant until BOTH are set: no widget is shown and nothing is verified.
+    Get the pair from the Cloudflare dashboard (Turnstile → Add site).
+  - `SIGNUP_INVITE_CODES` — comma-separated invite codes (8+ chars each).
+    Sign-up (buyer register AND agency list-with-us) is invitation-only while
+    this is set; in production with it unset and `SIGNUPS_OPEN` unset, sign-up
+    is CLOSED. Locally sign-up stays open unless codes are set. Logic and
+    tests: `src/lib/signupMode.ts`. Rotate by editing the variable.
+  - `SIGNUPS_OPEN="true"` — opens sign-up to everyone (the switch for when
+    payments exist). Leave unset for now.
+  - `PRIVACY_CONTACT_EMAIL` — optional; the contact address shown as a
+    mailto link on the Privacy Policy and Terms of Use pages. Defaults to
+    the owner's address (`naeljam@hotmail.com`). Logic and tests:
+    `src/lib/legalContact.ts`.
+  - optional `NEXT_PUBLIC_MAP_TILE_URL`, `REDIS_URL`
+- Health endpoint: `/api/health` (a signed-in admin also sees which of the
+  optional integrations — Sentry, AI analyst, CAPTCHA — are configured, plus
+  `signups: open | invite | closed`)
 - The default OSM tile server is fine for low traffic only; swap
   `NEXT_PUBLIC_MAP_TILE_URL` to Carto/Protomaps before real traffic.
 
@@ -99,7 +154,7 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
   (`/admin/listings`). Query modules: `src/lib/db/{listings,favorites,valuations}.ts`.
 - **Phase 4 — AI analyst**: DONE — leashed Q&A on each property page
   (`AiAnalystCard`, login-gated, 10 questions/user/day). The model
-  (`claude-opus-4-8`, structured output) sees ONLY tagged stored figures
+  (`claude-opus-5`, structured output) sees ONLY tagged stored figures
   gathered in `src/lib/ai/analyst.ts` (reusing `propertyFinancials` and
   `nearestMarketStat`); `src/lib/ai/analystCore.ts` enforces the honesty
   rules in code after every answer — citations must match offered figures,

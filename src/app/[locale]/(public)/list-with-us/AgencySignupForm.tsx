@@ -14,8 +14,9 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { typedOr } from "@/lib/formValues";
+import { Turnstile } from "@/components/ui/Turnstile";
 
-export function AgencySignupForm() {
+export function AgencySignupForm({ inviteRequired }: { inviteRequired: boolean }) {
   const t = useTranslations("agency");
   const tc = useTranslations("contact");
   const [state, action, pending] = useActionState<AgencySignupState, FormData>(
@@ -39,6 +40,25 @@ export function AgencySignupForm() {
       onSubmit={(e) => blockImpossibleSubmit(e, [email, phone])}
     >
       <Card className="space-y-4">
+        {inviteRequired && (
+          // Invitation-only mode (src/lib/signupMode.ts). The code is not
+          // carried back on a rejected signup — it is retyped like the password.
+          <div>
+            <Label htmlFor="inviteCode">{t("signup.inviteCode")}</Label>
+            <Input
+              id="inviteCode"
+              name="inviteCode"
+              autoComplete="off"
+              placeholder={t("signup.inviteCodeExample")}
+              required
+              minLength={8}
+              maxLength={200}
+              disabled={pending}
+              error={state?.error === "inviteRequired"}
+            />
+            <Hint>{t("signup.inviteCodeHint")}</Hint>
+          </div>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="agencyNameEn">{t("signup.nameEn")}</Label>
@@ -131,12 +151,23 @@ export function AgencySignupForm() {
           </div>
         </div>
 
+        {/* Renders nothing until the Turnstile keys are set. A rejected
+            submit (new `state`) resets it, since each token is single use. */}
+        <Turnstile resetKey={state} />
         <FieldError>
           {state?.error === "emailTaken"
             ? t("signup.emailTaken")
-            : state?.error
-              ? t("signup.failed")
-              : null}
+            : state?.error === "rateLimited"
+              ? t("signup.rateLimited")
+              : state?.error === "captchaFailed"
+                ? t("signup.captchaFailed")
+                : state?.error === "inviteRequired"
+                  ? t("signup.inviteRequired")
+                  : state?.error === "signupClosed"
+                    ? t("signup.closed")
+                    : state?.error
+                      ? t("signup.failed")
+                      : null}
         </FieldError>
 
         <Button type="submit" disabled={pending} className="w-full">

@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import LegalContact from "@/components/legal/LegalContact";
 
 export async function generateMetadata() {
   const t = await getTranslations("legal.privacy");
@@ -71,12 +72,7 @@ export default async function PrivacyPage() {
       </h2>
       <p className="mt-3 text-sm leading-6 text-stone-700 dark:text-stone-300">{t("pdplBody")}</p>
 
-      <h2 className="mt-8 text-lg font-semibold text-stone-900 dark:text-stone-100">
-        {tl("contactTitle")}
-      </h2>
-      <p className="mt-3 text-sm leading-6 text-stone-700 dark:text-stone-300">
-        {tl("contactBody")}
-      </p>
+      <LegalContact />
     </div>
   );
 }

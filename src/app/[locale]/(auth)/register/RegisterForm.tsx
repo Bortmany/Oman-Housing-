@@ -12,8 +12,9 @@ import {
 } from "@/components/ui/ContactFields";
 import { Button } from "@/components/ui/Button";
 import { typedOr } from "@/lib/formValues";
+import { Turnstile } from "@/components/ui/Turnstile";
 
-export function RegisterForm() {
+export function RegisterForm({ inviteRequired }: { inviteRequired: boolean }) {
   const t = useTranslations("auth");
   const tc = useTranslations("contact");
   const email = useEmailField();
@@ -33,6 +34,25 @@ export function RegisterForm() {
       onSubmit={(e) => blockImpossibleSubmit(e, [email])}
       className="space-y-4"
     >
+      {inviteRequired && (
+        // Invitation-only mode (src/lib/signupMode.ts). The code is not
+        // carried back on a failed submit — it is retyped like the password.
+        <div>
+          <Label htmlFor="inviteCode">{t("inviteCode")}</Label>
+          <Input
+            id="inviteCode"
+            name="inviteCode"
+            autoComplete="off"
+            placeholder={t("inviteCodeExample")}
+            required
+            minLength={8}
+            maxLength={200}
+            disabled={pending}
+            error={state?.error === "inviteRequired"}
+          />
+          <Hint>{t("inviteCodeHint")}</Hint>
+        </div>
+      )}
       {callbackUrl && (
         // defaultValue, not value: a failed submit resets the form, and the
         // page the visitor was heading to must survive that reset too.
@@ -71,6 +91,9 @@ export function RegisterForm() {
         />
         <Hint>{t("passwordHint")}</Hint>
       </div>
+      {/* Renders nothing until the Turnstile keys are set. A rejected
+          submit (new `state`) resets it, since each token is single use. */}
+      <Turnstile resetKey={state} />
       <FieldError>{state?.error ? t(state.error) : null}</FieldError>
       <Button type="submit" disabled={pending} className="w-full">
         {t("register")}
