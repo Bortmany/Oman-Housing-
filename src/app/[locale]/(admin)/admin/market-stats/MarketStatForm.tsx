@@ -107,7 +107,7 @@ export function MarketStatForm({ locations }: { locations: LocationOptions }) {
           ))}
         </div>
 
-        <div className="grid gap-4 border-t border-stone-200 pt-4 sm:grid-cols-2">
+        <div className="grid gap-4 border-t border-stone-200 pt-4 sm:grid-cols-2 dark:border-stone-800">
           <div>
             <Label htmlFor="provenance">{t("provenance")}</Label>
             <Select id="provenance" name="provenance" required

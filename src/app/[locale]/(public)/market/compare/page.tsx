@@ -69,8 +69,8 @@ export default async function ComparePage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-3xl font-bold text-stone-900">{t("compare")}</h1>
-      <p className="mt-2 text-sm text-stone-600">{t("compareHint")}</p>
+      <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-100">{t("compare")}</h1>
+      <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">{t("compareHint")}</p>
 
       <form method="get" className="mt-6 flex flex-wrap items-end gap-3">
         <div className="min-w-48">
@@ -114,19 +114,19 @@ export default async function ComparePage({
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             {latest.map(({ hood, stat }) => (
               <Card key={hood.id}>
-                <h2 className="font-semibold text-stone-900">
+                <h2 className="font-semibold text-stone-900 dark:text-stone-100">
                   {localName(locale, hood.nameEn, hood.nameAr)}
                 </h2>
                 {stat ? (
                   <>
                     <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                       <div>
-                        <dt className="text-xs text-stone-500">{t("avgSalePrice")}</dt>
+                        <dt className="text-xs text-stone-500 dark:text-stone-400">{t("avgSalePrice")}</dt>
                         <dd
                           className={
                             stat.avgSalePrice
-                              ? "text-lg font-bold text-teal-800"
-                              : "font-semibold text-stone-500"
+                              ? "text-lg font-bold text-teal-800 dark:text-teal-300"
+                              : "font-semibold text-stone-500 dark:text-stone-400"
                           }
                         >
                           {stat.avgSalePrice
@@ -135,7 +135,7 @@ export default async function ComparePage({
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-stone-500">{t("avgRentMonthly")}</dt>
+                        <dt className="text-xs text-stone-500 dark:text-stone-400">{t("avgRentMonthly")}</dt>
                         <dd className="font-semibold">
                           {stat.avgRentMonthly
                             ? formatOMRWhole(stat.avgRentMonthly.toString(), locale)
@@ -143,7 +143,7 @@ export default async function ComparePage({
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-stone-500">{t("avgPricePerSqm")}</dt>
+                        <dt className="text-xs text-stone-500 dark:text-stone-400">{t("avgPricePerSqm")}</dt>
                         <dd className="font-semibold">
                           {stat.avgPricePerSqm
                             ? formatOMRWhole(stat.avgPricePerSqm.toString(), locale)
@@ -151,7 +151,7 @@ export default async function ComparePage({
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-stone-500">{t("grossYield")}</dt>
+                        <dt className="text-xs text-stone-500 dark:text-stone-400">{t("grossYield")}</dt>
                         <dd className="font-semibold">
                           {stat.grossYieldPct
                             ? formatPercent(stat.grossYieldPct.toString(), locale)
@@ -167,7 +167,7 @@ export default async function ComparePage({
                     </div>
                   </>
                 ) : (
-                  <p className="mt-4 text-sm text-stone-500">{t("noData")}</p>
+                  <p className="mt-4 text-sm text-stone-500 dark:text-stone-400">{t("noData")}</p>
                 )}
               </Card>
             ))}
@@ -175,7 +175,7 @@ export default async function ComparePage({
 
           {trendData.length > 0 && (
             <Card className="mt-6">
-              <h2 className="text-base font-semibold text-stone-900">
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
                 {t("priceTrends")} — {te(`propertyType.${propertyType}`)}
               </h2>
               <div className="mt-4">

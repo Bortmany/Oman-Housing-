@@ -65,12 +65,12 @@ export function EnquiryCard({
   if (state.status === "sent") {
     return (
       <Card>
-        <h2 className="text-base font-semibold text-stone-900">{t("title")}</h2>
-        <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t("title")}</h2>
+        <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
           {t("sent")}
         </p>
         {state.savedToAccount && (
-          <p className="mt-2 text-xs text-stone-500">{t("sentSaved")}</p>
+          <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">{t("sentSaved")}</p>
         )}
       </Card>
     );
@@ -78,11 +78,11 @@ export function EnquiryCard({
 
   return (
     <Card>
-      <h2 className="text-base font-semibold text-stone-900">{t("title")}</h2>
-      <p className="mt-1 text-xs text-stone-500">{t("subtitle")}</p>
+      <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t("title")}</h2>
+      <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{t("subtitle")}</p>
 
       {!signedIn && (
-        <div className="mt-3 rounded-lg bg-teal-50 px-3 py-2 text-sm text-teal-900">
+        <div className="mt-3 rounded-lg bg-teal-50 px-3 py-2 text-sm text-teal-900 dark:bg-teal-950 dark:text-teal-200">
           {t("accountNudge")}{" "}
           <Link href={registerHref} className="font-semibold underline">
             {t("createAccount")}
@@ -190,7 +190,7 @@ export function EnquiryCard({
         </Button>
 
         {/* Consent line: who receives the details typed above. */}
-        <p className="text-xs text-stone-500">
+        <p className="text-xs text-stone-500 dark:text-stone-400">
           {t("consent")}{" "}
           <Link href="/privacy" className="font-medium underline">
             {t("consentLink")}

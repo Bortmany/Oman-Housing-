@@ -12,13 +12,13 @@ export default async function LoginPage() {
 
   return (
     <div className="mx-auto max-w-sm px-4 py-16">
-      <h1 className="text-2xl font-bold text-stone-900">{t("signInTitle")}</h1>
+      <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t("signInTitle")}</h1>
       <div className="mt-6">
         <LoginForm />
       </div>
-      <p className="mt-6 text-sm text-stone-600">
+      <p className="mt-6 text-sm text-stone-600 dark:text-stone-300">
         {t("noAccount")}{" "}
-        <Link href="/register" className="font-semibold text-teal-800">
+        <Link href="/register" className="font-semibold text-teal-800 dark:text-teal-300">
           {t("register")}
         </Link>
       </p>

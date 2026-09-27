@@ -134,7 +134,7 @@ export function AgencyListingForm({
         </div>
 
         {/* Listing (price) */}
-        <div className="grid gap-4 border-t border-stone-200 pt-4 sm:grid-cols-3">
+        <div className="grid gap-4 border-t border-stone-200 pt-4 sm:grid-cols-3 dark:border-stone-800">
           <div>
             <Label htmlFor="listingType">{ta("listing.listingType")}</Label>
             <Select
@@ -194,7 +194,7 @@ export function AgencyListingForm({
                 : null}
         </FieldError>
 
-        <p className="text-xs text-stone-500">{t("listings.submitNotice")}</p>
+        <p className="text-xs text-stone-500 dark:text-stone-400">{t("listings.submitNotice")}</p>
         <Button type="submit" disabled={pending}>
           {pending ? tc("save") : t("listings.submit")}
         </Button>
