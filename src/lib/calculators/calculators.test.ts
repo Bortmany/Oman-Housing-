@@ -214,6 +214,33 @@ function expectClose(label: string, actual: number, expected: number, tol = 0.01
   expectClose("affordability.overCommitted.maxPropertyPrice", a.maxPropertyPrice, 5_000);
 }
 
+// At the loan ceiling: 1,000,000/mo income could "afford" far more than the
+// 10,000,000 cap, so the loan is capped. Total paid must use the repayment the
+// capped loan actually needs (at 0% over 10 years: 10,000,000 / 120 per month),
+// so it equals the loan exactly and nothing is charged on top.
+{
+  const a = affordability({
+    monthlyIncome: 1_000_000, monthlyObligations: 0, downPayment: 0,
+    annualRatePct: 0, years: 10, mode: "islamic",
+  });
+  expectClose("affordability.ceiling.maxLoan", a.maxLoan, 10_000_000);
+  expectClose("affordability.ceiling.totalPaid", a.totalPaid, 10_000_000);
+  expectClose("affordability.ceiling.totalCharge", a.totalCharge, 0);
+}
+
+// Same ceiling with a 5% rate over 25 years: the capped loan's repayment is
+// 10,000,000 / 100,000 * 584.590 ≈ 58,459.004/mo, so over 300 months the bank
+// is paid 17,537,701.245 and the charge is 7,537,701.245.
+{
+  const a = affordability({
+    monthlyIncome: 1_000_000, monthlyObligations: 0, downPayment: 0,
+    annualRatePct: 5, years: 25, mode: "conventional",
+  });
+  expectClose("affordability.ceilingRate.maxLoan", a.maxLoan, 10_000_000);
+  expectClose("affordability.ceilingRate.totalPaid", a.totalPaid, 17_537_701.245, 0.01);
+  expectClose("affordability.ceilingRate.totalCharge", a.totalCharge, 7_537_701.245, 0.01);
+}
+
 // Malformed input must never produce Infinity/NaN or an unusable figure.
 {
   const a = affordability({

@@ -96,7 +96,16 @@ export function affordability(
       : (maxMonthlyPayment * (1 - Math.pow(1 + r, -months))) / r;
   const maxLoan = Math.min(rawLoan, MAX_PROPERTY_PRICE);
 
-  const totalPaid = maxMonthlyPayment * months;
+  // When the loan hits the ceiling, the bank is only repaid the payment that
+  // the capped loan actually needs — not the full DBR allowance — so the
+  // totals are worked out from that smaller payment.
+  const repayment =
+    maxLoan < rawLoan
+      ? r === 0
+        ? maxLoan / months
+        : (maxLoan * r) / (1 - Math.pow(1 + r, -months))
+      : maxMonthlyPayment;
+  const totalPaid = repayment * months;
   return {
     maxMonthlyPayment,
     maxLoan,
