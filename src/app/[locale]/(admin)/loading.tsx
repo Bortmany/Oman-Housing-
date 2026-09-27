@@ -16,7 +16,7 @@ export default function AdminLoading() {
         ))}
       </div>
 
-      <div className="mt-6 rounded-xl bg-white p-5 shadow-sm ring-1 ring-stone-200">
+      <div className="mt-6 rounded-xl bg-white p-5 shadow-sm ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-800">
         <SkeletonTableRows rows={8} cols={4} />
       </div>
     </div>

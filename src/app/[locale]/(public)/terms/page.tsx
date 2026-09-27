@@ -26,21 +26,21 @@ export default async function TermsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-14">
-      <h1 className="text-3xl font-bold text-stone-900">{t("title")}</h1>
-      <p className="mt-2 text-sm text-stone-500">{t("updated")}</p>
+      <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-100">{t("title")}</h1>
+      <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">{t("updated")}</p>
 
-      <div className="mt-6 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-inset ring-amber-600/20">
+      <div className="mt-6 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-950 dark:text-amber-100 dark:ring-amber-400/30">
         {tl("templateNotice")}
       </div>
 
-      <p className="mt-6 text-sm leading-6 text-stone-700">{t("intro")}</p>
+      <p className="mt-6 text-sm leading-6 text-stone-700 dark:text-stone-300">{t("intro")}</p>
 
       {sections.map(([titleKey, bodyKey]) => (
         <section key={titleKey}>
-          <h2 className="mt-8 text-lg font-semibold text-stone-900">
+          <h2 className="mt-8 text-lg font-semibold text-stone-900 dark:text-stone-100">
             {t(titleKey)}
           </h2>
-          <p className="mt-3 text-sm leading-6 text-stone-700">{t(bodyKey)}</p>
+          <p className="mt-3 text-sm leading-6 text-stone-700 dark:text-stone-300">{t(bodyKey)}</p>
         </section>
       ))}
 

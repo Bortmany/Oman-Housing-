@@ -10,7 +10,7 @@ export function Skeleton({
   return (
     <div
       aria-hidden="true"
-      className={`animate-pulse rounded-lg bg-stone-200 motion-reduce:animate-none ${className}`}
+      className={`animate-pulse rounded-lg bg-stone-200 dark:bg-stone-800 motion-reduce:animate-none ${className}`}
     />
   );
 }
@@ -20,7 +20,7 @@ export function Skeleton({
 // badge/heart row at the bottom — same layout as the real ListingCard.
 export function SkeletonPropertyCard() {
   return (
-    <div className="flex h-full flex-col rounded-xl bg-white shadow-sm ring-1 ring-stone-200">
+    <div className="flex h-full flex-col rounded-xl bg-white shadow-sm ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-800">
       <Skeleton className="h-40 w-full rounded-none rounded-t-xl" />
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-start justify-between gap-2">
@@ -49,7 +49,7 @@ export function SkeletonTableRows({
   cols?: number;
 }) {
   return (
-    <div className="divide-y divide-stone-100">
+    <div className="divide-y divide-stone-100 dark:divide-stone-800">
       {Array.from({ length: rows }, (_, row) => (
         <div key={row} className="flex items-center gap-4 py-3">
           <Skeleton className="h-4 w-2/5" />

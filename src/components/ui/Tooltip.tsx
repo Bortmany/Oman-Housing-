@@ -28,7 +28,7 @@ export function Tooltip({
         aria-hidden="true"
         className={`pointer-events-none absolute start-0 end-0 z-20 flex justify-center ${position}`}
       >
-        <span className="w-max max-w-56 rounded-lg bg-stone-900 px-2.5 py-1.5 text-center text-xs font-normal text-stone-50 shadow-md opacity-0 transition-opacity duration-150 group-hover/tooltip:opacity-100 group-hover/tooltip:delay-[400ms] group-focus-within/tooltip:opacity-100 group-focus-within/tooltip:delay-0 motion-reduce:transition-none">
+        <span className="w-max max-w-56 rounded-lg bg-stone-900 px-2.5 dark:bg-stone-700 py-1.5 text-center text-xs font-normal text-stone-50 shadow-md opacity-0 transition-opacity duration-150 group-hover/tooltip:opacity-100 group-hover/tooltip:delay-[400ms] group-focus-within/tooltip:opacity-100 group-focus-within/tooltip:delay-0 motion-reduce:transition-none">
           {label}
         </span>
       </span>

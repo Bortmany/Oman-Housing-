@@ -36,7 +36,7 @@ export function ListingCard({
             className="h-40 w-full rounded-t-xl object-cover"
           />
         ) : (
-          <div className="grid h-40 w-full place-items-center rounded-t-xl bg-stone-100 text-xs text-stone-400">
+          <div className="grid h-40 w-full place-items-center rounded-t-xl bg-stone-100 text-xs text-stone-400 dark:bg-stone-800 dark:text-stone-500">
             {t("noPhotos")}
           </div>
         )}
@@ -44,26 +44,26 @@ export function ListingCard({
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-lg font-bold text-teal-800">
+          <p className="text-lg font-bold text-teal-800 dark:text-teal-300">
             {formatOMRWhole(decimalToNumber(listing.price)!, locale)}
             {listing.listingType === "RENT" && listing.rentPeriod && (
-              <span className="ms-1 text-xs font-medium text-stone-500">
+              <span className="ms-1 text-xs font-medium text-stone-500 dark:text-stone-400">
                 {te(`rentPeriod.${listing.rentPeriod}`)}
               </span>
             )}
           </p>
-          <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600">
+          <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600 dark:bg-stone-800 dark:text-stone-300">
             {listing.listingType === "SALE" ? t("sale") : t("rent")}
           </span>
         </div>
 
         <Link
           href={`/properties/${p.id}`}
-          className="font-medium text-stone-900 hover:text-teal-800"
+          className="font-medium text-stone-900 hover:text-teal-800 dark:text-stone-100 dark:hover:text-teal-300"
         >
           {localName(locale, p.titleEn, p.titleAr)}
         </Link>
-        <p className="text-xs text-stone-500 rtl:text-sm">
+        <p className="text-xs text-stone-500 rtl:text-sm dark:text-stone-400">
           {localName(locale, p.neighborhood.nameEn, p.neighborhood.nameAr)},{" "}
           {localName(locale, p.neighborhood.city.nameEn, p.neighborhood.city.nameAr)}
           {" · "}{te(`propertyType.${p.type}`)}
