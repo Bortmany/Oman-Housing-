@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { auth, signOut } from "@/auth";
 import { Link } from "@/i18n/navigation";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { NavLink } from "./NavLink";
 
@@ -12,18 +13,18 @@ export async function Header() {
   ]);
 
   return (
-    <header className="border-b border-stone-200 bg-white">
+    <header className="border-b border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
         <Link href="/" className="me-auto flex items-center gap-2">
           <span className="grid size-8 place-items-center rounded-lg bg-teal-800 text-sm font-bold text-white">
             OP
           </span>
-          <span className="text-base font-semibold text-stone-900">
+          <span className="text-base font-semibold text-stone-900 dark:text-stone-100">
             {tc("appName")}
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1 text-sm font-medium text-stone-600">
+        <nav className="flex items-center gap-1 text-sm font-medium text-stone-600 dark:text-stone-300">
           <NavLink href="/properties">{t("properties")}</NavLink>
           <NavLink href="/market">{t("market")}</NavLink>
           <NavLink href="/calculators">{t("calculators")}</NavLink>
@@ -36,18 +37,19 @@ export async function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <LocaleSwitcher />
           {session ? (
             <div className="flex items-center gap-3">
               <Link
                 href="/favorites"
-                className="text-sm font-medium text-stone-600 hover:text-teal-800"
+                className="text-sm font-medium text-stone-600 hover:text-teal-800 dark:text-stone-300 dark:hover:text-teal-300"
               >
                 {t("favorites")}
               </Link>
               <Link
                 href="/account"
-                className="text-sm font-medium text-stone-600 hover:text-teal-800"
+                className="text-sm font-medium text-stone-600 hover:text-teal-800 dark:text-stone-300 dark:hover:text-teal-300"
               >
                 {t("account")}
               </Link>
@@ -59,7 +61,7 @@ export async function Header() {
               >
                 <button
                   type="submit"
-                  className="text-sm font-medium text-stone-500 hover:text-teal-800"
+                  className="text-sm font-medium text-stone-500 hover:text-teal-800 dark:text-stone-400 dark:hover:text-teal-300"
                 >
                   {t("signOut")}
                 </button>
@@ -68,7 +70,7 @@ export async function Header() {
           ) : (
             <Link
               href="/login"
-              className="rounded-lg bg-teal-800 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-700"
+              className="rounded-lg bg-teal-800 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-500"
             >
               {t("signIn")}
             </Link>

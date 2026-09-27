@@ -1,11 +1,17 @@
 "use client";
 
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
+import { chartTheme } from "@/lib/chartPalette";
+import { useTheme } from "@/components/theme/ThemeProvider";
 
-// A tiny axis-less trend line for the landing showcase. Colors must come
-// from src/lib/chartPalette.ts (the caller passes one). Wrapped dir="ltr"
+// A tiny axis-less trend line for the landing showcase. Colors come from
+// src/lib/chartPalette.ts: the caller passes a position in the fixed order
+// and the light or dark palette is picked for the theme on screen. Wrapped dir="ltr"
 // on purpose — numeric time series read left-to-right even in Arabic.
-export function Sparkline({ data, color }: { data: number[]; color: string }) {
+export function Sparkline({ data, colorIndex }: { data: number[]; colorIndex: number }) {
+  const { resolvedTheme } = useTheme();
+  const colors = chartTheme(resolvedTheme).colors;
+  const color = colors[colorIndex % colors.length];
   const points = data.map((v, i) => ({ i, v }));
   const gradientId = `spark-${color.replace("#", "")}`;
 

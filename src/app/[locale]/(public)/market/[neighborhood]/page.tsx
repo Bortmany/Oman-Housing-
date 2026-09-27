@@ -7,6 +7,7 @@ import {
 import { decimalToNumber, formatOMRWhole, formatPercent } from "@/lib/money";
 import { localName, isEnglishFallback, formatMonth } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
 import { PropertyMap } from "@/components/map/PropertyMap";
@@ -84,12 +85,11 @@ export default async function NeighborhoodPage({
           {localName(locale, hood.nameEn, hood.nameAr)}
         </h1>
         {hood.isITC && (
-          <span
-            className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800 ring-1 ring-inset ring-teal-600/20 rtl:text-sm"
-            title={t("itcHint")}
-          >
-            {t("itcBadge")}
-          </span>
+          <Tooltip label={t("itcHint")}>
+            <span className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800 ring-1 ring-inset ring-teal-600/20 rtl:text-sm">
+              {t("itcBadge")}
+            </span>
+          </Tooltip>
         )}
       </div>
       <p className="mt-1 text-sm text-stone-500">

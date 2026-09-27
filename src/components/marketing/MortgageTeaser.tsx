@@ -21,15 +21,14 @@ function AnimatedAmount({ value }: { value: number }) {
     const from = fromRef.current;
     fromRef.current = value;
     if (from === value) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setDisplay(value);
-      return;
-    }
+    // With reduced motion the number jumps straight to its new value (on the
+    // next frame, like the animation, so state is never set inside the effect).
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const start = performance.now();
-    const duration = 320;
+    const duration = reduced ? 0 : 320;
     let raf = 0;
     const tick = (now: number) => {
-      const p = Math.min((now - start) / duration, 1);
+      const p = duration === 0 ? 1 : Math.min((now - start) / duration, 1);
       const eased = 1 - Math.pow(1 - p, 3);
       setDisplay(from + (value - from) * eased);
       if (p < 1) raf = requestAnimationFrame(tick);
@@ -59,18 +58,18 @@ export function MortgageTeaser() {
   });
 
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-lg ring-1 ring-stone-200">
-      <h2 className="text-sm font-semibold text-stone-900">
+    <div className="rounded-2xl bg-white p-6 shadow-lg ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-800">
+      <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
         {t("teaserTitle")}
       </h2>
 
       <div className="mt-4 space-y-3">
         <div>
           <div className="flex items-baseline justify-between gap-2 text-sm">
-            <label htmlFor="teaser-price" className="font-medium text-stone-600">
+            <label htmlFor="teaser-price" className="font-medium text-stone-600 dark:text-stone-300">
               {t("teaserPrice")}
             </label>
-            <span className="font-semibold text-stone-900 tabular-nums">
+            <span className="font-semibold text-stone-900 tabular-nums dark:text-stone-100">
               {formatOMRWhole(price, locale)}
             </span>
           </div>
@@ -88,10 +87,10 @@ export function MortgageTeaser() {
 
         <div>
           <div className="flex items-baseline justify-between gap-2 text-sm">
-            <label htmlFor="teaser-down" className="font-medium text-stone-600">
+            <label htmlFor="teaser-down" className="font-medium text-stone-600 dark:text-stone-300">
               {t("teaserDownPayment")}
             </label>
-            <span className="font-semibold text-stone-900 tabular-nums">
+            <span className="font-semibold text-stone-900 tabular-nums dark:text-stone-100">
               {downPct}% · {formatOMRWhole(downPayment, locale)}
             </span>
           </div>
@@ -109,10 +108,10 @@ export function MortgageTeaser() {
 
         <div>
           <div className="flex items-baseline justify-between gap-2 text-sm">
-            <label htmlFor="teaser-years" className="font-medium text-stone-600">
+            <label htmlFor="teaser-years" className="font-medium text-stone-600 dark:text-stone-300">
               {t("teaserYears")}
             </label>
-            <span className="font-semibold text-stone-900 tabular-nums">
+            <span className="font-semibold text-stone-900 tabular-nums dark:text-stone-100">
               {t("teaserYearsValue", { years })}
             </span>
           </div>
@@ -129,21 +128,21 @@ export function MortgageTeaser() {
         </div>
       </div>
 
-      <div className="mt-4 rounded-xl bg-brand-50 p-4 ring-1 ring-brand-100">
-        <div className="text-xs font-medium text-brand-900">
+      <div className="mt-4 rounded-xl bg-brand-50 p-4 ring-1 ring-brand-100 dark:bg-brand-950 dark:ring-brand-900">
+        <div className="text-xs font-medium text-brand-900 rtl:text-sm dark:text-brand-100">
           {t("teaserMonthly")}
         </div>
-        <div className="mt-1 text-3xl font-bold text-brand-800">
+        <div className="mt-1 text-3xl font-bold text-brand-800 dark:text-brand-200">
           <AnimatedAmount value={result.monthlyPayment} />
         </div>
-        <p className="mt-2 text-xs text-stone-500">
+        <p className="mt-2 text-xs text-stone-500 rtl:text-sm dark:text-stone-400">
           {t("teaserNote", { rate: ASSUMED_ANNUAL_RATE })}
         </p>
       </div>
 
       <Link
         href="/calculators/mortgage"
-        className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-800 ring-1 ring-brand-200 transition-colors hover:bg-brand-50"
+        className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-800 ring-1 ring-brand-200 transition-colors hover:bg-brand-50 dark:bg-stone-900 dark:text-brand-200 dark:ring-brand-800 dark:hover:bg-brand-950"
       >
         {t("teaserFullCalculator")}
       </Link>

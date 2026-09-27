@@ -18,14 +18,16 @@ export async function CalculatorShell({
       <DirectionalLink
         direction="back"
         href="/calculators"
-        className="text-sm text-teal-800 hover:underline"
+        className="text-sm text-teal-800 hover:underline dark:text-teal-300"
       >
         {t("title")}
       </DirectionalLink>
-      <h1 className="mt-3 text-3xl font-bold text-stone-900">{title}</h1>
-      <p className="mt-2 text-sm text-stone-600">{description}</p>
+      <h1 className="mt-3 text-3xl font-bold text-stone-900 dark:text-stone-100">
+        {title}
+      </h1>
+      <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">{description}</p>
       <div className="mt-8">{children}</div>
-      <p className="mt-8 rounded-lg bg-stone-100 p-4 text-xs text-stone-500">
+      <p className="mt-8 rounded-lg bg-stone-100 p-4 text-xs text-stone-500 dark:bg-stone-800 dark:text-stone-400">
         {t("disclaimer")}
       </p>
     </div>

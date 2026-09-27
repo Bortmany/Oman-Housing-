@@ -1,17 +1,22 @@
 import { Hero } from "@/components/marketing/Hero";
+import { HomeSearch } from "@/components/marketing/HomeSearch";
+import { NeighborhoodShortcuts } from "@/components/marketing/NeighborhoodShortcuts";
 import { TrendsShowcase } from "@/components/marketing/TrendsShowcase";
 import { HonestData } from "@/components/marketing/HonestData";
 import { CalculatorsGrid } from "@/components/marketing/CalculatorsGrid";
 import { CtaBand } from "@/components/marketing/CtaBand";
 import { Reveal } from "@/components/marketing/Reveal";
 
-// The landing page. Sections live in src/components/marketing/; the trend
-// cards use hardcoded illustrative samples (labeled as such — real,
+// The landing page: one home page combining the hero, mortgage slider, trend
+// cards and "where every number comes from" section with the property search
+// and neighborhood shortcuts. Sections live in src/components/marketing/; the
+// trend cards use hardcoded illustrative samples (labeled as such — real,
 // source-labeled figures live on /market and /properties).
 export default function HomePage() {
   return (
     <div>
-      <Hero />
+      <Hero search={<HomeSearch />} />
+      <NeighborhoodShortcuts />
       <Reveal>
         <TrendsShowcase />
       </Reveal>

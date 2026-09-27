@@ -1,6 +1,5 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { CHART_COLORS } from "@/lib/chartPalette";
 import { Sparkline } from "./Sparkline";
 
 // HARDCODED illustrative series — deliberately labeled as samples in the UI
@@ -18,6 +17,9 @@ export async function TrendsShowcase() {
   const [t, locale] = await Promise.all([getTranslations("home"), getLocale()]);
 
   // Latin digits in both languages, matching the money formatter.
+  const tight = locale === "ar" ? "" : "tracking-tight";
+  const wide = locale === "ar" ? "" : "tracking-wide";
+
   const deltaFmt = new Intl.NumberFormat(
     locale === "ar" ? "ar-OM-u-nu-latn" : "en-OM",
     { signDisplay: "always", maximumFractionDigits: 1 },
@@ -27,16 +29,16 @@ export async function TrendsShowcase() {
     <section className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="text-start">
-          <span className="text-xs font-semibold tracking-wide text-brand-700 uppercase">
+          <span className={`text-xs font-semibold text-brand-700 uppercase rtl:text-sm dark:text-brand-200 ${wide}`}>
             {t("trendsKicker")}
           </span>
-          <h2 className="mt-2 max-w-lg text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
+          <h2 className={`mt-2 max-w-lg text-2xl font-bold text-stone-900 sm:text-3xl dark:text-stone-100 ${tight}`}>
             {t("trendsTitle")}
           </h2>
         </div>
         <Link
           href="/market"
-          className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-brand-800 hover:bg-brand-50"
+          className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-brand-800 hover:bg-brand-50 dark:text-brand-200 dark:hover:bg-brand-950"
         >
           {t("trendsLink")}
         </Link>
@@ -50,23 +52,23 @@ export async function TrendsShowcase() {
           return (
             <div
               key={trend.nameKey}
-              className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-stone-200"
+              className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-800"
             >
               <div className="flex items-baseline justify-between gap-2">
-                <h3 className="text-sm font-semibold text-stone-900">
+                <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
                   {t(trend.nameKey)}
                 </h3>
-                <span className="text-sm font-semibold text-stone-700 tabular-nums">
+                <span className="text-sm font-semibold text-stone-700 tabular-nums dark:text-stone-300">
                   {deltaFmt.format(deltaPct)}%
                 </span>
               </div>
               <div className="mt-3">
                 <Sparkline
                   data={[...trend.series]}
-                  color={CHART_COLORS[i % CHART_COLORS.length]}
+                  colorIndex={i}
                 />
               </div>
-              <p className="mt-3 text-xs text-stone-400">
+              <p className="mt-3 text-xs text-stone-500 rtl:text-sm dark:text-stone-400">
                 {t("trendsSampleTag")} · {t("trendsPeriod")}
               </p>
             </div>
@@ -74,7 +76,7 @@ export async function TrendsShowcase() {
         })}
       </div>
 
-      <p className="mt-4 max-w-2xl text-start text-xs text-stone-500">
+      <p className="mt-4 max-w-2xl text-start text-xs text-stone-500 rtl:text-sm dark:text-stone-400">
         {t("trendsNote")}
       </p>
     </section>
