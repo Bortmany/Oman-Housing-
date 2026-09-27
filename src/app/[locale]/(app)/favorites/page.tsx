@@ -22,12 +22,12 @@ export default async function FavoritesPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-3xl font-bold text-stone-900">{t("title")}</h1>
+      <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-100">{t("title")}</h1>
 
       {favorites.length === 0 ? (
         <Card className="mt-8 text-center">
-          <p className="font-medium text-stone-700">{t("empty")}</p>
-          <p className="mt-1 text-sm text-stone-500">{t("emptyHint")}</p>
+          <p className="font-medium text-stone-700 dark:text-stone-300">{t("empty")}</p>
+          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t("emptyHint")}</p>
           <div className="mt-4">
             <ButtonLink href="/properties">{tp("backToSearch")}</ButtonLink>
           </div>

@@ -35,7 +35,7 @@ export function PropertyFilters({
   return (
     <form
       method="get"
-      className="grid grid-cols-2 items-end gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-stone-200 sm:grid-cols-4 lg:grid-cols-8"
+      className="grid grid-cols-2 items-end gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-stone-200 sm:grid-cols-4 lg:grid-cols-8 dark:bg-stone-900 dark:ring-stone-800"
     >
       <div className="col-span-2">
         <Label htmlFor="hood">{t("filterLocation")}</Label>

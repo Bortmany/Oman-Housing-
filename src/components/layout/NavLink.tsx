@@ -21,8 +21,8 @@ export function NavLink({
       aria-current={active ? "page" : undefined}
       className={
         active
-          ? "rounded-full bg-teal-50 px-3 py-1.5 font-semibold text-teal-800"
-          : "px-3 py-1.5 hover:text-teal-800"
+          ? "rounded-full bg-teal-50 px-3 py-1.5 font-semibold text-teal-800 dark:bg-teal-950 dark:text-teal-200"
+          : "px-3 py-1.5 hover:text-teal-800 dark:hover:text-teal-300"
       }
     >
       {children}

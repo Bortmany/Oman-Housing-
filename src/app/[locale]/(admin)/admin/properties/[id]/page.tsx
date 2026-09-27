@@ -42,12 +42,12 @@ export default async function EditPropertyPage({
       <DirectionalLink
         direction="back"
         href="/admin/properties"
-        className="text-sm text-teal-800 hover:underline"
+        className="text-sm text-teal-800 hover:underline dark:text-teal-300"
       >
         {t("properties")}
       </DirectionalLink>
       <div className="mt-3 flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-stone-900">
+        <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">
           {t("editProperty")}
         </h1>
         <form action={deleteProperty}>
@@ -59,19 +59,19 @@ export default async function EditPropertyPage({
       </div>
 
       {saved && (
-        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-600/20">
+        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-400/30">
           {t("saved")}
         </p>
       )}
 
       <Card className="mt-6">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-stone-900">
+          <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
             {t("forProperty")}
           </h2>
           <Link
             href={{ pathname: "/admin/listings/new", query: { propertyId: property.id } }}
-            className="text-sm font-semibold text-teal-800 hover:underline"
+            className="text-sm font-semibold text-teal-800 hover:underline dark:text-teal-300"
           >
             {t("createListingFor")}
           </Link>
@@ -82,7 +82,7 @@ export default async function EditPropertyPage({
               <li key={l.id}>
                 <Link
                   href={`/admin/listings/${l.id}`}
-                  className="text-teal-800 hover:underline"
+                  className="text-teal-800 hover:underline dark:text-teal-300"
                 >
                   {l.listingType} · <StatusPill status={l.status} />
                 </Link>
@@ -94,7 +94,7 @@ export default async function EditPropertyPage({
 
       {property.images.length > 0 && (
         <Card className="mt-6">
-          <h2 className="text-sm font-semibold text-stone-900">
+          <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
             {t("property.images")}
           </h2>
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -105,25 +105,25 @@ export default async function EditPropertyPage({
                   src={`/api/images/${img.storagePath}`}
                   alt={img.altEn ?? property.titleEn}
                   className={`h-28 w-full rounded-lg object-cover ${
-                    img.isPrimary ? "ring-2 ring-teal-700" : "ring-1 ring-stone-200"
+                    img.isPrimary ? "ring-2 ring-teal-700" : "ring-1 ring-stone-200 dark:ring-stone-800"
                   }`}
                 />
                 <div className="flex items-center justify-between text-xs">
                   {img.isPrimary ? (
-                    <span className="font-medium text-teal-800">
+                    <span className="font-medium text-teal-800 dark:text-teal-300">
                       {t("property.primary")}
                     </span>
                   ) : (
                     <form action={makePrimaryImage}>
                       <input type="hidden" name="imageId" value={img.id} />
-                      <button className="text-stone-500 hover:text-teal-800">
+                      <button className="text-stone-500 hover:text-teal-800 dark:text-stone-400 dark:hover:text-teal-300">
                         {t("property.makePrimary")}
                       </button>
                     </form>
                   )}
                   <form action={deletePropertyImage}>
                     <input type="hidden" name="imageId" value={img.id} />
-                    <button className="text-rose-700 hover:underline">✕</button>
+                    <button className="text-rose-700 hover:underline dark:text-rose-400">✕</button>
                   </form>
                 </div>
               </div>

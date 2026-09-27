@@ -24,8 +24,8 @@ export function FavoriteButton({
   const cls =
     "relative inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm ring-1 ring-inset transition-colors after:absolute after:-inset-y-2 after:-inset-x-1 after:content-[''] " +
     (favorited
-      ? "bg-rose-50 text-rose-700 ring-rose-600/30 hover:bg-rose-100"
-      : "bg-white text-stone-500 ring-stone-300 hover:bg-stone-100");
+      ? "bg-rose-50 text-rose-700 ring-rose-600/30 hover:bg-rose-100 dark:bg-rose-950 dark:text-rose-300 dark:ring-rose-400/30 dark:hover:bg-rose-900"
+      : "bg-white text-stone-500 ring-stone-300 hover:bg-stone-100 dark:bg-stone-900 dark:text-stone-400 dark:ring-stone-700 dark:hover:bg-stone-800");
 
   if (!signedIn) {
     return (

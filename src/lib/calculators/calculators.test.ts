@@ -3,6 +3,7 @@ import { rentalYield } from "./rentalYield";
 import { mortgage } from "./mortgage";
 import { roi } from "./roi";
 import { investmentScore } from "./investmentScore";
+import { affordability, DBR_CAP } from "./affordability";
 
 let failures = 0;
 
@@ -172,6 +173,91 @@ function expectClose(label: string, actual: number, expected: number, tol = 0.01
   const r = investmentScore({ grossYieldPct: 2, confidence: 0.3, dataAgeMonths: 24 });
   expectClose("investmentScore.weak", r.score ?? -1, 23);
   if (r.band !== "WEAK") { console.error("FAIL investmentScore.weak.band"); failures++; }
+}
+
+// Affordability: 2,000/mo income, 300/mo existing commitments, 60% DBR
+// → 2,000*0.6 - 300 = 900/mo for the home. At 5% over 25 years that borrows
+// 153,954.042 (the mortgage formula turned around — 900/584.59 * 100,000),
+// plus 30,000 down = a 183,954.042 price ceiling.
+{
+  const a = affordability({
+    monthlyIncome: 2_000, monthlyObligations: 300, downPayment: 30_000,
+    annualRatePct: 5, years: 25, mode: "conventional",
+  });
+  expectClose("affordability.maxMonthlyPayment", a.maxMonthlyPayment, 900);
+  expectClose("affordability.maxLoan", a.maxLoan, 153_954.042, 0.01);
+  expectClose("affordability.maxPropertyPrice", a.maxPropertyPrice, 183_954.042, 0.01);
+  expectClose("affordability.dbrCapPct", a.dbrCapPct, DBR_CAP * 100);
+}
+
+// Zero-rate (or profit-free) financing: 1,000/mo income, nothing owed
+// → 600/mo for 10 years borrows exactly 72,000, and charges nothing extra.
+{
+  const a = affordability({
+    monthlyIncome: 1_000, monthlyObligations: 0, downPayment: 10_000,
+    annualRatePct: 0, years: 10, mode: "islamic",
+  });
+  expectClose("affordability.zeroRate.maxLoan", a.maxLoan, 72_000);
+  expectClose("affordability.zeroRate.maxPropertyPrice", a.maxPropertyPrice, 82_000);
+  expectClose("affordability.zeroRate.totalCharge", a.totalCharge, 0);
+}
+
+// Already committed past the cap: nothing is affordable, and the answer is
+// zeros (never a negative price) — only the money already saved remains.
+{
+  const a = affordability({
+    monthlyIncome: 1_000, monthlyObligations: 900, downPayment: 5_000,
+    annualRatePct: 5, years: 20, mode: "conventional",
+  });
+  expectClose("affordability.overCommitted.maxMonthlyPayment", a.maxMonthlyPayment, 0);
+  expectClose("affordability.overCommitted.maxLoan", a.maxLoan, 0);
+  expectClose("affordability.overCommitted.maxPropertyPrice", a.maxPropertyPrice, 5_000);
+}
+
+// At the loan ceiling: 1,000,000/mo income could "afford" far more than the
+// 10,000,000 cap, so the loan is capped. Total paid must use the repayment the
+// capped loan actually needs (at 0% over 10 years: 10,000,000 / 120 per month),
+// so it equals the loan exactly and nothing is charged on top.
+{
+  const a = affordability({
+    monthlyIncome: 1_000_000, monthlyObligations: 0, downPayment: 0,
+    annualRatePct: 0, years: 10, mode: "islamic",
+  });
+  expectClose("affordability.ceiling.maxLoan", a.maxLoan, 10_000_000);
+  expectClose("affordability.ceiling.totalPaid", a.totalPaid, 10_000_000);
+  expectClose("affordability.ceiling.totalCharge", a.totalCharge, 0);
+}
+
+// Same ceiling with a 5% rate over 25 years: the capped loan's repayment is
+// 10,000,000 / 100,000 * 584.590 ≈ 58,459.004/mo, so over 300 months the bank
+// is paid 17,537,701.245 and the charge is 7,537,701.245.
+{
+  const a = affordability({
+    monthlyIncome: 1_000_000, monthlyObligations: 0, downPayment: 0,
+    annualRatePct: 5, years: 25, mode: "conventional",
+  });
+  expectClose("affordability.ceilingRate.maxLoan", a.maxLoan, 10_000_000);
+  expectClose("affordability.ceilingRate.totalPaid", a.totalPaid, 17_537_701.245, 0.01);
+  expectClose("affordability.ceilingRate.totalCharge", a.totalCharge, 7_537_701.245, 0.01);
+}
+
+// Malformed input must never produce Infinity/NaN or an unusable figure.
+{
+  const a = affordability({
+    monthlyIncome: Number.POSITIVE_INFINITY, monthlyObligations: -50,
+    downPayment: -10, annualRatePct: 999, years: 999_999_999,
+    mode: "conventional",
+  });
+  const finite =
+    Number.isFinite(a.maxMonthlyPayment) &&
+    Number.isFinite(a.maxLoan) &&
+    a.maxPropertyPrice <= 10_000_000;
+  if (!finite) {
+    console.error("FAIL affordability.malformedInput.bounded");
+    failures++;
+  } else {
+    console.log("ok   affordability.malformedInput.bounded");
+  }
 }
 
 if (failures > 0) {

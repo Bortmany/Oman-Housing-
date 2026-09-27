@@ -8,16 +8,16 @@ export async function Footer() {
   ]);
 
   return (
-    <footer className="mt-12 border-t border-stone-200 bg-white">
-      <div className="mx-auto max-w-6xl space-y-2 px-4 py-6 text-xs text-stone-500">
+    <footer className="mt-12 border-t border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
+      <div className="mx-auto max-w-6xl space-y-2 px-4 py-6 text-xs text-stone-500 dark:text-stone-400">
         <p className="flex flex-wrap gap-x-4 gap-y-1">
-          <Link href="/list-with-us" className="font-medium text-teal-800 hover:underline">
+          <Link href="/list-with-us" className="font-medium text-teal-800 hover:underline dark:text-teal-300">
             {tn("agency")}
           </Link>
-          <Link href="/privacy" className="font-medium text-teal-800 hover:underline">
+          <Link href="/privacy" className="font-medium text-teal-800 hover:underline dark:text-teal-300">
             {t("privacy")}
           </Link>
-          <Link href="/terms" className="font-medium text-teal-800 hover:underline">
+          <Link href="/terms" className="font-medium text-teal-800 hover:underline dark:text-teal-300">
             {t("terms")}
           </Link>
         </p>

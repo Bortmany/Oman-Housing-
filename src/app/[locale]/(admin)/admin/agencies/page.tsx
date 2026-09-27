@@ -24,11 +24,11 @@ export default async function AdminAgenciesPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="text-2xl font-bold text-stone-900">{t("agencies.title")}</h1>
-      <p className="mt-2 text-sm text-stone-600">{t("agencies.subtitle")}</p>
+      <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t("agencies.title")}</h1>
+      <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">{t("agencies.subtitle")}</p>
 
       {agencies.length === 0 ? (
-        <Card className="mt-6 text-center text-sm text-stone-500">
+        <Card className="mt-6 text-center text-sm text-stone-500 dark:text-stone-400">
           {t("agencies.empty")}
         </Card>
       ) : (
@@ -38,10 +38,10 @@ export default async function AdminAgenciesPage() {
               <Card className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="font-medium text-stone-900">
+                    <p className="font-medium text-stone-900 dark:text-stone-100">
                       {localName(locale, a.nameEn, a.nameAr)}
                     </p>
-                    <p className="text-sm text-stone-500">
+                    <p className="text-sm text-stone-500 dark:text-stone-400">
                       {a.licenseNo && <span>{t("agencies.license")}: {a.licenseNo} · </span>}
                       {a.email ?? "—"}
                       {/* Phone numbers read left-to-right, so the + stays in front in Arabic. */}
@@ -51,7 +51,7 @@ export default async function AdminAgenciesPage() {
                         </span>
                       )}
                     </p>
-                    <p className="mt-1 text-xs text-stone-400">
+                    <p className="mt-1 text-xs text-stone-400 dark:text-stone-500">
                       {t("agencies.users", { count: a._count.users })} ·{" "}
                       {t("agencies.listings", { count: a._count.listings })}
                     </p>
@@ -59,20 +59,20 @@ export default async function AdminAgenciesPage() {
                   <span
                     className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       a.isApproved
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-amber-100 text-amber-800"
+                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                        : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200"
                     }`}
                   >
                     {a.isApproved ? t("agencies.approved") : t("agencies.pending")}
                   </span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 border-t border-stone-100 pt-3">
+                <div className="flex flex-wrap items-center gap-3 border-t border-stone-100 pt-3 dark:border-stone-800">
                   {/* Approve / unapprove */}
                   {a.isApproved ? (
                     <form action={unapproveAgency}>
                       <input type="hidden" name="id" value={a.id} />
-                      <button className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-stone-700 ring-1 ring-stone-300 hover:bg-stone-100">
+                      <button className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-stone-700 ring-1 ring-stone-300 hover:bg-stone-100 dark:bg-stone-900 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800">
                         {t("agencies.unapprove")}
                       </button>
                     </form>
@@ -88,17 +88,17 @@ export default async function AdminAgenciesPage() {
                   {/* Grant a plan */}
                   <form action={grantTier} className="flex items-center gap-2">
                     <input type="hidden" name="id" value={a.id} />
-                    <span className="text-sm text-stone-500">{t("agencies.plan")}:</span>
+                    <span className="text-sm text-stone-500 dark:text-stone-400">{t("agencies.plan")}:</span>
                     <select
                       name="tier"
                       defaultValue={a.tier}
-                      className="rounded-lg border-0 bg-white px-2 py-1 text-sm ring-1 ring-inset ring-stone-300"
+                      className="rounded-lg border-0 bg-white px-2 py-1 text-sm ring-1 ring-inset ring-stone-300 dark:bg-stone-900 dark:ring-stone-700"
                     >
                       {TIERS.map((tier) => (
                         <option key={tier} value={tier}>{tag(`tier.${tier}`)}</option>
                       ))}
                     </select>
-                    <button className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-stone-700 ring-1 ring-stone-300 hover:bg-stone-100">
+                    <button className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-stone-700 ring-1 ring-stone-300 hover:bg-stone-100 dark:bg-stone-900 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800">
                       {t("agencies.setPlan")}
                     </button>
                   </form>

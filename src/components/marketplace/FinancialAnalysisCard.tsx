@@ -18,12 +18,12 @@ function Row({
   insufficientLabel: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-stone-100 py-2.5 last:border-0">
-      <dt className="text-sm text-stone-600">{label}</dt>
+    <div className="flex items-center justify-between gap-3 border-b border-stone-100 py-2.5 last:border-0 dark:border-stone-800">
+      <dt className="text-sm text-stone-600 dark:text-stone-300">{label}</dt>
       <dd className="flex items-center gap-2 text-end">
         {figure ? (
           <>
-            <span className="font-semibold text-stone-900">
+            <span className="font-semibold text-stone-900 dark:text-stone-100">
               {format(figure.value, locale)}
             </span>
             <ProvenanceBadge
@@ -32,7 +32,7 @@ function Row({
             />
           </>
         ) : (
-          <span className="text-sm text-stone-400">{insufficientLabel}</span>
+          <span className="text-sm text-stone-400 dark:text-stone-500">{insufficientLabel}</span>
         )}
       </dd>
     </div>
@@ -40,10 +40,10 @@ function Row({
 }
 
 const bandStyles: Record<string, string> = {
-  STRONG: "bg-emerald-100 text-emerald-800",
-  MODERATE: "bg-amber-100 text-amber-800",
-  WEAK: "bg-rose-100 text-rose-800",
-  INSUFFICIENT_DATA: "bg-stone-100 text-stone-500",
+  STRONG: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+  MODERATE: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
+  WEAK: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300",
+  INSUFFICIENT_DATA: "bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400",
 };
 
 export function FinancialAnalysisCard({
@@ -57,7 +57,7 @@ export function FinancialAnalysisCard({
 
   return (
     <Card>
-      <h2 className="text-base font-semibold text-stone-900">
+      <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
         {t("financialAnalysis")}
       </h2>
       <dl className="mt-3">
@@ -73,7 +73,7 @@ export function FinancialAnalysisCard({
           format={formatPercent} locale={locale} insufficientLabel={na} />
 
         <div className="flex items-center justify-between gap-3 py-2.5">
-          <dt className="text-sm text-stone-600">{t("investmentScore")}</dt>
+          <dt className="text-sm text-stone-600 dark:text-stone-300">{t("investmentScore")}</dt>
           <dd className="flex items-center gap-2">
             <span
               className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${bandStyles[financials.investment.band]}`}
@@ -93,7 +93,7 @@ export function FinancialAnalysisCard({
           </dd>
         </div>
       </dl>
-      <p className="mt-2 text-xs text-stone-500">
+      <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
         {financials.investment.band === "INSUFFICIENT_DATA"
           ? t("insufficientDataHint")
           : t("scoreDisclaimer")}

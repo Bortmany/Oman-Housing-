@@ -43,33 +43,33 @@ async function CompareColumn({
             className="h-44 w-full rounded-t-xl object-cover"
           />
         ) : (
-          <div className="grid h-44 w-full place-items-center rounded-t-xl bg-stone-100 text-xs text-stone-400">
+          <div className="grid h-44 w-full place-items-center rounded-t-xl bg-stone-100 text-xs text-stone-400 dark:bg-stone-800 dark:text-stone-500">
             {t("noPhotos")}
           </div>
         )}
         <div className="space-y-2 p-4 text-sm">
           <Link
             href={`/properties/${p.id}`}
-            className="font-semibold text-stone-900 hover:text-teal-800"
+            className="font-semibold text-stone-900 hover:text-teal-800 dark:text-stone-100 dark:hover:text-teal-300"
           >
             {localName(locale, p.titleEn, p.titleAr)}
           </Link>
-          <p className="text-xs text-stone-500">
+          <p className="text-xs text-stone-500 dark:text-stone-400">
             {localName(locale, p.neighborhood.nameEn, p.neighborhood.nameAr)} ·{" "}
             {te(`propertyType.${p.type}`)} · {te(`ownership.${p.ownership}`)}
           </p>
-          <p className="text-lg font-bold text-teal-800">
+          <p className="text-lg font-bold text-teal-800 dark:text-teal-300">
             {formatOMRWhole(decimalToNumber(listing.price)!, locale)}
             {listing.rentPeriod && (
-              <span className="ms-1 text-xs font-medium text-stone-500">
+              <span className="ms-1 text-xs font-medium text-stone-500 dark:text-stone-400">
                 {te(`rentPeriod.${listing.rentPeriod}`)}
               </span>
             )}
-            <span className="ms-2 text-xs font-medium text-stone-500">
+            <span className="ms-2 text-xs font-medium text-stone-500 dark:text-stone-400">
               {listing.listingType === "SALE" ? t("sale") : t("rent")}
             </span>
           </p>
-          <p className="text-xs text-stone-500">
+          <p className="text-xs text-stone-500 dark:text-stone-400">
             {p.bedrooms != null && <>{p.bedrooms} {tc("beds")} · </>}
             {p.bathrooms != null && <>{p.bathrooms} {tc("baths")} · </>}
             {p.areaSqm != null && <>{decimalToNumber(p.areaSqm)} {tc("sqm")}</>}
@@ -103,8 +103,8 @@ export default async function ComparePage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-3xl font-bold text-stone-900">{t("compare")}</h1>
-      <p className="mt-2 text-sm text-stone-600">{t("compareHint")}</p>
+      <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-100">{t("compare")}</h1>
+      <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">{t("compareHint")}</p>
 
       <form method="get" className="mt-6 flex flex-wrap items-end gap-3">
         {(["a", "b"] as const).map((name) => (

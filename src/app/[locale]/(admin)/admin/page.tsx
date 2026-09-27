@@ -81,25 +81,25 @@ export default async function AdminHome() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-3xl font-bold text-stone-900">{t("title")}</h1>
-      <p className="mt-2 text-sm text-stone-600">{t("subtitle")}</p>
+      <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-100">{t("title")}</h1>
+      <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">{t("subtitle")}</p>
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         {sections.map((s) => (
           <Link key={s.href} href={s.href} className="group">
             <Card className="transition-shadow group-hover:shadow-md">
               <div className="flex items-baseline justify-between">
-                <h2 className="font-semibold text-stone-900 group-hover:text-teal-800">
+                <h2 className="font-semibold text-stone-900 group-hover:text-teal-800 dark:text-stone-100 dark:group-hover:text-teal-300">
                   {s.title}
                 </h2>
                 <span
                   className={`text-2xl font-bold ${
-                    s.badge ? "text-amber-600" : "text-teal-800"
+                    s.badge ? "text-amber-600 dark:text-amber-400" : "text-teal-800 dark:text-teal-300"
                   }`}
                 >
                   {s.count}
                 </span>
               </div>
-              <p className="mt-2 text-sm text-stone-600">{s.hint}</p>
+              <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">{s.hint}</p>
             </Card>
           </Link>
         ))}

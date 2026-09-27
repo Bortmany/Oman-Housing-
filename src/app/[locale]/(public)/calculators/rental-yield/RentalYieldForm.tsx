@@ -59,29 +59,29 @@ export function RentalYieldForm() {
       </Card>
 
       <Card>
-        <h2 className="text-base font-semibold text-stone-900">
+        <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
           {tc("results")}
         </h2>
         <dl className="mt-4 space-y-4">
           <div>
             <CardTitle>{t("grossYield")}</CardTitle>
-            <dd className="text-3xl font-bold text-teal-800">
+            <dd className="text-3xl font-bold text-teal-800 dark:text-teal-300">
               {formatPercent(r.grossYieldPct, locale)}
             </dd>
           </div>
           <div>
             <CardTitle>{t("netYield")}</CardTitle>
-            <dd className="text-3xl font-bold text-stone-900">
+            <dd className="text-3xl font-bold text-stone-900 dark:text-stone-100">
               {formatPercent(r.netYieldPct, locale)}
             </dd>
           </div>
-          <div className="grid grid-cols-2 gap-3 border-t border-stone-200 pt-4 text-sm">
+          <div className="grid grid-cols-2 gap-3 border-t border-stone-200 pt-4 text-sm dark:border-stone-800">
             <div>
-              <dt className="text-xs text-stone-500">{t("annualRent")}</dt>
+              <dt className="text-xs text-stone-500 dark:text-stone-400">{t("annualRent")}</dt>
               <dd className="font-semibold">{formatOMR(r.annualRent, locale)}</dd>
             </div>
             <div>
-              <dt className="text-xs text-stone-500">{t("annualNet")}</dt>
+              <dt className="text-xs text-stone-500 dark:text-stone-400">{t("annualNet")}</dt>
               <dd className="font-semibold">{formatOMR(r.annualNet, locale)}</dd>
             </div>
           </div>
