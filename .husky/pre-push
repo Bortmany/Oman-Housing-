@@ -1,0 +1,16 @@
+if ! pg_isready -q; then
+  echo ""
+  echo "Oman Property Intelligence: push stopped — Postgres isn't running on this Mac."
+  echo "The checks below need it for the test database. Start it with:"
+  echo "  brew services start postgresql@16"
+  echo "then push again. (Emergency only: git push --no-verify skips these checks.)"
+  echo ""
+  exit 1
+fi
+
+echo ""
+echo "Oman Property Intelligence: running the full verify recipe before this push"
+echo "goes to GitHub — lint, type check, build, and the tests (on their own test"
+echo "database, never the development one). This can take a minute or two."
+echo ""
+npm run verify

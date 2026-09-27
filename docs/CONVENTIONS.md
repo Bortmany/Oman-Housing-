@@ -64,19 +64,40 @@ and ships its docs in `node_modules/next/dist/docs/`.**
 
 ```bash
 # One-time per machine: Postgres running, role+db created
-#   service postgresql start
+#   service postgresql start            (Mac with Homebrew: brew services start postgresql@16)
 #   su postgres -c "psql -c \"CREATE ROLE app LOGIN PASSWORD 'app' CREATEDB;\""
 #   su postgres -c "psql -c 'CREATE DATABASE opip OWNER app;'"
 # .env needs DATABASE_URL, AUTH_SECRET, DATA_DIR, SEED_ADMIN_PASSWORD (see .env.example)
+# (Homebrew Postgres on a Mac: DATABASE_URL="postgresql://<your-mac-username>@localhost:5432/opip"
+#  — no password, no role setup needed.)
 
-npm install
-npx prisma migrate deploy # apply committed migrations (same as Railway pre-deploy)
+npm install               # also switches on the pre-push hook (see below)
+npx prisma migrate deploy # apply committed migrations to the DEV database (same as Railway pre-deploy)
                           # (changing the schema? `npx prisma migrate dev --name <change>` instead — never `db push`)
 npm run db:seed           # idempotent
-npm test                  # calculator math
-npm run lint
-npm run build             # prisma generate && next build
+npm run verify            # lint → typecheck → build → tests, stopping at the first failure
 ```
+
+`npm run verify` is the whole check in one command:
+`npm run lint && npm run typecheck && npm run build && npm test`.
+
+**Tests use their own database, never the development one.** `npm test`
+first brings the test database up to date with `npx prisma migrate deploy`
+(creating it if it doesn't exist — never `db push`, never `migrate dev`),
+then runs every test with `DATABASE_URL` pointed at it
+(`scripts/with-test-db.mjs`). The test database is `TEST_DATABASE_URL` if set,
+otherwise `DATABASE_URL` with `_test` added to the name (`opip` → `opip_test`).
+The script refuses to run if the two addresses are the same. To prepare the
+test database without running tests: `npm run db:test:prepare`. (Today's
+tests are pure logic and don't query the database; the separation is there so
+the first test that does can never touch development data.)
+
+**Pre-push hook.** `git push` runs `.husky/pre-push` automatically (installed
+by `npm install` via husky). It first checks Postgres is running
+(`pg_isready`) and stops with a plain-English note if not, then runs
+`npm run verify`; if anything fails, the push is cancelled. In a genuine
+emergency, `git push --no-verify` skips it — run `npm run verify` yourself
+straight afterwards.
 
 Dev-server smoke checks: `/en` 200 · `/ar` contains `dir="rtl"` ·
 `/en/market` shows figures · `/en/admin` redirects (307) when signed out ·
