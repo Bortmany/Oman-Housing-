@@ -11,6 +11,7 @@ import { isFavoritedSet } from "@/lib/db/favorites";
 import { decimalToNumber, formatOMRWhole } from "@/lib/money";
 import { localName, isEnglishFallback } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { FinancialAnalysisCard } from "@/components/marketplace/FinancialAnalysisCard";
 import { AiAnalystCard } from "@/components/marketplace/AiAnalystCard";
@@ -91,12 +92,11 @@ export default async function PropertyDetailPage({
           </span>
         )}
         {property.neighborhood.isITC && (
-          <span
-            className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800 ring-1 ring-inset ring-teal-600/20 dark:bg-teal-950 dark:text-teal-200 dark:ring-teal-400/30"
-            title={tm("itcHint")}
-          >
-            {tm("itcBadge")}
-          </span>
+          <Tooltip label={tm("itcHint")}>
+            <span className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800 ring-1 ring-inset ring-teal-600/20 dark:bg-teal-950 dark:text-teal-200 dark:ring-teal-400/30">
+              {tm("itcBadge")}
+            </span>
+          </Tooltip>
         )}
       </div>
       <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
