@@ -10,8 +10,7 @@ import { Reveal } from "@/components/marketing/Reveal";
 // The landing page: one home page combining the hero, mortgage slider, trend
 // cards and "where every number comes from" section with the property search
 // and neighborhood shortcuts. Sections live in src/components/marketing/; the
-// trend cards use hardcoded illustrative samples (labeled as such — real,
-// source-labeled figures live on /market and /properties).
+// trend cards show real stored market figures, each with its source badge.
 export default function HomePage() {
   return (
     <div>

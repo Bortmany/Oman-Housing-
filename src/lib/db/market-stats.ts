@@ -90,7 +90,9 @@ const cachedNeighborhoodTrends = unstable_cache(
         neighborhoodId: { in: neighborhoodIds },
         propertyType,
       },
-      orderBy: { periodStart: "asc" },
+      // Newest first so `take` keeps the most recent months (flipped back to
+      // oldest-first below), not the oldest ones once history grows longer.
+      orderBy: { periodStart: "desc" },
       take: months * neighborhoodIds.length,
       select: {
         neighborhoodId: true,
@@ -103,7 +105,7 @@ const cachedNeighborhoodTrends = unstable_cache(
         confidence: true,
       },
     }),
-  ["neighborhood-trends"],
+  ["neighborhood-trends-latest"],
   CACHE_OPTIONS,
 );
 
@@ -118,10 +120,12 @@ export async function neighborhoodTrends(
     propertyType,
     months,
   );
-  return rows.map((row) => ({
-    ...row,
-    periodStart: reviveDate(row.periodStart),
-  }));
+  return rows
+    .map((row) => ({
+      ...row,
+      periodStart: reviveDate(row.periodStart),
+    }))
+    .reverse();
 }
 
 const cachedAllNeighborhoods = unstable_cache(
