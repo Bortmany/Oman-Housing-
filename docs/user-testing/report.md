@@ -1,5 +1,7 @@
 # Oman Property Intelligence — user-testing report (2026-09-07)
 
+> The screenshots referenced below are not stored in this repo (app screenshots stay out of git). They can be viewed on the original pull request, #12, on GitHub.
+
 **Verdict: Not ready** — there is no confirmed P0, but four P1 code bugs sit inside the core loop and were each reproduced by a second, independent tester: the expected rent that ignores flat size, the yield that ignores the real asking rent, the agency listings table that hides price and status on the phone, and the listing form that silently changes "Villa" to "Apartment" after a rejected submit. The rule we apply says three or more of those means Not ready.
 
 A first-time user can already do a lot: browse neighbourhood prices, rents and yields, compare two areas side by side on a shareable link, run the three calculators, filter the listings, send an enquiry as a guest, register, save favourites, and — as an agency — read and answer buyer enquiries. What they cannot do is trust the investment figures on a listing (a small flat is given a big flat's rent, so it looks like the better buy), put a photo on a listing, or edit a listing once it has been sent for review. The single most important thing to change is the expected-rent calculation on the listing page: work it out from the flat's own size, not the neighbourhood average, and use the real asking rent when the listing has one [Certain — both figures were checked by hand and reproduced in English and Arabic].
