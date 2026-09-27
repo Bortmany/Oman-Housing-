@@ -12,6 +12,7 @@ import {
 import { formatOMRWhole, formatPercent } from "@/lib/money";
 import type { OfferedDatum } from "@/lib/ai/analystCore";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
 import {
   createInquiry,
   countRecentInquiriesByEmail,
@@ -21,6 +22,13 @@ import {
   ENQUIRY_WINDOW_MS,
   MAX_MESSAGE_LENGTH,
 } from "@/lib/enquiry";
+import {
+  DEFAULT_DIAL_CODE,
+  checkPhone,
+  combinePhone,
+  isPossibleEmail,
+} from "@/lib/contact";
+import { submittedValues, type SubmittedValues } from "@/lib/formValues";
 
 export type AnalystCitationView = {
   label: string;
@@ -100,31 +108,82 @@ export async function askAnalystAction(
 
 export type EnquiryActionState =
   | { status: "idle" }
-  | { status: "error"; code: "invalid" | "rateLimited" | "unavailable" }
+  | {
+      status: "error";
+      code: "invalid" | "rateLimited" | "unavailable";
+      // Which input failed validation (e.g. "email"), so the form can put a
+      // red ring on the right box. Absent for form-wide errors.
+      field?: string;
+      // What the visitor typed, so a rejected enquiry is never retyped.
+      values?: SubmittedValues;
+    }
   | { status: "sent"; savedToAccount: boolean };
 
-const enquirySchema = z.object({
-  listingId: z.string().min(1),
-  name: z.string().trim().min(1).max(120),
-  email: z.string().trim().toLowerCase().email().max(200),
-  phone: z.string().trim().max(40).optional(),
-  message: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
-});
+/** The boxes worth handing back when the enquiry is rejected. */
+const ENQUIRY_FIELDS = ["listingId", "name", "email", "phoneCode", "phone", "message"] as const;
+
+const enquirySchema = z
+  .object({
+    listingId: z.string().min(1),
+    name: z.string().trim().min(1).max(120),
+    // Shape check as well as zod's own — an address must be able to exist.
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .max(200)
+      .refine(isPossibleEmail),
+    phoneCode: z.string().trim().default(DEFAULT_DIAL_CODE),
+    phone: z.string().trim().max(40).optional(),
+    message: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
+  })
+  // The number must be possible for the country code that was chosen.
+  .superRefine((v, ctx) => {
+    if (!v.phone) return;
+    if (checkPhone(v.phoneCode, v.phone) !== null) {
+      ctx.addIssue({ code: "custom", path: ["phone"], message: "impossible" });
+    }
+  });
 
 export async function sendEnquiryAction(
   _prev: EnquiryActionState,
   formData: FormData,
 ): Promise<EnquiryActionState> {
   const session = await auth();
+  // Held on to now so every "no" below can hand the typed text straight back.
+  const typed = submittedValues(formData, ENQUIRY_FIELDS);
+
+  // Request-rate throttle keyed on the visitor (real IP behind a trusted
+  // proxy, else a signed per-browser cookie id). The per-email daily cap
+  // below only limits how many one address can send — it does nothing against
+  // a script cycling a fresh unique email on every request. This caps the
+  // rate of submissions per visitor regardless of the email used.
+  const anonKey = await getAnonRateLimitKey();
+  const rl = checkRateLimit(`enquiry:anon:${anonKey}`, {
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!rl.allowed) {
+    return { status: "error", code: "rateLimited", values: typed };
+  }
 
   const parsed = enquirySchema.safeParse({
     listingId: formData.get("listingId"),
     name: formData.get("name"),
     email: formData.get("email"),
+    phoneCode: formData.get("phoneCode") || DEFAULT_DIAL_CODE,
     phone: formData.get("phone") || undefined,
     message: formData.get("message"),
   });
-  if (!parsed.success) return { status: "error", code: "invalid" };
+  if (!parsed.success) {
+    const field = parsed.error.issues[0]?.path[0];
+    return {
+      status: "error",
+      code: "invalid",
+      field: typeof field === "string" ? field : undefined,
+      values: typed,
+    };
+  }
   const d = parsed.data;
 
   // Spam guards: hidden honeypot must be empty, and cap enquiries per email/day.
@@ -132,21 +191,25 @@ export async function sendEnquiryAction(
   const recentCount = await countRecentInquiriesByEmail(d.email, ENQUIRY_WINDOW_MS);
   const verdict = evaluateEnquiry({ honeypot, recentCount });
   if (verdict === "honeypot") return { status: "sent", savedToAccount: false }; // silently drop bots
-  if (verdict === "rateLimited") return { status: "error", code: "rateLimited" };
+  if (verdict === "rateLimited") {
+    return { status: "error", code: "rateLimited", values: typed };
+  }
 
   // The listing must exist and be publicly active to receive enquiries.
   const listing = await prisma.listing.findFirst({
     where: { id: d.listingId, status: "ACTIVE" },
     select: { id: true },
   });
-  if (!listing) return { status: "error", code: "unavailable" };
+  if (!listing) return { status: "error", code: "unavailable", values: typed };
 
   await createInquiry({
     listingId: listing.id,
     fromUserId: session?.user.id ?? null,
     name: d.name,
     email: d.email,
-    phone: d.phone ?? null,
+    // Code + number are stored as one string ("+968 91234567") in the existing
+    // phone column — the dropdown is a UI aid, not a new database field.
+    phone: d.phone ? combinePhone(d.phoneCode, d.phone) : null,
     message: d.message,
   });
 

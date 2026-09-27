@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { auth, signOut } from "@/auth";
 import { Link } from "@/i18n/navigation";
 import { LocaleSwitcher } from "./LocaleSwitcher";
+import { NavLink } from "./NavLink";
 
 export async function Header() {
   const [t, tc, session] = await Promise.all([
@@ -22,25 +23,15 @@ export async function Header() {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-4 text-sm font-medium text-stone-600">
-          <Link href="/properties" className="hover:text-teal-800">
-            {t("properties")}
-          </Link>
-          <Link href="/market" className="hover:text-teal-800">
-            {t("market")}
-          </Link>
-          <Link href="/calculators" className="hover:text-teal-800">
-            {t("calculators")}
-          </Link>
+        <nav className="flex items-center gap-1 text-sm font-medium text-stone-600">
+          <NavLink href="/properties">{t("properties")}</NavLink>
+          <NavLink href="/market">{t("market")}</NavLink>
+          <NavLink href="/calculators">{t("calculators")}</NavLink>
           {session?.user.role === "AGENCY" && (
-            <Link href="/agency" className="hover:text-teal-800">
-              {t("agency")}
-            </Link>
+            <NavLink href="/agency">{t("agency")}</NavLink>
           )}
           {session?.user.role === "ADMIN" && (
-            <Link href="/admin" className="hover:text-teal-800">
-              {t("admin")}
-            </Link>
+            <NavLink href="/admin">{t("admin")}</NavLink>
           )}
         </nav>
 

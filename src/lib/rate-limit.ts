@@ -24,6 +24,8 @@ export type RateLimitResult = {
   allowed: boolean;
   /** seconds the caller should wait before trying again (only when denied) */
   retryAfter: number;
+  /** hits recorded for this key inside the current window (incl. this one) */
+  count: number;
 };
 
 type Bucket = { count: number; resetAt: number };
@@ -44,7 +46,7 @@ class MemoryStore implements RateLimitStore {
     if (!existing || existing.resetAt <= now) {
       this.buckets.set(key, { count: 1, resetAt: now + windowMs });
       this.sweep(now);
-      return { allowed: true, retryAfter: 0 };
+      return { allowed: true, retryAfter: 0, count: 1 };
     }
 
     existing.count += 1;
@@ -52,9 +54,10 @@ class MemoryStore implements RateLimitStore {
       return {
         allowed: false,
         retryAfter: Math.max(1, Math.ceil((existing.resetAt - now) / 1000)),
+        count: existing.count,
       };
     }
-    return { allowed: true, retryAfter: 0 };
+    return { allowed: true, retryAfter: 0, count: existing.count };
   }
 
   /** Occasionally drop expired buckets so the Map cannot grow unbounded. */
@@ -108,16 +111,113 @@ export function checkRateLimit(
   return store.hit(key, limit, windowMs);
 }
 
+// Re-exported so existing callers keep writing
+// `import { checkRateLimit, getClientIp } from "@/lib/rate-limit"` — the
+// implementation moved to clientIp.ts (not "server-only") so it can be unit
+// tested directly.
+export { getClientIp, getSocketIp, SOCKET_IP_HEADER } from "./clientIp";
+
+// ---------------------------------------------------------------------------
+// Anonymous rate-limit key — how we identify an unauthenticated visitor for
+// the login/signup/enquiry limiters. Two signals, in priority order:
+//
+//   1. A COOKIE-BEARING client → its stable, signed per-browser id (minted
+//      into a signed httpOnly cookie the first time we see it; sign/verify
+//      logic lives in anonId.ts, kept pure/testable). The id is HMAC-signed
+//      with AUTH_SECRET, so a script can't forge one or hop between buckets.
+//   2. A COOKIE-LESS caller (a first-contact request, or a client that
+//      deliberately ignores our cookie) → the REAL connection IP via
+//      getClientIp(), which trusts forwarded headers behind a trusted proxy
+//      (TRUST_PROXY_HEADERS=true), or — when that's off — the true TCP
+//      socket address stamped onto every request by the diagnostics-channel
+//      subscriber in instrumentation-node.ts (see clientIp.ts). We still
+//      hand this caller a cookie so a genuine browser's NEXT request
+//      upgrades to signal #1.
+//
+// Why not the previous behaviour: it keyed a cookie-less request on a
+// FRESHLY-MINTED per-request id. That silently disabled the limiter for any
+// client that ignores cookies — every request got a brand-new empty bucket,
+// so a flood could never trip the limit. Keying cookie-less callers on their
+// IP instead means an abuser who won't hold a cookie is bounded by their IP
+// bucket. A LATER bug repeated the same failure a different way: without a
+// trusted proxy, getClientIp() used to return the bare literal "unknown" for
+// every cookie-less caller, so they ALL collapsed onto one shared
+// `ip:unknown` bucket — a cookie-dropping flood from any one source could
+// exhaust it and block every other visitor's first request (the buyer
+// enquiry form hit exactly this). getClientIp() now falls back to the real
+// socket address instead of "unknown" whenever that signal is available, so
+// this key never returns a fresh-per-request id or a shared "unknown"
+// bucket for two different real sources.
+//
+// This import lives here (not clientIp.ts) specifically because it needs
+// `cookies()`/`headers()` from next/headers, which only work inside Next's
+// own request handling — clientIp.ts stays free of that so it keeps working
+// under plain `tsx` for its unit tests.
+// ---------------------------------------------------------------------------
+import { cookies, headers } from "next/headers";
+import { mintSignedAnonId, verifySignedAnonId } from "./anonId";
+import { getClientIp as getRawClientIp } from "./clientIp";
+
+const ANON_COOKIE_NAME = "opip_anon";
+const ANON_COOKIE_MAX_AGE_S = 60 * 60 * 24 * 365; // 1 year
+
+let warnedNoTrustProxyInProd = false;
+
 /**
- * The visitor's IP from `x-forwarded-for` (first hop, behind the Railway
- * proxy), falling back to `x-real-ip`, then a constant so anonymous traffic
- * still shares a bucket rather than bypassing the limit entirely.
+ * The key to use when rate-limiting an anonymous visitor. Cookie-bearing
+ * clients get their stable per-browser id; cookie-less callers are keyed on
+ * the real connection IP (never a fresh-minted-per-request id, never a bare
+ * "unknown" bucket). See the block comment above for the full rationale.
  */
-export function getClientIp(headers: Headers): string {
-  const xff = headers.get("x-forwarded-for");
-  if (xff) {
-    const first = xff.split(",")[0]?.trim();
-    if (first) return first;
+export async function getAnonRateLimitKey(): Promise<string> {
+  const secret = process.env.AUTH_SECRET;
+  const jar = secret ? await cookies() : null;
+
+  // 1. Cookie-bearing client → its stable, forgery-proof per-browser id.
+  if (secret && jar) {
+    const existingId = verifySignedAnonId(
+      jar.get(ANON_COOKIE_NAME)?.value,
+      secret,
+    );
+    if (existingId) return `browser:${existingId}`;
   }
-  return headers.get("x-real-ip")?.trim() || "unknown";
+
+  // Warn once (in production) that without a trusted proxy the cookie-less
+  // fallback below sees only the TCP socket peer address, not the visitor's
+  // real IP — which is the PROXY's own address (the same one for everyone)
+  // if this app actually sits behind one.
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.TRUST_PROXY_HEADERS !== "true" &&
+    !warnedNoTrustProxyInProd
+  ) {
+    warnedNoTrustProxyInProd = true;
+    console.warn(
+      "[rate-limit] TRUST_PROXY_HEADERS is not set to \"true\" in production. " +
+        "Cookie-less anonymous callers are rate-limited on the raw TCP socket " +
+        "address, not their real IP. If this app IS behind a trusted proxy that " +
+        "overwrites X-Forwarded-For (e.g. Railway's edge network), every visitor " +
+        "would share the proxy's own socket address — set TRUST_PROXY_HEADERS=" +
+        "true so limits key on the real connecting IP instead. See .env.example.",
+    );
+  }
+
+  // Hand a real browser a signed cookie so its NEXT request upgrades to the
+  // stable per-browser key above. A client that never stores it stays pinned
+  // to its IP bucket below — exactly what we want for abuse.
+  if (secret && jar) {
+    const { cookieValue } = mintSignedAnonId(secret);
+    jar.set(ANON_COOKIE_NAME, cookieValue, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: ANON_COOKIE_MAX_AGE_S,
+    });
+  }
+
+  // 2. Cookie-less caller → the real connection IP (or "unknown" only when we
+  // genuinely have no trustworthy IP). Namespaced so it can never collide with
+  // a `browser:` key.
+  return `ip:${getRawClientIp(await headers())}`;
 }

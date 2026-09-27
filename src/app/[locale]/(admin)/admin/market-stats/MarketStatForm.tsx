@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { localName } from "@/lib/i18nData";
 import { PROVENANCE_VALUES } from "@/lib/provenance";
+import { typedOr } from "@/lib/formValues";
 
 export type LocationOptions = {
   governorates: Array<{ id: string; nameEn: string; nameAr: string }>;
@@ -37,12 +38,16 @@ export function MarketStatForm({ locations }: { locations: LocationOptions }) {
     null,
   );
 
+  // A rejected row comes back as it was typed — no re-keying a whole stat.
+  const typed = state?.values;
+
   return (
     <form action={action}>
       <Card className="space-y-4">
         <div>
           <Label htmlFor="scope">{t("scope")}</Label>
-          <Select id="scope" name="scope" required defaultValue="">
+          <Select id="scope" name="scope" required
+            defaultValue={typedOr(typed, "scope")}>
             <option value="" disabled>
               —
             </option>
@@ -75,7 +80,8 @@ export function MarketStatForm({ locations }: { locations: LocationOptions }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="propertyType">{tm("propertyType")}</Label>
-            <Select id="propertyType" name="propertyType" defaultValue="">
+            <Select id="propertyType" name="propertyType"
+              defaultValue={typedOr(typed, "propertyType")}>
               <option value="">{tm("allTypes")}</option>
               {PROPERTY_TYPES.map((pt) => (
                 <option key={pt} value={pt}>
@@ -86,7 +92,8 @@ export function MarketStatForm({ locations }: { locations: LocationOptions }) {
           </div>
           <div>
             <Label htmlFor="period">{t("period")}</Label>
-            <Input id="period" name="period" type="month" required />
+            <Input id="period" name="period" type="month" required
+              defaultValue={typedOr(typed, "period")} />
           </div>
         </div>
 
@@ -94,7 +101,8 @@ export function MarketStatForm({ locations }: { locations: LocationOptions }) {
           {METRICS.map((m) => (
             <div key={m}>
               <Label htmlFor={m}>{t(`stat.${m}`)}</Label>
-              <Input id={m} name={m} type="number" step="any" min={0} />
+              <Input id={m} name={m} type="number" step="any" min={0}
+                defaultValue={typedOr(typed, m)} />
             </div>
           ))}
         </div>
@@ -102,7 +110,8 @@ export function MarketStatForm({ locations }: { locations: LocationOptions }) {
         <div className="grid gap-4 border-t border-stone-200 pt-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="provenance">{t("provenance")}</Label>
-            <Select id="provenance" name="provenance" required defaultValue="USER_SUBMITTED">
+            <Select id="provenance" name="provenance" required
+              defaultValue={typedOr(typed, "provenance", "USER_SUBMITTED")}>
               {PROVENANCE_VALUES.map((p) => (
                 <option key={p} value={p}>
                   {tp(p)}
@@ -119,18 +128,20 @@ export function MarketStatForm({ locations }: { locations: LocationOptions }) {
               min={0}
               max={1}
               step={0.05}
-              defaultValue={0.5}
+              defaultValue={typedOr(typed, "confidence", "0.5")}
               required
             />
           </div>
           <div className="sm:col-span-2">
             <Label htmlFor="sourceNote">{t("sourceNote")}</Label>
-            <Input id="sourceNote" name="sourceNote" maxLength={500} />
+            <Input id="sourceNote" name="sourceNote" maxLength={500}
+              defaultValue={typedOr(typed, "sourceNote")} />
             <Hint>{t("sourceNoteHint")}</Hint>
           </div>
           <div className="sm:col-span-2">
             <Label htmlFor="sourceUrl">{t("sourceUrl")}</Label>
-            <Input id="sourceUrl" name="sourceUrl" type="url" maxLength={500} />
+            <Input id="sourceUrl" name="sourceUrl" type="url" maxLength={500}
+              defaultValue={typedOr(typed, "sourceUrl")} />
           </div>
         </div>
 

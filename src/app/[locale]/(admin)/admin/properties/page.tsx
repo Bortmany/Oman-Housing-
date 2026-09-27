@@ -6,12 +6,14 @@ import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Link } from "@/i18n/navigation";
+import { enforceAdminPage } from "@/lib/require-admin";
 
 export default async function PropertiesAdminPage({
   searchParams,
 }: {
   searchParams: Promise<{ deleted?: string }>;
 }) {
+  await enforceAdminPage(); // guard BEFORE any DB query (see require-admin.ts)
   const { deleted } = await searchParams;
   const [t, tc, te, locale, properties] = await Promise.all([
     getTranslations("admin"),

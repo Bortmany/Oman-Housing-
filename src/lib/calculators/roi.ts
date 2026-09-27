@@ -19,6 +19,12 @@ export type RoiResult = {
   yearly: Array<{ year: number; cumulativeCashFlow: number; propertyValue: number }>;
 };
 
+// Hard ceiling on the yearly-projection loop below. The ROI form limits
+// "horizon" to 1-30 and validates it before calling this function, but this
+// pure function is a second, defensive line: no caller can ever make it
+// loop an unbounded number of times and freeze the browser tab.
+const MAX_HORIZON_YEARS = 100;
+
 export function roi(input: RoiInput): RoiResult {
   const cashInvested = input.downPayment > 0 ? input.downPayment : input.purchasePrice;
   const monthlyCashFlow =
@@ -28,9 +34,13 @@ export function roi(input: RoiInput): RoiResult {
   const breakEvenMonths =
     monthlyCashFlow > 0 ? Math.ceil(cashInvested / monthlyCashFlow) : null;
 
+  const horizonYears = Number.isFinite(input.horizonYears)
+    ? Math.min(Math.max(Math.round(input.horizonYears), 0), MAX_HORIZON_YEARS)
+    : 0;
+
   const yearly: RoiResult["yearly"] = [];
   let value = input.purchasePrice;
-  for (let y = 1; y <= input.horizonYears; y++) {
+  for (let y = 1; y <= horizonYears; y++) {
     value = value * (1 + input.annualAppreciationPct / 100);
     yearly.push({
       year: y,
@@ -47,7 +57,7 @@ export function roi(input: RoiInput): RoiResult {
     annualCashFlow,
     cashOnCashPct: cashInvested > 0 ? (annualCashFlow / cashInvested) * 100 : 0,
     breakEvenMonths,
-    totalReturn: annualCashFlow * input.horizonYears + appreciationGain,
+    totalReturn: annualCashFlow * horizonYears + appreciationGain,
     yearly,
   };
 }

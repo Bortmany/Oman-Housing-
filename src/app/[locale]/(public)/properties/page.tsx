@@ -11,7 +11,7 @@ import { isFavoritedSet } from "@/lib/db/favorites";
 import { PropertyFilters } from "@/components/marketplace/PropertyFilters";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 import { Card } from "@/components/ui/Card";
-import { Link } from "@/i18n/navigation";
+import { DirectionalLink } from "@/components/ui/DirectionalLink";
 
 export async function generateMetadata() {
   const t = await getTranslations("properties");
@@ -71,12 +71,13 @@ export default async function PropertiesPage({
           <h1 className="text-3xl font-bold text-stone-900">{t("title")}</h1>
           <p className="mt-2 max-w-2xl text-sm text-stone-600">{t("subtitle")}</p>
         </div>
-        <Link
+        <DirectionalLink
+          direction="forward"
           href="/properties/compare"
           className="text-sm font-semibold text-teal-800 hover:underline"
         >
-          {t("compare")} ←
-        </Link>
+          {t("compare")}
+        </DirectionalLink>
       </div>
 
       <div className="mt-6">

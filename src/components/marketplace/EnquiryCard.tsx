@@ -8,8 +8,22 @@ import {
 } from "@/app/[locale]/(public)/properties/[id]/actions";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input, Textarea, Label, Hint, FieldError } from "@/components/ui/Field";
+import {
+  Input,
+  Select,
+  Textarea,
+  Label,
+  FieldError,
+} from "@/components/ui/Field";
+import {
+  EmailField,
+  PhoneField,
+  blockImpossibleSubmit,
+  useEmailField,
+  usePhoneField,
+} from "@/components/ui/ContactFields";
 import { Link } from "@/i18n/navigation";
+import { typedOr } from "@/lib/formValues";
 
 export type ListingOption = { id: string; label: string };
 
@@ -29,12 +43,24 @@ export function EnquiryCard({
   registerHref: string;
 }) {
   const t = useTranslations("enquiry");
+  const tc = useTranslations("contact");
   const [state, formAction, pending] = useActionState(
     sendEnquiryAction,
     initialState,
   );
+  const email = useEmailField(defaultEmail);
+  const phone = usePhoneField();
 
   if (listings.length === 0) return null;
+
+  // Ring the specific box that failed, alongside the message text below.
+  const invalid = (name: string) =>
+    state.status === "error" && state.code === "invalid" && state.field === name;
+
+  // A rejected enquiry comes back with the visitor's own words in it — nobody
+  // retypes their message because the email had a typo. (The email and phone
+  // boxes are driven by React state, so they keep their text by themselves.)
+  const typed = state.status === "error" ? state.values : undefined;
 
   if (state.status === "sent") {
     return (
@@ -64,24 +90,32 @@ export function EnquiryCard({
         </div>
       )}
 
-      <form action={formAction} className="mt-4 space-y-3">
+      <form noValidate
+        action={formAction}
+        onSubmit={(e) => blockImpossibleSubmit(e, [email, phone])}
+        className="mt-4 space-y-3"
+      >
         {listings.length === 1 ? (
           <input type="hidden" name="listingId" value={listings[0].id} />
         ) : (
           <div>
             <Label htmlFor="enq-listing">{t("aboutListing")}</Label>
-            <select
+            <Select
               id="enq-listing"
               name="listingId"
-              className="block w-full rounded-lg border-0 bg-white px-3 py-2 text-sm text-stone-900 ring-1 ring-inset ring-stone-300 focus:ring-2 focus:ring-inset focus:ring-teal-700"
+              defaultValue={typedOr(typed, "listingId", listings[0].id)}
               disabled={pending}
+              error={
+                invalid("listingId") ||
+                (state.status === "error" && state.code === "unavailable")
+              }
             >
               {listings.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         )}
 
@@ -99,42 +133,45 @@ export function EnquiryCard({
             <Input
               id="enq-name"
               name="name"
-              defaultValue={defaultName}
+              defaultValue={typedOr(typed, "name", defaultName)}
+              placeholder={tc("examples.name")}
               maxLength={120}
               disabled={pending}
               required
+              error={invalid("name")}
             />
           </div>
-          <div>
-            <Label htmlFor="enq-email">{t("email")}</Label>
-            <Input
-              id="enq-email"
-              name="email"
-              type="email"
-              defaultValue={defaultEmail}
-              maxLength={200}
-              disabled={pending}
-              required
-            />
-          </div>
+          <EmailField
+            id="enq-email"
+            label={t("email")}
+            field={email}
+            disabled={pending}
+            required
+            serverError={invalid("email")}
+          />
         </div>
 
-        <div>
-          <Label htmlFor="enq-phone">{t("phone")}</Label>
-          <Input id="enq-phone" name="phone" maxLength={40} disabled={pending} />
-          <Hint>{t("phoneHint")}</Hint>
-        </div>
+        <PhoneField
+          id="enq-phone"
+          label={t("phone")}
+          field={phone}
+          hint={t("phoneHint")}
+          disabled={pending}
+          serverError={invalid("phone")}
+        />
 
         <div>
           <Label htmlFor="enq-message">{t("message")}</Label>
           <Textarea
             id="enq-message"
             name="message"
+            defaultValue={typedOr(typed, "message")}
             rows={4}
             maxLength={1000}
             placeholder={t("messagePlaceholder")}
             disabled={pending}
             required
+            error={invalid("message")}
           />
         </div>
 
@@ -151,6 +188,14 @@ export function EnquiryCard({
         <Button type="submit" disabled={pending}>
           {pending ? t("sending") : t("send")}
         </Button>
+
+        {/* Consent line: who receives the details typed above. */}
+        <p className="text-xs text-stone-500">
+          {t("consent")}{" "}
+          <Link href="/privacy" className="font-medium underline">
+            {t("consentLink")}
+          </Link>
+        </p>
       </form>
     </Card>
   );

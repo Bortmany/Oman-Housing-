@@ -7,12 +7,7 @@ import { auth } from "@/auth";
 import { redirect } from "@/i18n/navigation";
 import { toggleFavorite } from "@/lib/db/favorites";
 import { checkRateLimit } from "@/lib/rate-limit";
-
-/** Only relative in-app paths — never an absolute URL (open-redirect guard). */
-function safePath(raw: unknown): string {
-  const s = String(raw ?? "");
-  return s.startsWith("/") && !s.startsWith("//") ? s : "/properties";
-}
+import { safePath } from "@/lib/safePath";
 
 const toggleSchema = z.object({
   listingId: z.string().trim().min(1).max(64),
@@ -20,7 +15,7 @@ const toggleSchema = z.object({
 
 export async function toggleFavoriteAction(formData: FormData) {
   const [session, locale] = await Promise.all([auth(), getLocale()]);
-  const redirectTo = safePath(formData.get("redirectTo"));
+  const redirectTo = safePath(formData.get("redirectTo"), "/properties");
 
   if (!session) {
     redirect({
