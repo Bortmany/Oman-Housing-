@@ -17,7 +17,7 @@ import {
 // here from stored rows, tagged, and handed over; analystCore.ts enforces
 // the honesty rules on whatever comes back.
 
-export const ANALYST_MODEL = "claude-opus-4-8";
+export const ANALYST_MODEL = "claude-opus-5";
 export const DAILY_QUESTION_LIMIT = 10;
 const MAX_QUESTION_LENGTH = 300;
 

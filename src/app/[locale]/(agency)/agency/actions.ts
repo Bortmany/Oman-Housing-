@@ -19,6 +19,13 @@ import {
   INQUIRY_STATUSES,
 } from "@/lib/db/inquiries";
 import { canAddListing } from "@/lib/tiers";
+import {
+  DEFAULT_DIAL_CODE,
+  checkPhone,
+  combinePhone,
+  isPossibleEmail,
+} from "@/lib/contact";
+import { submittedValues, type SubmittedValues } from "@/lib/formValues";
 
 /** Guard: a logged-in AGENCY user with an agency link. Returns both or null. */
 async function requireAgency(): Promise<
@@ -47,7 +54,7 @@ const listingSchema = z.object({
   descriptionAr: z.string().trim().max(5000).optional(),
   bedrooms: z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().int().min(0).max(50).nullable()),
   bathrooms: z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().int().min(0).max(50).nullable()),
-  areaSqm: z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().positive().nullable()),
+  areaSqm: z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().finite().positive().nullable()),
   yearBuilt: z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().int().min(1900).max(2100).nullable()),
   listingType: z.enum(["SALE", "RENT"]),
   price: z.preprocess((v) => Number(v), z.number().finite().positive()),
@@ -55,22 +62,41 @@ const listingSchema = z.object({
 });
 
 export type AgencyListingState =
-  | { error: "validationFailed" | "atListingLimit" | "notAllowed" }
+  | {
+      error: "validationFailed" | "atListingLimit" | "notAllowed";
+      // Which input failed validation (e.g. "price"), so the form can put a
+      // red ring on the right box. Absent for form-wide errors.
+      field?: string;
+      // What the agency typed, so a rejected listing is never retyped.
+      values?: SubmittedValues;
+    }
   | null;
+
+/** The boxes handed back when a listing submission is rejected. */
+const LISTING_FIELDS = [
+  "neighborhoodId", "type", "ownership", "titleEn", "titleAr",
+  "descriptionEn", "descriptionAr", "bedrooms", "bathrooms", "areaSqm",
+  "yearBuilt", "listingType", "price", "rentPeriod",
+] as const;
 
 export async function submitAgencyListing(
   _prev: AgencyListingState,
   formData: FormData,
 ): Promise<AgencyListingState> {
+  // Held on to now so every "no" below can hand the typed text straight back.
+  const typed = submittedValues(formData, LISTING_FIELDS);
+
   const ctx = await requireAgency();
-  if (!ctx) return { error: "notAllowed" };
+  if (!ctx) return { error: "notAllowed", values: typed };
 
   const agency = await agencyById(ctx.agencyId);
-  if (!agency) return { error: "notAllowed" };
+  if (!agency) return { error: "notAllowed", values: typed };
 
   // Plan limit: block a new submission when the agency is already at its cap.
   const inPlay = await countListingsInPlay(ctx.agencyId);
-  if (!canAddListing(agency.tier, inPlay)) return { error: "atListingLimit" };
+  if (!canAddListing(agency.tier, inPlay)) {
+    return { error: "atListingLimit", values: typed };
+  }
 
   const parsed = listingSchema.safeParse({
     neighborhoodId: formData.get("neighborhoodId"),
@@ -88,7 +114,14 @@ export async function submitAgencyListing(
     price: formData.get("price"),
     rentPeriod: formData.get("rentPeriod") || null,
   });
-  if (!parsed.success) return { error: "validationFailed" };
+  if (!parsed.success) {
+    const field = parsed.error.issues[0]?.path[0];
+    return {
+      error: "validationFailed",
+      field: typeof field === "string" ? field : undefined,
+      values: typed,
+    };
+  }
   const d = parsed.data;
 
   // Create the property (user-submitted, unverified) and the listing
@@ -151,34 +184,66 @@ export async function setEnquiryStatusAgency(formData: FormData) {
 
 // ---------- Profile ----------
 
-const profileSchema = z.object({
-  nameEn: z.string().trim().min(2).max(120),
-  nameAr: z.string().trim().max(120).optional(),
-  licenseNo: z.string().trim().max(60).optional(),
-  email: z.string().trim().toLowerCase().email().max(200).optional(),
-  phone: z.string().trim().max(40).optional(),
-});
+const profileSchema = z
+  .object({
+    nameEn: z.string().trim().min(2).max(120),
+    nameAr: z.string().trim().max(120).optional(),
+    licenseNo: z.string().trim().max(60).optional(),
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .max(200)
+      .refine(isPossibleEmail)
+      .optional(),
+    phoneCode: z.string().trim().default(DEFAULT_DIAL_CODE),
+    phone: z.string().trim().max(40).optional(),
+  })
+  // The number must be possible for the country code that was chosen.
+  .superRefine((v, ctx) => {
+    if (!v.phone) return;
+    if (checkPhone(v.phoneCode, v.phone) !== null) {
+      ctx.addIssue({ code: "custom", path: ["phone"], message: "impossible" });
+    }
+  });
 
 export type AgencyProfileState =
   | { status: "saved" }
-  | { status: "error" }
+  // `field` names the box that failed, so the form can ring the right one;
+  // `values` carries the edits back so nothing typed is lost.
+  | { status: "error"; field?: string; values?: SubmittedValues }
   | null;
+
+/** The boxes handed back when a profile save is rejected. */
+const PROFILE_FIELDS = [
+  "nameEn", "nameAr", "licenseNo", "email", "phoneCode", "phone",
+] as const;
 
 export async function saveAgencyProfile(
   _prev: AgencyProfileState,
   formData: FormData,
 ): Promise<AgencyProfileState> {
+  const typed = submittedValues(formData, PROFILE_FIELDS);
+
   const ctx = await requireAgency();
-  if (!ctx) return { status: "error" };
+  if (!ctx) return { status: "error", values: typed };
 
   const parsed = profileSchema.safeParse({
     nameEn: formData.get("nameEn"),
     nameAr: formData.get("nameAr") || undefined,
     licenseNo: formData.get("licenseNo") || undefined,
     email: formData.get("email") || undefined,
+    phoneCode: formData.get("phoneCode") || DEFAULT_DIAL_CODE,
     phone: formData.get("phone") || undefined,
   });
-  if (!parsed.success) return { status: "error" };
+  if (!parsed.success) {
+    const field = parsed.error.issues[0]?.path[0];
+    return {
+      status: "error",
+      field: typeof field === "string" ? field : undefined,
+      values: typed,
+    };
+  }
   const d = parsed.data;
 
   await updateAgencyProfile(ctx.agencyId, {
@@ -186,7 +251,8 @@ export async function saveAgencyProfile(
     nameAr: d.nameAr ?? null,
     licenseNo: d.licenseNo ?? null,
     email: d.email ?? null,
-    phone: d.phone ?? null,
+    // Code + number stored as one string ("+968 91234567") — no schema change.
+    phone: d.phone ? combinePhone(d.phoneCode, d.phone) : null,
   });
 
   revalidatePath("/", "layout");

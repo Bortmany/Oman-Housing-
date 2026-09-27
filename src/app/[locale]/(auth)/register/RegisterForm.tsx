@@ -5,10 +5,19 @@ import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { registerUser, type RegisterState } from "./actions";
 import { Input, Label, Hint, FieldError } from "@/components/ui/Field";
+import {
+  EmailField,
+  blockImpossibleSubmit,
+  useEmailField,
+} from "@/components/ui/ContactFields";
 import { Button } from "@/components/ui/Button";
+import { typedOr } from "@/lib/formValues";
+import { Turnstile } from "@/components/ui/Turnstile";
 
-export function RegisterForm() {
+export function RegisterForm({ inviteRequired }: { inviteRequired: boolean }) {
   const t = useTranslations("auth");
+  const tc = useTranslations("contact");
+  const email = useEmailField();
   const rawCallback = useSearchParams().get("callbackUrl");
   const callbackUrl =
     rawCallback?.startsWith("/") && !rawCallback.startsWith("//")
@@ -20,18 +29,56 @@ export function RegisterForm() {
   );
 
   return (
-    <form action={action} className="space-y-4">
+    <form
+      action={action}
+      onSubmit={(e) => blockImpossibleSubmit(e, [email])}
+      className="space-y-4"
+    >
+      {inviteRequired && (
+        // Invitation-only mode (src/lib/signupMode.ts). The code is not
+        // carried back on a failed submit — it is retyped like the password.
+        <div>
+          <Label htmlFor="inviteCode">{t("inviteCode")}</Label>
+          <Input
+            id="inviteCode"
+            name="inviteCode"
+            autoComplete="off"
+            placeholder={t("inviteCodeExample")}
+            required
+            minLength={8}
+            maxLength={200}
+            disabled={pending}
+            error={state?.error === "inviteRequired"}
+          />
+          <Hint>{t("inviteCodeHint")}</Hint>
+        </div>
+      )}
       {callbackUrl && (
-        <input type="hidden" name="callbackUrl" value={callbackUrl} />
+        // defaultValue, not value: a failed submit resets the form, and the
+        // page the visitor was heading to must survive that reset too.
+        <input type="hidden" name="callbackUrl" defaultValue={callbackUrl} />
       )}
       <div>
         <Label htmlFor="name">{t("name")}</Label>
-        <Input id="name" name="name" required maxLength={100} />
+        <Input
+          id="name"
+          name="name"
+          // A failed signup keeps the name; only the password is retyped.
+          defaultValue={typedOr(state?.values, "name")}
+          placeholder={tc("examples.name")}
+          required
+          maxLength={100}
+          disabled={pending}
+        />
       </div>
-      <div>
-        <Label htmlFor="email">{t("email")}</Label>
-        <Input id="email" name="email" type="email" required />
-      </div>
+      <EmailField
+        id="email"
+        label={t("email")}
+        field={email}
+        required
+        disabled={pending}
+        serverError={state?.error === "emailTaken"}
+      />
       <div>
         <Label htmlFor="password">{t("password")}</Label>
         <Input
@@ -40,9 +87,13 @@ export function RegisterForm() {
           type="password"
           required
           minLength={8}
+          disabled={pending}
         />
         <Hint>{t("passwordHint")}</Hint>
       </div>
+      {/* Renders nothing until the Turnstile keys are set. A rejected
+          submit (new `state`) resets it, since each token is single use. */}
+      <Turnstile resetKey={state} />
       <FieldError>{state?.error ? t(state.error) : null}</FieldError>
       <Button type="submit" disabled={pending} className="w-full">
         {t("register")}

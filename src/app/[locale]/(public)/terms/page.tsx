@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import LegalContact from "@/components/legal/LegalContact";
 
 export async function generateMetadata() {
   const t = await getTranslations("legal.terms");
@@ -43,12 +44,7 @@ export default async function TermsPage() {
         </section>
       ))}
 
-      <h2 className="mt-8 text-lg font-semibold text-stone-900">
-        {tl("contactTitle")}
-      </h2>
-      <p className="mt-3 text-sm leading-6 text-stone-700">
-        {tl("contactBody")}
-      </p>
+      <LegalContact />
     </div>
   );
 }

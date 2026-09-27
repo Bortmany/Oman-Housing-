@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { localName } from "@/lib/i18nData";
 import { PROVENANCE_VALUES } from "@/lib/provenance";
+import { typedOr } from "@/lib/formValues";
 
 export type ListingDefaults = {
   id?: string;
@@ -38,6 +39,9 @@ export function ListingForm({
   );
   const [listingType, setListingType] = useState(defaults.listingType ?? "SALE");
 
+  // A rejected save comes back with the edits in the boxes, not the old values.
+  const typed = state?.values;
+
   return (
     <form action={action}>
       <Card className="space-y-4">
@@ -46,7 +50,7 @@ export function ListingForm({
         <div>
           <Label htmlFor="propertyId">{t("listing.property")}</Label>
           <Select id="propertyId" name="propertyId" required
-            defaultValue={defaults.propertyId ?? ""}>
+            defaultValue={typedOr(typed, "propertyId", defaults.propertyId ?? "")}>
             <option value="" disabled>—</option>
             {properties.map((p) => (
               <option key={p.id} value={p.id}>
@@ -69,13 +73,13 @@ export function ListingForm({
           <div>
             <Label htmlFor="price">{t("listing.price")}</Label>
             <Input id="price" name="price" type="number" step="any" min={0} required
-              defaultValue={defaults.price ?? ""} />
+              defaultValue={typedOr(typed, "price", defaults.price ?? "")} />
           </div>
           {listingType === "RENT" && (
             <div>
               <Label htmlFor="rentPeriod">{t("listing.rentPeriod")}</Label>
               <Select id="rentPeriod" name="rentPeriod"
-                defaultValue={defaults.rentPeriod ?? "MONTHLY"}>
+                defaultValue={typedOr(typed, "rentPeriod", defaults.rentPeriod ?? "MONTHLY")}>
                 <option value="MONTHLY">{te("rentPeriod.MONTHLY")}</option>
                 <option value="ANNUAL">{te("rentPeriod.ANNUAL")}</option>
               </Select>
@@ -87,7 +91,7 @@ export function ListingForm({
           <div>
             <Label htmlFor="provenance">{t("provenance")}</Label>
             <Select id="provenance" name="provenance" required
-              defaultValue={defaults.provenance ?? "USER_SUBMITTED"}>
+              defaultValue={typedOr(typed, "provenance", defaults.provenance ?? "USER_SUBMITTED")}>
               {PROVENANCE_VALUES.map((p) => (
                 <option key={p} value={p}>{tpr(p)}</option>
               ))}
@@ -97,7 +101,7 @@ export function ListingForm({
             <Label htmlFor="confidence">{t("confidence")}</Label>
             <Input id="confidence" name="confidence" type="number"
               min={0} max={1} step={0.05} required
-              defaultValue={defaults.confidence ?? 0.5} />
+              defaultValue={typedOr(typed, "confidence", String(defaults.confidence ?? 0.5))} />
           </div>
         </div>
 

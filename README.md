@@ -66,7 +66,8 @@ demonstrate themselves; real figures replace them through the admin screens.
 ```bash
 cp .env.example .env          # fill in AUTH_SECRET and SEED_ADMIN_PASSWORD
 npm install
-npx prisma db push            # needs PostgreSQL (see .env DATABASE_URL)
+npx prisma migrate deploy     # needs PostgreSQL (see .env DATABASE_URL); applies prisma/migrations/
+                              # changing the schema? `npx prisma migrate dev --name <change>` — never `db push`
 npm run db:seed
 npm run dev                   # http://localhost:3000
 ```

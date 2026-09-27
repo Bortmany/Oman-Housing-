@@ -1,13 +1,15 @@
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { ListingForm } from "../ListingForm";
-import { Link } from "@/i18n/navigation";
+import { DirectionalLink } from "@/components/ui/DirectionalLink";
+import { enforceAdminPage } from "@/lib/require-admin";
 
 export default async function NewListingPage({
   searchParams,
 }: {
   searchParams: Promise<{ propertyId?: string }>;
 }) {
+  await enforceAdminPage(); // guard BEFORE any DB query (see require-admin.ts)
   const { propertyId } = await searchParams;
   const [t, properties] = await Promise.all([
     getTranslations("admin"),
@@ -19,9 +21,13 @@ export default async function NewListingPage({
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <Link href="/admin/listings" className="text-sm text-teal-800 hover:underline">
-        ‹ {t("listings")}
-      </Link>
+      <DirectionalLink
+        direction="back"
+        href="/admin/listings"
+        className="text-sm text-teal-800 hover:underline"
+      >
+        {t("listings")}
+      </DirectionalLink>
       <h1 className="mt-3 text-2xl font-bold text-stone-900">{t("newListing")}</h1>
       <div className="mt-6">
         <ListingForm properties={properties} defaults={{ propertyId }} />

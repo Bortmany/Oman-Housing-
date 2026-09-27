@@ -14,7 +14,7 @@ export function ProvenanceBadge({
   const t = useTranslations("provenance");
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${provenanceStyles[provenance]}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset rtl:text-sm ${provenanceStyles[provenance]}`}
       title={
         confidence != null
           ? `${t("confidence")}: ${formatConfidence(confidence)}`

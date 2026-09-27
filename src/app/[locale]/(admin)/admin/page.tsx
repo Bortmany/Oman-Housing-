@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { Link } from "@/i18n/navigation";
+import { enforceAdminPage } from "@/lib/require-admin";
 
 export async function generateMetadata() {
   const t = await getTranslations("admin");
@@ -9,6 +10,7 @@ export async function generateMetadata() {
 }
 
 export default async function AdminHome() {
+  await enforceAdminPage(); // guard BEFORE any DB query (see require-admin.ts)
   const [
     t,
     statCount,

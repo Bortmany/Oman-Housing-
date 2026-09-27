@@ -5,6 +5,7 @@ import { localName } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { Link } from "@/i18n/navigation";
+import { enforceAdminPage } from "@/lib/require-admin";
 import { approveListing, rejectListing, verifyProperty, verifyStat } from "./actions";
 
 export async function generateMetadata() {
@@ -13,6 +14,7 @@ export async function generateMetadata() {
 }
 
 export default async function AdminReviewPage() {
+  await enforceAdminPage(); // guard BEFORE any DB query (see require-admin.ts)
   const [t, te, tp, locale] = await Promise.all([
     getTranslations("admin"),
     getTranslations("enums"),

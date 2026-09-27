@@ -1,18 +1,66 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import type { Role, Tier } from "@prisma/client";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
+import { computeLoginBackoffMs, computeOvershoot } from "@/lib/loginBackoff";
+import { safeRedirectUrl } from "@/lib/safePath";
+import { consumeCaptchaPass, verifyCaptcha } from "@/lib/captcha";
+import { applyFreshUser, shouldRefreshRole } from "@/lib/sessionRefresh";
+
+/** Thrown when the (optional) CAPTCHA check fails — the login form shows a
+ *  "please complete the check" message instead of "wrong password". */
+class CaptchaSignin extends CredentialsSignin {
+  code = "captcha";
+}
+
+// A precomputed bcrypt hash (cost 10, same as every real password below) of
+// an arbitrary string nobody will ever type. Comparing against it for
+// unknown emails — or accounts with no password set — makes a login attempt
+// cost the same ~bcrypt-compare time whether or not the email exists, so
+// response timing can't be used to enumerate registered emails.
+const DUMMY_PASSWORD_HASH =
+  "$2b$10$bjIu4fPZNeTw9dkdsKYBHeLDM6zy2.vt6c6VarmCZYA.tsMebqDDS";
+
+// Once an email/IP is over its wrong-guess limit, we delay the rejection —
+// slowing down automated brute-forcing without ever blocking a correct
+// password (see the `ok` check below). The delay GROWS with repeated wrong
+// guesses (doubling per guess past the limit) up to an impractically slow
+// ceiling, rather than staying at one fixed, brute-forceable delay.
+const LOGIN_BACKOFF_BASE_MS = 1500;
+const LOGIN_BACKOFF_MAX_MS = 30_000; // ~30s ceiling — still bounded so a
+// real request never hangs forever, but far too slow for automated guessing
+// to be worthwhile.
+
+// Once a single email has racked up this many wrong guesses inside the
+// window (well past ordinary user typos), a real deployment should require
+// a human-challenge step (CAPTCHA/hCaptcha/Cloudflare Turnstile) before
+// accepting further attempts for that email. See requireLoginChallenge()
+// below — it's a stub seam, not wired to anything yet.
+const LOGIN_CHALLENGE_THRESHOLD = 25;
+
+/**
+ * Pluggable seam for a future human-challenge step (e.g. CAPTCHA). Called
+ * once an email has failed LOGIN_CHALLENGE_THRESHOLD+ times inside the
+ * rate-limit window. Does nothing yet but log — a real deployment would plug
+ * a CAPTCHA verification call in here and return false (deny) when it
+ * fails. Kept as a single call site so wiring a real check later is a
+ * one-function change, not a hunt through the auth flow.
+ */
+function requireLoginChallenge(email: string, failureCount: number): void {
+  console.warn(
+    `[auth] ${email} has failed ${failureCount} login attempts — a CAPTCHA/challenge step would gate further attempts here once wired up.`,
+  );
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
   providers: [
     Credentials({
-      credentials: { email: {}, password: {} },
+      credentials: { email: {}, password: {}, captchaToken: {}, captchaPass: {} },
       async authorize(credentials) {
         const email = String(credentials?.email ?? "")
           .trim()
@@ -20,43 +68,125 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = String(credentials?.password ?? "");
         if (!email || !password) return null;
 
-        // Throttle sign-in attempts to blunt password guessing: by visitor IP
-        // and by the email being tried. Denied attempts fail like a bad login.
-        const ip = getClientIp(await headers());
-        const byIp = checkRateLimit(`login:ip:${ip}`, {
-          limit: 20,
+        // Dormant CAPTCHA (src/lib/captcha.ts): always passes until the
+        // Turnstile keys are set; then every login needs a verified token —
+        // or a one-time pass minted by register/list-with-us, which already
+        // verified the visitor's token before signing the new account in.
+        if (
+          !consumeCaptchaPass(credentials?.captchaPass) &&
+          !(await verifyCaptcha(credentials?.captchaToken))
+        ) {
+          throw new CaptchaSignin();
+        }
+
+        const anonKey = await getAnonRateLimitKey();
+        const user = await prisma.user.findUnique({
+          where: { email },
+          include: { agency: { select: { isApproved: true } } },
+        });
+
+        // Always run a real bcrypt compare — even for an email that doesn't
+        // exist, or an account with no password set — against the dummy
+        // hash above. Skipping bcrypt for those cases would make the
+        // response ~15-20x faster, letting a visitor learn which emails
+        // have accounts purely from how long the request took.
+        const ok = await bcrypt.compare(
+          password,
+          user?.passwordHash ?? DUMMY_PASSWORD_HASH,
+        );
+
+        // A correct password always signs the owner in — even if this email
+        // or IP has racked up wrong guesses first. The rate limiter below
+        // only ever throttles WRONG guesses, so 11 mistyped attempts (by the
+        // real owner, or by someone deliberately failing logins to lock
+        // them out) can never deny the correct 12th attempt. This is the
+        // fix for the self-inflicted-lockout finding.
+        if (user?.passwordHash && ok) {
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            tier: user.tier,
+            agencyId: user.agencyId,
+            agencyApproved: user.agency?.isApproved ?? false,
+          };
+        }
+
+        // Wrong password (or unknown email, or a passwordless account):
+        // count the miss against both the visitor's anonymous key and the
+        // email being tried, so brute-forcing stays expensive. Once either
+        // is over its limit, add a delay before rejecting — a progressive
+        // backoff instead of a hard, sticky deny. The delay grows with how
+        // far over the limit the guesser is, up to LOGIN_BACKOFF_MAX_MS.
+        const ipLimit = 20;
+        const emailLimit = 10;
+        const byIp = checkRateLimit(`login:ip:${anonKey}`, {
+          limit: ipLimit,
           windowMs: 10 * 60 * 1000,
         });
         const byEmail = checkRateLimit(`login:email:${email}`, {
-          limit: 10,
+          limit: emailLimit,
           windowMs: 10 * 60 * 1000,
         });
-        if (!byIp.allowed || !byEmail.allowed) return null;
+        if (!byIp.allowed || !byEmail.allowed) {
+          // How many wrong guesses PAST the limit this is (0 = the first
+          // denial). Doubling the delay each guess past that first one is
+          // what makes the ceiling "impractically slow" for a script while
+          // the very first denial still feels like the original short delay.
+          // (Pure math lives in loginBackoff.ts so it's unit-testable —
+          // rate-limit.ts is "server-only" and can't be imported outside
+          // Next's bundler.)
+          const overshoot = computeOvershoot(
+            { count: byIp.count, limit: ipLimit },
+            { count: byEmail.count, limit: emailLimit },
+          );
+          const delayMs = computeLoginBackoffMs(
+            overshoot,
+            LOGIN_BACKOFF_BASE_MS,
+            LOGIN_BACKOFF_MAX_MS,
+          );
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
 
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user?.passwordHash) return null;
-
-        const ok = await bcrypt.compare(password, user.passwordHash);
-        if (!ok) return null;
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          tier: user.tier,
-          agencyId: user.agencyId,
-        };
+          if (byEmail.count >= LOGIN_CHALLENGE_THRESHOLD) {
+            requireLoginChallenge(email, byEmail.count);
+          }
+        }
+        return null;
       },
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
+      const now = Date.now();
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.tier = user.tier;
         token.agencyId = user.agencyId;
+        token.agencyApproved = user.agencyApproved ?? false;
+        token.roleCheckedAt = now;
+        return token;
+      }
+      // Fresh role on every request — but cheaply: the token remembers when
+      // it last asked the database, and asks again at most once per
+      // ROLE_REFRESH_MS (5 min). So un-approving an agency or changing a role
+      // takes effect within minutes without a sign-out, and without a
+      // database read on every page. A user who no longer exists is signed
+      // out (returning null discards the token).
+      if (token.id && shouldRefreshRole(token.roleCheckedAt, now)) {
+        const fresh = await prisma.user.findUnique({
+          where: { id: token.id },
+          select: {
+            role: true,
+            tier: true,
+            agencyId: true,
+            agency: { select: { isApproved: true } },
+          },
+        });
+        const updated = applyFreshUser(token, fresh, now);
+        if (!updated) return null;
+        return updated;
       }
       return token;
     },
@@ -65,7 +195,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.role = token.role as Role;
       session.user.tier = token.tier as Tier;
       session.user.agencyId = (token.agencyId as string | null) ?? null;
+      session.user.agencyApproved = token.agencyApproved === true;
       return session;
+    },
+    redirect({ url, baseUrl }) {
+      // This callback decides where a post-login redirect goes AND what value
+      // Auth.js writes into the `authjs.callback-url` cookie. It runs on the
+      // raw `callbackUrl` posted to the sign-in endpoint AND on the value read
+      // back from that cookie on later requests. A malformed value must never
+      // (a) escape to another host or (b) crash the request — a poisoned
+      // cookie reaches this on EVERY page render. safeRedirectUrl() always
+      // returns a valid, same-origin absolute URL (or baseUrl), so a bad value
+      // is dropped and an already-poisoned cookie self-heals to baseUrl.
+      return safeRedirectUrl(url, baseUrl);
     },
   },
 });

@@ -4,8 +4,16 @@ import { useActionState } from "react";
 import { useTranslations } from "next-intl";
 import { saveAgencyProfile, type AgencyProfileState } from "../actions";
 import { Input, Label, FieldError } from "@/components/ui/Field";
+import {
+  EmailField,
+  PhoneField,
+  blockImpossibleSubmit,
+  useEmailField,
+  usePhoneField,
+} from "@/components/ui/ContactFields";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { typedOr } from "@/lib/formValues";
 
 export type AgencyProfileDefaults = {
   nameEn: string;
@@ -21,38 +29,58 @@ export function AgencyProfileForm({ defaults }: { defaults: AgencyProfileDefault
     saveAgencyProfile,
     null,
   );
+  const email = useEmailField(defaults.email ?? "");
+  // Splits a stored "+968 91234567" back into the dropdown and the box.
+  const phone = usePhoneField(defaults.phone);
+
+  // A rejected save comes back with the edits still in the boxes, not the old
+  // saved values. (Email and phone hold their own text in React state.)
+  const typed = state?.status === "error" ? state.values : undefined;
 
   return (
-    <form action={action}>
+    <form noValidate
+      action={action}
+      onSubmit={(e) => blockImpossibleSubmit(e, [email, phone])}
+    >
       <Card className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="nameEn">{t("signup.nameEn")}</Label>
             <Input id="nameEn" name="nameEn" required maxLength={120}
-              defaultValue={defaults.nameEn} />
+              placeholder={t("signup.nameEnExample")}
+              disabled={pending}
+              defaultValue={typedOr(typed, "nameEn", defaults.nameEn)} />
           </div>
           <div>
             <Label htmlFor="nameAr">{t("signup.nameAr")}</Label>
             <Input id="nameAr" name="nameAr" dir="rtl" maxLength={120}
-              defaultValue={defaults.nameAr ?? ""} />
+              placeholder={t("signup.nameArExample")}
+              disabled={pending}
+              defaultValue={typedOr(typed, "nameAr", defaults.nameAr ?? "")} />
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <Label htmlFor="licenseNo">{t("signup.licenseNo")}</Label>
             <Input id="licenseNo" name="licenseNo" maxLength={60}
-              defaultValue={defaults.licenseNo ?? ""} />
+              placeholder={t("signup.licenseExample")}
+              disabled={pending}
+              defaultValue={typedOr(typed, "licenseNo", defaults.licenseNo ?? "")} />
           </div>
-          <div>
-            <Label htmlFor="email">{t("signup.email")}</Label>
-            <Input id="email" name="email" type="email" maxLength={200}
-              defaultValue={defaults.email ?? ""} />
-          </div>
-          <div>
-            <Label htmlFor="phone">{t("signup.phone")}</Label>
-            <Input id="phone" name="phone" maxLength={40}
-              defaultValue={defaults.phone ?? ""} />
-          </div>
+          <EmailField
+            id="email"
+            label={t("signup.email")}
+            field={email}
+            disabled={pending}
+            serverError={state?.status === "error" && state.field === "email"}
+          />
+          <PhoneField
+            id="phone"
+            label={t("signup.phone")}
+            field={phone}
+            disabled={pending}
+            serverError={state?.status === "error" && state.field === "phone"}
+          />
         </div>
 
         {state?.status === "saved" && (

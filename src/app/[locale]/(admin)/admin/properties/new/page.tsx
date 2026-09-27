@@ -1,9 +1,11 @@
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { PropertyForm } from "../PropertyForm";
-import { Link } from "@/i18n/navigation";
+import { DirectionalLink } from "@/components/ui/DirectionalLink";
+import { enforceAdminPage } from "@/lib/require-admin";
 
 export default async function NewPropertyPage() {
+  await enforceAdminPage(); // guard BEFORE any DB query (see require-admin.ts)
   const [t, neighborhoods] = await Promise.all([
     getTranslations("admin"),
     prisma.neighborhood.findMany({
@@ -14,12 +16,13 @@ export default async function NewPropertyPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <Link
+      <DirectionalLink
+        direction="back"
         href="/admin/properties"
         className="text-sm text-teal-800 hover:underline"
       >
-        ‹ {t("properties")}
-      </Link>
+        {t("properties")}
+      </DirectionalLink>
       <h1 className="mt-3 text-2xl font-bold text-stone-900">
         {t("newProperty")}
       </h1>

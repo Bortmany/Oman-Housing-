@@ -14,7 +14,7 @@ import { AiAnalystCard } from "@/components/marketplace/AiAnalystCard";
 import { EnquiryCard } from "@/components/marketplace/EnquiryCard";
 import { FavoriteButton } from "@/components/marketplace/FavoriteButton";
 import { PropertyMap } from "@/components/map/PropertyMap";
-import { Link } from "@/i18n/navigation";
+import { DirectionalLink } from "@/components/ui/DirectionalLink";
 
 export default async function PropertyDetailPage({
   params,
@@ -63,9 +63,13 @@ export default async function PropertyDetailPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <Link href="/properties" className="text-sm text-teal-800 hover:underline">
-        ‹ {t("backToSearch")}
-      </Link>
+      <DirectionalLink
+        direction="back"
+        href="/properties"
+        className="text-sm text-teal-800 hover:underline"
+      >
+        {t("backToSearch")}
+      </DirectionalLink>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <h1 className="text-3xl font-bold text-stone-900">{title}</h1>
