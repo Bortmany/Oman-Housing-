@@ -12,7 +12,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "test": "node scripts/with-test-db.mjs npm run test:unit",
-    "test:unit": "tsx src/lib/calculators/calculators.test.ts && tsx src/lib/ai/analystCore.test.ts && tsx src/lib/tiers.test.ts && tsx src/lib/enquiry.test.ts && tsx src/lib/formValues.test.ts && tsx src/lib/safePath.test.ts && tsx src/lib/rate-limit.test.ts && tsx src/lib/anonId.test.ts && tsx src/lib/adminGate.test.ts && tsx src/lib/loginBackoff.test.ts && tsx src/lib/signupMode.test.ts && tsx src/lib/savedSearch.test.ts && tsx src/lib/legalContact.test.ts && tsx src/lib/sessionRefresh.test.ts && tsx src/instrumentation-node.test.ts",
+    "test:unit": "tsx src/lib/calculators/calculators.test.ts && tsx src/lib/ai/analystCore.test.ts && tsx src/lib/tiers.test.ts && tsx src/lib/enquiry.test.ts && tsx src/lib/formValues.test.ts && tsx src/lib/safePath.test.ts && tsx src/lib/rate-limit.test.ts && tsx src/lib/anonId.test.ts && tsx src/lib/adminGate.test.ts && tsx src/lib/loginBackoff.test.ts && tsx src/lib/signupMode.test.ts && tsx src/lib/savedSearch.test.ts && tsx src/lib/trendSummary.test.ts && tsx src/lib/legalContact.test.ts && tsx src/lib/sessionRefresh.test.ts && tsx src/instrumentation-node.test.ts",
     "db:test:prepare": "node scripts/with-test-db.mjs",
     "verify": "npm run lint && npm run typecheck && npm run build && npm test",
     "prepare": "husky || true"
