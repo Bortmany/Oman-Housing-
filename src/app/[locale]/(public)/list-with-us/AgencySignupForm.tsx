@@ -105,14 +105,15 @@ export function AgencySignupForm({ inviteRequired }: { inviteRequired: boolean }
           <PhoneField
             id="phone"
             label={t("signup.phone")}
+            hint={t("signup.phoneHint")}
             field={phone}
             disabled={pending}
             serverError={invalid("phone")}
           />
         </div>
 
-        <div className="border-t border-stone-200 pt-4">
-          <p className="text-sm font-medium text-stone-700">{t("signup.loginSection")}</p>
+        <div className="border-t border-stone-200 pt-4 dark:border-stone-800">
+          <p className="text-sm font-medium text-stone-700 dark:text-stone-300">{t("signup.loginSection")}</p>
           <div className="mt-3 grid gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="contactName">{t("signup.contactName")}</Label>
