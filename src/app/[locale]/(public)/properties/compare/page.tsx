@@ -1,6 +1,9 @@
 import { getLocale, getTranslations } from "next-intl/server";
-import { prisma } from "@/lib/prisma";
-import { listingsForCompare, type ListingWithProperty } from "@/lib/db/listings";
+import {
+  compareOptionListings,
+  listingsForCompare,
+  type ListingWithProperty,
+} from "@/lib/db/listings";
 import { propertyFinancials } from "@/lib/db/valuations";
 import { decimalToNumber, formatOMRWhole } from "@/lib/money";
 import { localName } from "@/lib/i18nData";
@@ -74,7 +77,11 @@ async function CompareColumn({
             {p.bathrooms != null && <>{p.bathrooms} {tc("baths")} · </>}
             {p.areaSqm != null && <>{decimalToNumber(p.areaSqm)} {tc("sqm")}</>}
           </p>
-          <ProvenanceBadge provenance={listing.provenance} confidence={listing.confidence} />
+          {listing.isSample ? (
+            <ProvenanceBadge isSample />
+          ) : (
+            <ProvenanceBadge provenance={listing.provenance} confidence={listing.confidence} />
+          )}
         </div>
       </Card>
       <FinancialAnalysisCard financials={financials} />
@@ -88,15 +95,12 @@ export default async function ComparePage({
   searchParams: Promise<{ a?: string; b?: string }>;
 }) {
   const { a, b } = await searchParams;
-  const [t, locale, options] = await Promise.all([
+  const [t, te, locale, options] = await Promise.all([
     getTranslations("properties"),
+    getTranslations("enums"),
     getLocale(),
-    prisma.listing.findMany({
-      where: { status: "ACTIVE" },
-      orderBy: { publishedAt: "desc" },
-      take: 30,
-      include: { property: { select: { titleEn: true, titleAr: true } } },
-    }),
+    // Same sample-hiding rule as search (sampleData.ts).
+    compareOptionListings(),
   ]);
 
   const [la, lb] = a && b ? await listingsForCompare(a, b) : [null, null];
@@ -114,8 +118,15 @@ export default async function ComparePage({
               <option value="" disabled>—</option>
               {options.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {localName(locale, o.property.titleEn, o.property.titleAr)} —{" "}
-                  {formatOMRWhole(decimalToNumber(o.price)!, locale)}
+                  {/* {title} — {price}[ {period}] · {For sale|For rent} (the title already names the area) */}
+                  {`${localName(locale, o.property.titleEn, o.property.titleAr)} — ${formatOMRWhole(
+                    decimalToNumber(o.price)!,
+                    locale,
+                  )}${
+                    o.listingType === "RENT" && o.rentPeriod
+                      ? ` ${te(`rentPeriod.${o.rentPeriod}`)}`
+                      : ""
+                  } · ${o.listingType === "SALE" ? t("sale") : t("rent")}`}
                 </option>
               ))}
             </Select>

@@ -13,10 +13,11 @@ import { Sparkline } from "./Sparkline";
 // How many neighbourhood cards the home page shows.
 const CARD_COUNT = 4;
 
-// Real market figures only: the same stored apartment sale prices the market
+// Stored market figures only: the same apartment sale prices the market
 // dashboard uses, for the four priciest neighbourhoods. Each card shows the
 // change over the last 12 months with the badge of the weakest figure behind
-// it (src/lib/trendSummary.ts). No data = no section — nothing is invented.
+// it (src/lib/trendSummary.ts) — "Sample data" if any month used is sample.
+// No data = no section.
 export async function TrendsShowcase() {
   const [t, locale, latest] = await Promise.all([
     getTranslations("home"),
@@ -53,6 +54,7 @@ export async function TrendsShowcase() {
             value: decimalToNumber(r.avgSalePrice),
             provenance: r.provenance,
             confidence: r.confidence,
+            isSample: r.isSample,
           })),
       ),
     }))
@@ -114,6 +116,7 @@ export async function TrendsShowcase() {
                 <ProvenanceBadge
                   provenance={s.provenance}
                   confidence={s.confidence}
+                  isSample={s.isSample}
                 />
                 <span className="text-xs text-stone-500 rtl:text-sm dark:text-stone-400">
                   {formatMonth(locale, s.from)} – {formatMonth(locale, s.to)}

@@ -1,6 +1,18 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import type { DataProvenance, Prisma, PropertyType } from "@prisma/client";
+import type { Prisma, PropertyType } from "@prisma/client";
+import {
+  dropSupersededSampleStats,
+  hideSupersededSampleProperties,
+  isSampleOnlySite,
+  latestVisibleStat,
+  latestVisibleStatPerNeighborhood,
+} from "./sampleData";
+import {
+  buildMarketStatWriteData,
+  type MarketStatWriteInput,
+} from "./marketStatData";
+import { realActiveListingKeysFor } from "./listings";
 
 // ---------------------------------------------------------------------------
 // Queries for the market dashboard.
@@ -16,6 +28,11 @@ import type { DataProvenance, Prisma, PropertyType } from "@prisma/client";
 // strings (revived below before rows leave this module) and Decimal columns
 // come back as plain strings (fine as-is — every figure is displayed via
 // toString()/Number(), matching the "Decimal to string at the boundary" rule).
+//
+// Sample rows (seeded demonstration data) step aside for real rows by the one
+// rule in ./sampleData.ts: a sample figure is hidden once a real figure exists
+// for the same place, type and month. "Latest" means latest AFTER hiding.
+// Every row returned carries `isSample` so the page can draw the right badge.
 // ---------------------------------------------------------------------------
 
 /** One tag covers everything the public market pages read. */
@@ -30,14 +47,17 @@ function reviveDate(value: Date | null): Date | null {
 }
 
 const cachedLatestStatsByNeighborhood = unstable_cache(
-  async (propertyType: PropertyType) =>
-    prisma.marketStat.findMany({
+  async (propertyType: PropertyType) => {
+    // Every neighbourhood row for the type (a few hundred; cached), so the
+    // hiding rule runs before "latest" is picked.
+    const rows = await prisma.marketStat.findMany({
       where: { neighborhoodId: { not: null }, propertyType },
       orderBy: [{ neighborhoodId: "asc" }, { periodStart: "desc" }],
-      distinct: ["neighborhoodId"],
       include: { neighborhood: { include: { city: true } } },
-    }),
-  ["latest-stats-by-neighborhood"],
+    });
+    return latestVisibleStatPerNeighborhood(rows);
+  },
+  ["latest-stats-by-neighborhood-v2"],
   CACHE_OPTIONS,
 );
 
@@ -54,12 +74,17 @@ export async function latestStatsByNeighborhood(propertyType: PropertyType) {
 }
 
 const cachedLatestNeighborhoodStat = unstable_cache(
-  async (neighborhoodId: string, propertyType: PropertyType) =>
-    prisma.marketStat.findFirst({
+  async (neighborhoodId: string, propertyType: PropertyType) => {
+    // A superseded sample row always shares its month with the real row that
+    // hides it, so the newest few rows are enough to pick "latest after hiding".
+    const rows = await prisma.marketStat.findMany({
       where: { neighborhoodId, propertyType },
       orderBy: { periodStart: "desc" },
-    }),
-  ["latest-neighborhood-stat"],
+      take: 6,
+    });
+    return latestVisibleStat(rows);
+  },
+  ["latest-neighborhood-stat-v2"],
   CACHE_OPTIONS,
 );
 
@@ -84,18 +109,21 @@ const cachedNeighborhoodTrends = unstable_cache(
     neighborhoodIds: string[],
     propertyType: PropertyType,
     months: number,
-  ) =>
-    prisma.marketStat.findMany({
+  ) => {
+    const rows = await prisma.marketStat.findMany({
       where: {
         neighborhoodId: { in: neighborhoodIds },
         propertyType,
       },
       // Newest first so `take` keeps the most recent months (flipped back to
       // oldest-first below), not the oldest ones once history grows longer.
+      // Twice the window leaves room for a real and a sample row sharing a
+      // month before the hiding rule runs.
       orderBy: { periodStart: "desc" },
-      take: months * neighborhoodIds.length,
+      take: months * neighborhoodIds.length * 2,
       select: {
         neighborhoodId: true,
+        propertyType: true,
         periodStart: true,
         avgSalePrice: true,
         avgRentMonthly: true,
@@ -103,9 +131,18 @@ const cachedNeighborhoodTrends = unstable_cache(
         grossYieldPct: true,
         provenance: true,
         confidence: true,
+        isSample: true,
       },
-    }),
-  ["neighborhood-trends-latest"],
+    });
+    // Apply the hiding rule, then keep each neighbourhood's newest `months`.
+    const perHood = new Map<string | null, number>();
+    return dropSupersededSampleStats(rows).filter((row) => {
+      const used = perHood.get(row.neighborhoodId) ?? 0;
+      perHood.set(row.neighborhoodId, used + 1);
+      return used < months;
+    });
+  },
+  ["neighborhood-trends-latest-v2"],
   CACHE_OPTIONS,
 );
 
@@ -128,6 +165,23 @@ export async function neighborhoodTrends(
     .reverse();
 }
 
+const cachedSampleOnlySite = unstable_cache(
+  async () =>
+    isSampleOnlySite(
+      await prisma.marketStat.count({ where: { isSample: false } }),
+    ),
+  ["sample-only-site"],
+  CACHE_OPTIONS,
+);
+
+/**
+ * True while the whole site holds only sample market figures (the home page
+ * then softens its promise). Decided from the data, never a switch.
+ */
+export async function siteHasOnlySampleData(): Promise<boolean> {
+  return cachedSampleOnlySite();
+}
+
 const cachedAllNeighborhoods = unstable_cache(
   async () =>
     prisma.neighborhood.findMany({
@@ -144,15 +198,24 @@ export async function allNeighborhoods() {
 }
 
 const cachedNeighborhoodBySlug = unstable_cache(
-  async (slug: string) =>
-    prisma.neighborhood.findUnique({
+  async (slug: string) => {
+    const hood = await prisma.neighborhood.findUnique({
       where: { slug },
       include: {
         city: { include: { governorate: true } },
         properties: { orderBy: { createdAt: "desc" }, take: 50 },
       },
-    }),
-  ["neighborhood-by-slug"],
+    });
+    if (!hood) return null;
+    // Sample homes step aside once a real live listing exists in this
+    // neighbourhood for the same property type.
+    const realKeys = await realActiveListingKeysFor({ neighborhoodId: hood.id });
+    return {
+      ...hood,
+      properties: hideSupersededSampleProperties(hood.properties, realKeys),
+    };
+  },
+  ["neighborhood-by-slug-v2"],
   CACHE_OPTIONS,
 );
 
@@ -182,43 +245,29 @@ export type StatScope =
   | { kind: "city"; id: string }
   | { kind: "neighborhood"; id: string };
 
-export type MarketStatMetrics = {
-  avgSalePrice?: number | null;
-  medianSalePrice?: number | null;
-  avgRentMonthly?: number | null;
-  avgPricePerSqm?: number | null;
-  grossYieldPct?: number | null;
-  transactionCount?: number | null;
-  sampleSize?: number | null;
-};
+export type { MarketStatMetrics } from "./marketStatData";
 
-export async function upsertMarketStat(args: {
-  scope: StatScope;
-  propertyType: PropertyType | null;
-  periodStart: Date;
-  metrics: MarketStatMetrics;
-  provenance: DataProvenance;
-  confidence: number;
-  sourceNote?: string | null;
-  sourceUrl?: string | null;
-  verifiedById?: string | null;
-}): Promise<{ id: string; updated: boolean }> {
+/**
+ * The only path for stat writes. A write through the app is never sample:
+ * when it finds the seeded sample row for the same place+type+month it
+ * REPLACES it in place (isSample false, every unsupplied metric cleared —
+ * see buildMarketStatWriteData). Server actions that call this must also call
+ * updateTag(MARKET_DATA_CACHE_TAG) — see src/lib/db/cacheRefresh.test.ts.
+ */
+export async function upsertMarketStat(
+  args: MarketStatWriteInput & {
+    scope: StatScope;
+    propertyType: PropertyType | null;
+    periodStart: Date;
+  },
+): Promise<{ id: string; updated: boolean }> {
   const scopeWhere: Prisma.MarketStatWhereInput = {
     governorateId: args.scope.kind === "governorate" ? args.scope.id : null,
     cityId: args.scope.kind === "city" ? args.scope.id : null,
     neighborhoodId: args.scope.kind === "neighborhood" ? args.scope.id : null,
   };
 
-  const data = {
-    ...args.metrics,
-    provenance: args.provenance,
-    confidence: args.confidence,
-    sourceNote: args.sourceNote ?? null,
-    sourceUrl: args.sourceUrl ?? null,
-    ...(args.provenance === "VERIFIED"
-      ? { verifiedById: args.verifiedById ?? null, verifiedAt: new Date() }
-      : {}),
-  };
+  const data = buildMarketStatWriteData(args);
 
   const existing = await prisma.marketStat.findFirst({
     where: {
@@ -226,6 +275,8 @@ export async function upsertMarketStat(args: {
       propertyType: args.propertyType,
       periodStart: args.periodStart,
     },
+    // Real row first if (against the rule) a real and a sample row share a key.
+    orderBy: { isSample: "asc" },
     select: { id: true },
   });
 

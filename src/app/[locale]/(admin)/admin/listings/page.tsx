@@ -108,7 +108,7 @@ export default async function ListingsAdminPage({
                   </td>
                   <td className="px-4 py-3"><StatusPill status={l.status} /></td>
                   <td className="px-4 py-3">
-                    <ProvenanceBadge provenance={l.provenance} confidence={l.confidence} />
+                    <ProvenanceBadge provenance={l.provenance} confidence={l.confidence} isSample={l.isSample} />
                   </td>
                 </tr>
               ))}

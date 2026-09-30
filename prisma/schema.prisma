@@ -228,6 +228,10 @@ model Property {
   sourceNote   String?
   verifiedById String?
   verifiedAt   DateTime?
+  // true = invented demonstration row written by the seed. Public queries hide
+  // it once a real row exists (src/lib/db/sampleData.ts); the badge says
+  // "Sample data". Rows written through the app are never sample.
+  isSample     Boolean        @default(false)
 
   neighborhood Neighborhood        @relation(fields: [neighborhoodId], references: [id])
   verifiedBy   User?               @relation("PropertyVerifier", fields: [verifiedById], references: [id])
@@ -267,6 +271,7 @@ model Listing {
 
   provenance DataProvenance @default(USER_SUBMITTED)
   confidence Float          @default(0.5)
+  isSample   Boolean        @default(false) // see Property.isSample
 
   publishedAt DateTime?
   expiresAt   DateTime?
@@ -312,6 +317,7 @@ model MarketStat {
   sourceUrl    String?
   verifiedById String?
   verifiedAt   DateTime?
+  isSample     Boolean        @default(false) // see Property.isSample
 
   governorate  Governorate?  @relation(fields: [governorateId], references: [id])
   city         City?         @relation(fields: [cityId], references: [id])
@@ -339,6 +345,7 @@ model ValuationEstimate {
   confidence  Float
   assumptions String?         @db.Text
   createdById String?
+  isSample    Boolean         @default(false) // see Property.isSample
 
   property  Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   createdBy User?    @relation("ValuationAuthor", fields: [createdById], references: [id])

@@ -140,6 +140,7 @@ export function AiAnalystCard({
                         <ProvenanceBadge
                           provenance={c.provenance}
                           confidence={c.confidence}
+                          isSample={c.isSample}
                         />
                       </span>
                     </li>

@@ -106,6 +106,7 @@ export default async function MarketStatsAdminPage({
                     <ProvenanceBadge
                       provenance={s.provenance}
                       confidence={s.confidence}
+                      isSample={s.isSample}
                     />
                   </td>
                   <td className="px-4 py-3">

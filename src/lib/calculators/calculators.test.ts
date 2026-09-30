@@ -4,6 +4,21 @@ import { mortgage } from "./mortgage";
 import { roi } from "./roi";
 import { investmentScore } from "./investmentScore";
 import { affordability, DBR_CAP } from "./affordability";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import {
+  areaRentPerSqm,
+  chooseYieldRent,
+  derivedConfidence,
+  expectedRentForArea,
+  monthlyListedRent,
+  DERIVED_CONFIDENCE_CAP,
+} from "./rentEstimate";
+import {
+  workOutPropertyFinancials,
+  type Figure,
+  type PropertyFinancialsInput,
+} from "./propertyFinancials";
 
 let failures = 0;
 
@@ -258,6 +273,276 @@ function expectClose(label: string, actual: number, expected: number, tol = 0.01
   } else {
     console.log("ok   affordability.malformedInput.bounded");
   }
+}
+
+// ---------------------------------------------------------------------------
+// Honest listing numbers (align-1, Build B): rent per property, yield basis.
+// ---------------------------------------------------------------------------
+
+function expectTrue(label: string, cond: boolean) {
+  if (!cond) {
+    console.error(`FAIL ${label}`);
+    failures++;
+  } else {
+    console.log(`ok   ${label}`);
+  }
+}
+
+// Seeded Al Mouj apartments (June 2026): rent 650, sale 120,000, 1,142.857/sqm.
+const NOW = new Date("2026-07-15T00:00:00Z");
+const alMoujApt = {
+  avgRentMonthly: 650,
+  avgPricePerSqm: 1_142.857,
+  avgSalePrice: 120_000,
+  confidence: 0.6,
+  isSample: false,
+  periodStart: new Date("2026-06-01T00:00:00Z"),
+};
+function input(over: Partial<PropertyFinancialsInput>): PropertyFinancialsInput {
+  return { floorAreaSqm: null, propertyIsSample: false, valuation: null, comp: alMoujApt, rentListing: null, now: NOW, ...over };
+}
+
+// Rent per sqm = 650 x 1,142.857 / 120,000 ≈ 6.190; rent scales with floor area.
+{
+  const rps = areaRentPerSqm(alMoujApt)!;
+  expectClose("rentEstimate.alMouj.rentPerSqm", rps, 6.190, 0.001);
+  const small = expectedRentForArea(75, rps)!;
+  const big = expectedRentForArea(110, rps)!;
+  expectClose("rentEstimate.alMouj.75sqm", small, 464.29, 0.5);
+  expectClose("rentEstimate.alMouj.110sqm", big, 680.95, 0.5);
+  expectTrue("rentEstimate.scalesWithFloorArea (75 < 110)", small < big);
+}
+
+// Missing or non-positive area figures ⇒ no rent per sqm; no floor area ⇒ no rent.
+{
+  expectTrue("rentEstimate.missingRent.null", areaRentPerSqm({ ...alMoujApt, avgRentMonthly: null }) === null);
+  expectTrue("rentEstimate.missingPricePerSqm.null", areaRentPerSqm({ ...alMoujApt, avgPricePerSqm: null }) === null);
+  expectTrue("rentEstimate.zeroSalePrice.null", areaRentPerSqm({ ...alMoujApt, avgSalePrice: 0 }) === null);
+  expectTrue("rentEstimate.noFloorArea.null", expectedRentForArea(null, 6.19) === null);
+  expectTrue("rentEstimate.zeroFloorArea.null", expectedRentForArea(0, 6.19) === null);
+}
+
+// Annual asking rent is divided by 12; monthly stays as is.
+{
+  expectClose("rentEstimate.annualToMonthly", monthlyListedRent(24_000, "ANNUAL"), 2_000);
+  expectClose("rentEstimate.monthlyUnchanged", monthlyListedRent(650, "MONTHLY"), 650);
+}
+
+// Asking beats estimate; estimate when no asking; none when neither.
+{
+  const a = chooseYieldRent({ askingMonthly: 2_140, estimateMonthly: 2_147 });
+  expectTrue("chooseYieldRent.askingWins", a.basis === "ASKING" && a.monthlyRent === 2_140);
+  const e = chooseYieldRent({ askingMonthly: null, estimateMonthly: 464 });
+  expectTrue("chooseYieldRent.estimateWhenNoAsking", e.basis === "ESTIMATE" && e.monthlyRent === 464);
+  const n = chooseYieldRent({ askingMonthly: null, estimateMonthly: null });
+  expectTrue("chooseYieldRent.none", n.basis === "NONE" && n.monthlyRent === null);
+}
+
+// Confidence cap.
+{
+  expectClose("derivedConfidence.capped", derivedConfidence(0.9, 0.95), DERIVED_CONFIDENCE_CAP);
+  expectClose("derivedConfidence.weakestWins", derivedConfidence(0.9, 0.3), 0.3);
+}
+
+// A derived figure is never VERIFIED/OFFICIAL_STAT and never above 0.5
+// confidence, even when every input is verified with high confidence.
+function derivedFigures(f: ReturnType<typeof workOutPropertyFinancials>): Figure[] {
+  // listedRent is the listing's own stored figure and a STORED valuation is
+  // its own record; everything else here is worked out.
+  return [
+    f.estimatedValueBasis === "STORED" ? null : f.estimatedValue,
+    f.pricePerSqm, f.expectedRent, f.grossYieldPct,
+  ].filter((x): x is Figure => x != null);
+}
+{
+  const f = workOutPropertyFinancials(input({
+    floorAreaSqm: 110,
+    comp: { ...alMoujApt, confidence: 0.95 },
+    valuation: { valueMid: 130_000, provenance: "VERIFIED", confidence: 0.95, assumptions: null, isSample: false },
+    rentListing: { price: 700, rentPeriod: "MONTHLY", provenance: "VERIFIED", confidence: 0.95, isSample: false },
+  }));
+  const all = derivedFigures(f);
+  expectTrue("derived.count (value stored, so 3 derived)", all.length === 3);
+  expectTrue("derived.neverVerifiedOrOfficial",
+    all.every((x) => x.provenance !== "VERIFIED" && x.provenance !== "OFFICIAL_STAT"));
+  expectTrue("derived.confidenceCapped", all.every((x) => x.confidence <= DERIVED_CONFIDENCE_CAP));
+  expectTrue("derived.scoreConfidenceCapped", (f.investmentConfidence ?? 1) <= DERIVED_CONFIDENCE_CAP);
+}
+
+// Seeded scenario: Al Mouj 75 sqm and 110 sqm flats, no stored valuation, no
+// rent listing. Different expected rents (≈464 / ≈681), same yield (≈6.5%).
+{
+  const small = workOutPropertyFinancials(input({ floorAreaSqm: 75 }));
+  const big = workOutPropertyFinancials(input({ floorAreaSqm: 110 }));
+  expectClose("financials.alMouj75.expectedRent", small.expectedRent!.value, 464.29, 0.5);
+  expectClose("financials.alMouj110.expectedRent", big.expectedRent!.value, 680.95, 0.5);
+  expectTrue("financials.alMouj.basisThisProperty",
+    small.expectedRentBasis === "THIS_PROPERTY" && big.expectedRentBasis === "THIS_PROPERTY");
+  expectClose("financials.alMouj75.yield", small.grossYieldPct!.value, 6.5, 0.05);
+  expectClose("financials.alMouj110.yield", big.grossYieldPct!.value, 6.5, 0.05);
+  expectTrue("financials.alMouj.yieldBasisEstimate", small.yieldBasis === "ESTIMATE" && big.yieldBasis === "ESTIMATE");
+  expectClose("financials.alMouj75.rentUsed", small.yieldRentUsed!, 464.29, 0.5);
+  expectTrue("financials.alMouj.sameScore", small.investment.score === big.investment.score);
+}
+
+// Seeded scenario: the rental villa. Asking 2,140/month, value
+// 1,255.285 x 380 ≈ 477,008 ⇒ yield ≈ 5.4%.
+{
+  const villaComp = {
+    // Area figures chosen so the estimate is ≈ 2,147 (rent per sqm ≈ 5.65).
+    avgRentMonthly: 2_000, avgPricePerSqm: 1_255.285, avgSalePrice: 444_344,
+    confidence: 0.6, isSample: false, periodStart: new Date("2026-06-01T00:00:00Z"),
+  };
+  const f = workOutPropertyFinancials(input({
+    floorAreaSqm: 380,
+    comp: villaComp,
+    rentListing: { price: 2_140, rentPeriod: "MONTHLY", provenance: "USER_SUBMITTED", confidence: 0.7, isSample: false },
+  }));
+  expectClose("financials.villa.estimatedValue", f.estimatedValue!.value, 477_008.3, 1);
+  expectClose("financials.villa.yield", f.grossYieldPct!.value, 5.38, 0.02);
+  expectTrue("financials.villa.basisAsking", f.yieldBasis === "ASKING" && f.yieldRentUsed === 2_140);
+  expectClose("financials.villa.estimateStillShown", f.expectedRent!.value, 2_147, 1);
+}
+
+// Annual asking rent: 24,000 a year ⇒ 2,000 a month used for the yield, flagged.
+{
+  const f = workOutPropertyFinancials(input({
+    floorAreaSqm: 110,
+    rentListing: { price: 24_000, rentPeriod: "ANNUAL", provenance: "USER_SUBMITTED", confidence: 0.7, isSample: false },
+  }));
+  expectClose("financials.annual.listedRentPerMonth", f.listedRent!.value, 2_000);
+  expectTrue("financials.annual.flagged", f.listedRentAnnual === 24_000);
+  expectTrue("financials.annual.yieldUsesMonthly", f.yieldBasis === "ASKING" && f.yieldRentUsed === 2_000);
+  expectClose("financials.annual.yield", f.grossYieldPct!.value, ((2_000 * 12) / (1_142.857 * 110)) * 100, 0.01);
+}
+
+// No floor area, no stored valuation: value and rent are area averages,
+// labelled so, and there is NO yield and NO score (never a wrong one).
+{
+  const f = workOutPropertyFinancials(input({ floorAreaSqm: null }));
+  expectTrue("financials.noArea.valueAreaAverage", f.estimatedValueBasis === "AREA_AVERAGE");
+  expectTrue("financials.noArea.rentAreaAverage", f.expectedRentBasis === "AREA_AVERAGE");
+  expectTrue("financials.noArea.noYield", f.grossYieldPct === null && f.yieldBasis === "NONE");
+  expectTrue("financials.noArea.noScore",
+    f.investment.score === null && f.investment.band === "INSUFFICIENT_DATA");
+}
+
+// No floor area but an advertised rent: the value is only an area average,
+// so still no yield.
+{
+  const f = workOutPropertyFinancials(input({
+    floorAreaSqm: null,
+    rentListing: { price: 650, rentPeriod: "MONTHLY", provenance: "USER_SUBMITTED", confidence: 0.7, isSample: false },
+  }));
+  expectTrue("financials.noAreaWithAsking.noYield", f.grossYieldPct === null && f.investment.score === null);
+}
+
+// Area figures lacking numbers (a real official row with only the rent): no
+// per-property rent, no value, no yield, no score.
+{
+  const f = workOutPropertyFinancials(input({
+    floorAreaSqm: 110,
+    comp: { ...alMoujApt, avgPricePerSqm: null, avgSalePrice: null },
+  }));
+  expectTrue("financials.missingAreaFigures.rentIsAreaAverage", f.expectedRentBasis === "AREA_AVERAGE");
+  expectTrue("financials.missingAreaFigures.noRentPerSqm", f.rentPerSqm === null);
+  expectTrue("financials.missingAreaFigures.noYield", f.grossYieldPct === null);
+  expectTrue("financials.missingAreaFigures.noScore", f.investment.score === null);
+}
+
+// Stored valuation but no floor area and no asking rent: the rent is only an
+// area average ⇒ no yield.
+{
+  const f = workOutPropertyFinancials(input({
+    floorAreaSqm: null,
+    valuation: { valueMid: 130_000, provenance: "AI_ESTIMATED", confidence: 0.4, assumptions: null, isSample: false },
+  }));
+  expectTrue("financials.storedValueNoArea.noYield", f.grossYieldPct === null && f.investment.score === null);
+}
+
+// Sample in ⇒ sample out; all-real in ⇒ not sample.
+{
+  const sampleComp = workOutPropertyFinancials(input({ floorAreaSqm: 75, comp: { ...alMoujApt, isSample: true } }));
+  expectTrue("financials.sampleComp.allDerivedSample",
+    derivedFigures(sampleComp).every((x) => x.isSample) && sampleComp.investmentIsSample);
+
+  const sampleListing = workOutPropertyFinancials(input({
+    floorAreaSqm: 110,
+    rentListing: { price: 700, rentPeriod: "MONTHLY", provenance: "USER_SUBMITTED", confidence: 0.7, isSample: true },
+  }));
+  expectTrue("financials.sampleListing.yieldSample", sampleListing.grossYieldPct!.isSample === true);
+  expectTrue("financials.sampleListing.scoreSample", sampleListing.investmentIsSample === true);
+  expectTrue("financials.sampleListing.estimateNotSample", sampleListing.expectedRent!.isSample === false);
+
+  const sampleValuation = workOutPropertyFinancials(input({
+    floorAreaSqm: 110,
+    valuation: { valueMid: 130_000, provenance: "AI_ESTIMATED", confidence: 0.4, assumptions: null, isSample: true },
+  }));
+  expectTrue("financials.sampleValuation.yieldSample", sampleValuation.grossYieldPct!.isSample === true);
+
+  const real = workOutPropertyFinancials(input({ floorAreaSqm: 110 }));
+  expectTrue("financials.allReal.notSample",
+    derivedFigures(real).every((x) => !x.isSample) && !real.investmentIsSample);
+}
+
+// A sample home's own (invented) floor area makes every figure built from it
+// sample, even once a REAL market figure exists for its area and type — the
+// still-public sample flats must never show "AI estimated 50%".
+{
+  const f = workOutPropertyFinancials(input({ floorAreaSqm: 75, propertyIsSample: true }));
+  expectTrue("financials.sampleHomeRealStat.valueSample",
+    f.estimatedValueBasis === "THIS_PROPERTY" && f.estimatedValue!.isSample === true);
+  expectTrue("financials.sampleHomeRealStat.pricePerSqmSample", f.pricePerSqm!.isSample === true);
+  expectTrue("financials.sampleHomeRealStat.rentSample",
+    f.expectedRentBasis === "THIS_PROPERTY" && f.expectedRent!.isSample === true);
+  expectTrue("financials.sampleHomeRealStat.yieldSample", f.grossYieldPct!.isSample === true);
+  expectTrue("financials.sampleHomeRealStat.scoreSample",
+    f.investment.score != null && f.investmentIsSample === true);
+
+  // Same home with a real advertised rent and a real stored valuation: the
+  // home is still invented, so the yield and score stay sample.
+  const g = workOutPropertyFinancials(input({
+    floorAreaSqm: 75, propertyIsSample: true,
+    valuation: { valueMid: 90_000, provenance: "AI_ESTIMATED", confidence: 0.4, assumptions: null, isSample: false },
+    rentListing: { price: 500, rentPeriod: "MONTHLY", provenance: "USER_SUBMITTED", confidence: 0.7, isSample: false },
+  }));
+  expectTrue("financials.sampleHomeRealInputs.valueSample", g.estimatedValue!.isSample === true);
+  expectTrue("financials.sampleHomeRealInputs.yieldSample",
+    g.yieldBasis === "ASKING" && g.grossYieldPct!.isSample === true && g.investmentIsSample === true);
+}
+
+// Converse: a real home + a real market figure ⇒ nothing is sample.
+{
+  const f = workOutPropertyFinancials(input({ floorAreaSqm: 75, propertyIsSample: false }));
+  expectTrue("financials.realHomeRealStat.valueNotSample", f.estimatedValue!.isSample === false);
+  expectTrue("financials.realHomeRealStat.pricePerSqmNotSample", f.pricePerSqm!.isSample === false);
+  expectTrue("financials.realHomeRealStat.rentNotSample", f.expectedRent!.isSample === false);
+  expectTrue("financials.realHomeRealStat.yieldNotSample", f.grossYieldPct!.isSample === false);
+  expectTrue("financials.realHomeRealStat.scoreNotSample",
+    f.investment.score != null && f.investmentIsSample === false);
+}
+
+// Regression: the property page and the compare cards get the same numbers.
+// Both call the one `propertyFinancials` (which only reads rows and calls
+// workOutPropertyFinancials) and hand the result straight to the same card.
+{
+  const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
+  const page = read("src/app/[locale]/(public)/properties/[id]/page.tsx");
+  const compare = read("src/app/[locale]/(public)/properties/compare/page.tsx");
+  const valuations = read("src/lib/db/valuations.ts");
+  for (const [name, src] of [["propertyPage", page], ["comparePage", compare]] as const) {
+    expectTrue(`sharedFinancials.${name}.importsPropertyFinancials`,
+      /import \{ propertyFinancials \} from "@\/lib\/db\/valuations"/.test(src));
+    expectTrue(`sharedFinancials.${name}.rendersCardWithIt`,
+      /<FinancialAnalysisCard financials=\{financials\} \/>/.test(src));
+    expectTrue(`sharedFinancials.${name}.noOwnMaths`,
+      !/rentalYield|investmentScore|workOutPropertyFinancials/.test(src));
+  }
+  expectTrue("sharedFinancials.valuationsCallsPureFunction",
+    /workOutPropertyFinancials\(/.test(valuations) && !/rentalYield\(|investmentScore\(/.test(valuations));
+  const a = workOutPropertyFinancials(input({ floorAreaSqm: 75 }));
+  const b = workOutPropertyFinancials(input({ floorAreaSqm: 75 }));
+  expectTrue("sharedFinancials.deterministic", JSON.stringify(a) === JSON.stringify(b));
 }
 
 if (failures > 0) {

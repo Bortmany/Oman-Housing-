@@ -159,7 +159,7 @@ export default async function PropertyDetailPage({
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <ProvenanceBadge provenance={l.provenance} confidence={l.confidence} />
+                      <ProvenanceBadge provenance={l.provenance} confidence={l.confidence} isSample={l.isSample} />
                       <FavoriteButton
                         listingId={l.id}
                         favorited={favoritedSet.has(l.id)}
@@ -203,6 +203,7 @@ export default async function PropertyDetailPage({
               <ProvenanceBadge
                 provenance={property.provenance}
                 confidence={property.confidence}
+                isSample={property.isSample}
               />
             </div>
           </Card>

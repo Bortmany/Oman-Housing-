@@ -41,6 +41,8 @@ export async function approveListing(formData: FormData) {
       where: { id },
       data: { status: "ACTIVE", publishedAt: new Date() },
     });
+    // A real live listing hides sample homes on the cached market pages.
+    updateTag(MARKET_DATA_CACHE_TAG);
   }
   await backToReview();
 }
@@ -49,7 +51,10 @@ export async function rejectListing(formData: FormData) {
   const session = await requireAdmin();
   if (!session || !adminAllowed(session.user.id)) return;
   const id = readId(formData);
-  if (id) await prisma.listing.update({ where: { id }, data: { status: "REJECTED" } });
+  if (id) {
+    await prisma.listing.update({ where: { id }, data: { status: "REJECTED" } });
+    updateTag(MARKET_DATA_CACHE_TAG); // live listings decide which sample homes show
+  }
   await backToReview();
 }
 
@@ -60,8 +65,9 @@ export async function verifyProperty(formData: FormData) {
   if (!session || !adminAllowed(session.user.id)) return;
   const id = readId(formData);
   if (id) {
-    await prisma.property.update({
-      where: { id },
+    // Never stamp invented sample data VERIFIED (house rule 1).
+    await prisma.property.updateMany({
+      where: { id, isSample: false },
       data: {
         provenance: "VERIFIED",
         verifiedById: session.user.id,
@@ -78,8 +84,9 @@ export async function verifyStat(formData: FormData) {
   if (!session || !adminAllowed(session.user.id)) return;
   const id = readId(formData);
   if (id) {
-    await prisma.marketStat.update({
-      where: { id },
+    // Never stamp invented sample data VERIFIED (house rule 1).
+    await prisma.marketStat.updateMany({
+      where: { id, isSample: false },
       data: {
         provenance: "VERIFIED",
         verifiedById: session.user.id,

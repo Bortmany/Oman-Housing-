@@ -35,6 +35,7 @@ export type AnalystCitationView = {
   value: string;
   provenance: DataProvenance;
   confidence: number;
+  isSample: boolean;
 };
 
 export type AnalystActionState =
@@ -100,6 +101,7 @@ export async function askAnalystAction(
       value: formatDatumValue(c.format, c.value, locale),
       provenance: c.provenance,
       confidence: c.confidence,
+      isSample: c.isSample,
     })),
   };
 }

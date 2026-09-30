@@ -2,9 +2,10 @@
 
 import { z } from "zod";
 import { getLocale } from "next-intl/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import type { ListingStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { MARKET_DATA_CACHE_TAG } from "@/lib/db/market-stats";
 import { redirect } from "@/i18n/navigation";
 import { PROVENANCE_VALUES } from "@/lib/provenance";
 import { requireAdmin } from "@/lib/require-admin";
@@ -67,6 +68,8 @@ export async function saveListing(
         data: { ...data, status: "DRAFT", createdById: session.user.id },
       });
 
+  // A real live listing hides sample homes on the cached market pages.
+  updateTag(MARKET_DATA_CACHE_TAG);
   revalidatePath("/", "layout");
   const locale = await getLocale();
   redirect({ href: `/admin/listings/${listing.id}?saved=1`, locale });
@@ -84,6 +87,7 @@ async function setStatus(id: string, status: ListingStatus) {
       ...(status === "ACTIVE" ? { publishedAt: new Date() } : {}),
     },
   });
+  updateTag(MARKET_DATA_CACHE_TAG); // live listings decide which sample homes show
   revalidatePath("/", "layout");
   const locale = await getLocale();
   redirect({ href: `/admin/listings/${id}`, locale });
@@ -108,6 +112,7 @@ export async function deleteListing(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (id) await prisma.listing.delete({ where: { id } });
 
+  updateTag(MARKET_DATA_CACHE_TAG); // live listings decide which sample homes show
   revalidatePath("/", "layout");
   const locale = await getLocale();
   redirect({ href: "/admin/listings?deleted=1", locale });

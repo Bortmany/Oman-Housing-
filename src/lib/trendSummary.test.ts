@@ -25,7 +25,8 @@ const pt = (
   value: number | null,
   provenance: TrendInputPoint["provenance"] = "VERIFIED",
   confidence = 0.9,
-): TrendInputPoint => ({ periodStart: month(i), value, provenance, confidence });
+  isSample = false,
+): TrendInputPoint => ({ periodStart: month(i), value, provenance, confidence, isSample });
 
 {
   // 100 → 110 over two points: +10%.
@@ -59,6 +60,19 @@ const pt = (
   const pts = [pt(0, 90, "USER_SUBMITTED", 0.2), ...Array.from({ length: 13 }, (_, i) => pt(i + 1, 100))];
   const s = summarizeTrend(pts)!;
   expectEqual("old weak point outside the window is ignored", s.provenance, "VERIFIED");
+}
+
+{
+  // Sample data: one sample point anywhere in the window makes the trend sample.
+  const allReal = summarizeTrend([pt(0, 100), pt(1, 102), pt(2, 104)])!;
+  expectEqual("all-real trend is not sample", allReal.isSample, false);
+  const oneSample = summarizeTrend([pt(0, 100), pt(1, 102, "VERIFIED", 0.9, true), pt(2, 104)])!;
+  expectEqual("a trend with any sample point is sample", oneSample.isSample, true);
+  const sampleOutside = summarizeTrend([
+    pt(0, 90, "AI_ESTIMATED", 0.35, true),
+    ...Array.from({ length: 13 }, (_, i) => pt(i + 1, 100)),
+  ])!;
+  expectEqual("a sample point outside the window no longer counts", sampleOutside.isSample, false);
 }
 
 expectEqual("no figures → no card", summarizeTrend([]), null);

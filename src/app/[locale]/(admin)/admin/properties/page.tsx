@@ -75,7 +75,7 @@ export default async function PropertiesAdminPage({
                   )}
                 </p>
                 <div className="mt-3">
-                  <ProvenanceBadge provenance={p.provenance} confidence={p.confidence} />
+                  <ProvenanceBadge provenance={p.provenance} confidence={p.confidence} isSample={p.isSample} />
                 </div>
               </Card>
             </Link>

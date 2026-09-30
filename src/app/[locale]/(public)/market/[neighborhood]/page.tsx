@@ -12,6 +12,8 @@ import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
 import { PropertyMap } from "@/components/map/PropertyMap";
 import { DirectionalLink } from "@/components/ui/DirectionalLink";
+import { Link } from "@/i18n/navigation";
+import { searchListings, type ListingWithProperty } from "@/lib/db/listings";
 
 export default async function NeighborhoodPage({
   params,
@@ -22,14 +24,26 @@ export default async function NeighborhoodPage({
   const hood = await neighborhoodBySlug(slug);
   if (!hood) notFound();
 
-  const [t, tc, te, locale, aptTrend, villaTrend] = await Promise.all([
-    getTranslations("market"),
-    getTranslations("common"),
-    getTranslations("enums"),
-    getLocale(),
-    neighborhoodTrends([hood.id], "APARTMENT"),
-    neighborhoodTrends([hood.id], "VILLA"),
-  ]);
+  const [t, tc, te, tp, locale, aptTrend, villaTrend, hoodListings] =
+    await Promise.all([
+      getTranslations("market"),
+      getTranslations("common"),
+      getTranslations("enums"),
+      getTranslations("properties"),
+      getLocale(),
+      neighborhoodTrends([hood.id], "APARTMENT"),
+      neighborhoodTrends([hood.id], "VILLA"),
+      // Live listings here (sample-aware, the same query as search) — priced
+      // rows for "Recorded properties".
+      searchListings({ neighborhoodSlug: slug }),
+    ]);
+
+  const listingsByProperty = new Map<string, ListingWithProperty[]>();
+  for (const l of hoodListings) {
+    const list = listingsByProperty.get(l.propertyId) ?? [];
+    list.push(l);
+    listingsByProperty.set(l.propertyId, list);
+  }
 
   function chartData(
     metric: "avgSalePrice" | "avgRentMonthly",
@@ -117,10 +131,14 @@ export default async function NeighborhoodPage({
               <Card key={label}>
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-stone-900 dark:text-stone-100">{label}</h3>
-                  <ProvenanceBadge
-                    provenance={stat!.provenance}
-                    confidence={stat!.confidence}
-                  />
+                  {stat!.isSample ? (
+                    <ProvenanceBadge isSample />
+                  ) : (
+                    <ProvenanceBadge
+                      provenance={stat!.provenance}
+                      confidence={stat!.confidence}
+                    />
+                  )}
                 </div>
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                   <div>
@@ -168,6 +186,9 @@ export default async function NeighborhoodPage({
               </Card>
             ))}
           </div>
+          <p className="mt-3 text-start text-xs text-stone-500 rtl:text-sm dark:text-stone-400">
+            {t("areaAverageNote")}
+          </p>
 
           <Card className="mt-6">
             <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
@@ -205,33 +226,77 @@ export default async function NeighborhoodPage({
           <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100">
             {t("properties")}
           </h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {hood.properties.map((p) => (
-              <Card key={p.id} className="text-sm">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-medium text-stone-900 dark:text-stone-100">
-                    {localName(locale, p.titleEn, p.titleAr)}
-                    {isEnglishFallback(locale, p.titleAr) && (
-                      <span className="ms-2 text-xs text-stone-400 dark:text-stone-500">
-                        ({tc("englishOnly")})
-                      </span>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {hood.properties.map((p) => {
+              const live = listingsByProperty.get(p.id) ?? [];
+              return (
+                <Link
+                  key={p.id}
+                  href={`/properties/${p.id}`}
+                  className="group block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+                >
+                  <Card className="h-full text-sm transition group-hover:ring-teal-600/40 group-active:ring-teal-600/60">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium text-stone-900 group-hover:text-teal-800 dark:text-stone-100 dark:group-hover:text-teal-300">
+                        {localName(locale, p.titleEn, p.titleAr)}
+                        {isEnglishFallback(locale, p.titleAr) && (
+                          <span className="ms-2 text-xs text-stone-400 dark:text-stone-500">
+                            ({tc("englishOnly")})
+                          </span>
+                        )}
+                      </p>
+                      {p.isSample ? (
+                        <ProvenanceBadge isSample />
+                      ) : (
+                        <ProvenanceBadge provenance={p.provenance} confidence={p.confidence} />
+                      )}
+                    </div>
+                    {live.length > 0 ? (
+                      live.map((l) => (
+                        <div
+                          key={l.id}
+                          className="mt-2 flex flex-wrap items-center justify-between gap-2"
+                        >
+                          <p className="text-lg font-bold text-teal-800 dark:text-teal-300">
+                            {formatOMRWhole(decimalToNumber(l.price)!, locale)}
+                            {l.listingType === "RENT" && l.rentPeriod && (
+                              <span className="ms-1 text-xs font-medium text-stone-500 dark:text-stone-400">
+                                {te(`rentPeriod.${l.rentPeriod}`)}
+                              </span>
+                            )}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+                              {l.listingType === "SALE" ? tp("sale") : tp("rent")}
+                            </span>
+                            {l.isSample ? (
+                              <ProvenanceBadge isSample />
+                            ) : (
+                              <ProvenanceBadge provenance={l.provenance} confidence={l.confidence} />
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
+                        {t("recordedNoListing")}
+                      </p>
                     )}
-                  </p>
-                  <ProvenanceBadge provenance={p.provenance} confidence={p.confidence} />
-                </div>
-                <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
-                  {te(`propertyType.${p.type}`)}
-                  {p.bedrooms != null && <> · {p.bedrooms} {tc("beds")}</>}
-                  {p.bathrooms != null && <> · {p.bathrooms} {tc("baths")}</>}
-                  {p.areaSqm != null && (
-                    <> · {decimalToNumber(p.areaSqm)} {tc("sqm")}</>
-                  )}
-                </p>
-                <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-                  {te(`ownership.${p.ownership}`)}
-                </p>
-              </Card>
-            ))}
+                    <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
+                      {te(`propertyType.${p.type}`)}
+                      {p.bedrooms != null && <> · {p.bedrooms} {tc("beds")}</>}
+                      {p.bathrooms != null && <> · {p.bathrooms} {tc("baths")}</>}
+                      {p.areaSqm != null && (
+                        <> · {decimalToNumber(p.areaSqm)} {tc("sqm")}</>
+                      )}
+                    </p>
+                    <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+                      {te(`ownership.${p.ownership}`)}
+                    </p>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}

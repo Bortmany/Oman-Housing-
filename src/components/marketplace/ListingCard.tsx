@@ -75,6 +75,7 @@ export function ListingCard({
           <ProvenanceBadge
             provenance={listing.provenance}
             confidence={listing.confidence}
+            isSample={listing.isSample || p.isSample}
           />
           {favorited !== undefined && (
             <FavoriteButton

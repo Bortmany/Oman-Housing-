@@ -6,6 +6,21 @@ import type {
   Prisma,
   PropertyType,
 } from "@prisma/client";
+import {
+  hideSupersededSampleListings,
+  isSampleListing,
+  latestVisibleStat,
+  neighborhoodTypeKey,
+} from "./sampleData";
+
+// Sample data (seeded demonstration homes and listings) follows the one rule
+// in ./sampleData.ts: a sample listing or property is hidden from PUBLIC
+// lists, search and dropdowns once a real, live (ACTIVE) listing exists in
+// the same neighbourhood and property type. Direct reads (a property page,
+// a saved link, the compare columns) still return the row, flagged.
+// Every listing returned here carries `isSample` already resolved: a listing
+// on a sample home is sample, whatever its own flag says. Admin reads are
+// never filtered.
 
 const listingInclude = {
   property: {
@@ -20,6 +35,51 @@ export type ListingWithProperty = Prisma.ListingGetPayload<{
   include: typeof listingInclude;
 }>;
 
+/** Resolve the listing's own `isSample` (a listing on a sample home is sample). */
+function withSampleFlag<
+  T extends { isSample: boolean; property: { isSample: boolean } },
+>(listing: T): T {
+  return { ...listing, isSample: isSampleListing(listing) };
+}
+
+/**
+ * The neighbourhood + type pairs holding at least one real, live listing
+ * (a real listing on a real home). Optionally narrowed to one neighbourhood.
+ */
+export async function realActiveListingKeysFor(
+  scope: { neighborhoodId?: string } = {},
+): Promise<Set<string>> {
+  const rows = await prisma.property.findMany({
+    where: {
+      isSample: false,
+      ...(scope.neighborhoodId ? { neighborhoodId: scope.neighborhoodId } : {}),
+      listings: { some: { status: "ACTIVE", isSample: false } },
+    },
+    select: { neighborhoodId: true, type: true },
+    distinct: ["neighborhoodId", "type"],
+  });
+  return new Set(rows.map((r) => neighborhoodTypeKey(r.neighborhoodId, r.type)));
+}
+
+/** Prisma filter that leaves out sample listings superseded by `realKeys`. */
+function notHiddenSampleWhere(
+  realKeys: Set<string>,
+): Prisma.ListingWhereInput {
+  if (realKeys.size === 0) return {};
+  const pairs = [...realKeys].map((k) => {
+    const [neighborhoodId, type] = k.split("|");
+    return { neighborhoodId, type: type as PropertyType };
+  });
+  return {
+    NOT: {
+      AND: [
+        { OR: [{ isSample: true }, { property: { isSample: true } }] },
+        { property: { OR: pairs } },
+      ],
+    },
+  };
+}
+
 export type SearchFilters = {
   neighborhoodSlug?: string;
   type?: PropertyType;
@@ -30,13 +90,19 @@ export type SearchFilters = {
   ownership?: OwnershipEligibility;
 };
 
-/** Public search — ACTIVE listings only, ever. */
+/**
+ * Public search — ACTIVE listings only, ever. Sample listings superseded by a
+ * real live listing (same neighbourhood + type) are left out. Each row's
+ * `isSample` is resolved (true for a listing on a sample home).
+ */
 export async function searchListings(
   filters: SearchFilters,
 ): Promise<ListingWithProperty[]> {
-  return prisma.listing.findMany({
+  const realKeys = await realActiveListingKeysFor();
+  const rows = await prisma.listing.findMany({
     where: {
       status: "ACTIVE",
+      ...notHiddenSampleWhere(realKeys),
       ...(filters.listingType ? { listingType: filters.listingType } : {}),
       ...(filters.minPrice != null || filters.maxPrice != null
         ? {
@@ -61,19 +127,61 @@ export async function searchListings(
     orderBy: { publishedAt: "desc" },
     take: 60,
   });
+  // The where-clause already did it; the pure rule runs again as a guard.
+  return hideSupersededSampleListings(rows, realKeys).map(withSampleFlag);
 }
 
+/**
+ * Live listings for the compare-listings dropdown, with the same sample
+ * hiding rule as search. (Offered for properties/compare/page.tsx.)
+ */
+export async function compareOptionListings() {
+  const realKeys = await realActiveListingKeysFor();
+  const rows = await prisma.listing.findMany({
+    where: { status: "ACTIVE", ...notHiddenSampleWhere(realKeys) },
+    orderBy: { publishedAt: "desc" },
+    take: 30,
+    include: {
+      property: {
+        select: {
+          titleEn: true,
+          titleAr: true,
+          isSample: true,
+          neighborhoodId: true,
+          type: true,
+        },
+      },
+    },
+  });
+  return hideSupersededSampleListings(rows, realKeys).map(withSampleFlag);
+}
+
+/** One listing by id (direct link — never hidden; `isSample` resolved). */
 export async function listingById(
   id: string,
 ): Promise<ListingWithProperty | null> {
-  return prisma.listing.findUnique({ where: { id }, include: listingInclude });
+  const row = await prisma.listing.findUnique({
+    where: { id },
+    include: listingInclude,
+  });
+  return row ? withSampleFlag(row) : null;
 }
 
+/**
+ * This property's live listings (its own page — never hidden, so saved links
+ * keep working). Each row's `isSample` is resolved: true when the listing or
+ * its home is sample.
+ */
 export async function activeListingsForProperty(propertyId: string) {
-  return prisma.listing.findMany({
+  const rows = await prisma.listing.findMany({
     where: { propertyId, status: "ACTIVE" },
     orderBy: { publishedAt: "desc" },
+    include: { property: { select: { isSample: true } } },
   });
+  return rows.map(({ property, ...listing }) => ({
+    ...listing,
+    isSample: listing.isSample || property.isSample,
+  }));
 }
 
 /**
@@ -98,34 +206,48 @@ export async function agencyContactForProperty(propertyId: string) {
 
 export async function listingsForCompare(a: string, b: string) {
   const [la, lb] = await Promise.all([listingById(a), listingById(b)]);
-  // Only ACTIVE listings are comparable publicly.
+  // Only ACTIVE listings are comparable publicly. Chosen by id, so a sample
+  // listing still opens here (flagged) — the dropdown is where hiding applies.
   return [
     la?.status === "ACTIVE" ? la : null,
     lb?.status === "ACTIVE" ? lb : null,
   ] as const;
 }
 
+/** Admin list — never filtered; `isSample` resolved for the badge. */
 export async function adminListListings(status?: ListingStatus) {
-  return prisma.listing.findMany({
+  const rows = await prisma.listing.findMany({
     where: status ? { status } : {},
     include: listingInclude,
     orderBy: { updatedAt: "desc" },
     take: 100,
   });
+  return rows.map(withSampleFlag);
+}
+
+/** Latest visible (sample rule applied) stat for one scope, or null. */
+async function latestVisibleStatWhere(where: Prisma.MarketStatWhereInput) {
+  // A superseded sample row shares its month with the real row hiding it, so
+  // the newest few rows are enough.
+  const rows = await prisma.marketStat.findMany({
+    where,
+    orderBy: { periodStart: "desc" },
+    take: 6,
+  });
+  return latestVisibleStat(rows);
 }
 
 /**
  * Nearest market comp for a property: neighborhood scope first, then the
- * neighborhood's city, then the national (all-null-scope) row. Latest month.
+ * neighborhood's city, then the national (all-null-scope) row. Latest month
+ * after the sample rule (a sample figure superseded by a real one for the
+ * same place+type+month is never returned). The row carries `isSample`.
  */
 export async function nearestMarketStat(
   neighborhoodId: string,
   propertyType: PropertyType,
 ) {
-  const hoodStat = await prisma.marketStat.findFirst({
-    where: { neighborhoodId, propertyType },
-    orderBy: { periodStart: "desc" },
-  });
+  const hoodStat = await latestVisibleStatWhere({ neighborhoodId, propertyType });
   if (hoodStat) return hoodStat;
 
   const hood = await prisma.neighborhood.findUnique({
@@ -133,20 +255,18 @@ export async function nearestMarketStat(
     select: { cityId: true },
   });
   if (hood) {
-    const cityStat = await prisma.marketStat.findFirst({
-      where: { cityId: hood.cityId, neighborhoodId: null, propertyType },
-      orderBy: { periodStart: "desc" },
+    const cityStat = await latestVisibleStatWhere({
+      cityId: hood.cityId,
+      neighborhoodId: null,
+      propertyType,
     });
     if (cityStat) return cityStat;
   }
 
-  return prisma.marketStat.findFirst({
-    where: {
-      governorateId: null,
-      cityId: null,
-      neighborhoodId: null,
-      propertyType,
-    },
-    orderBy: { periodStart: "desc" },
+  return latestVisibleStatWhere({
+    governorateId: null,
+    cityId: null,
+    neighborhoodId: null,
+    propertyType,
   });
 }

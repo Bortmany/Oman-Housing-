@@ -5,6 +5,7 @@
 // the badge it must carry. A change worked out from several stored figures is
 // only as trustworthy as the weakest of them, so the badge takes the weakest
 // source and the lowest confidence among the points used — never better.
+// A trend built from any sample (invented demonstration) point is sample.
 
 import type { DataProvenance } from "@prisma/client";
 import { PROVENANCE_VALUES } from "./provenance";
@@ -14,6 +15,7 @@ export type TrendInputPoint = {
   value: number | null;
   provenance: DataProvenance;
   confidence: number;
+  isSample: boolean;
 };
 
 export type TrendSummary = {
@@ -23,6 +25,8 @@ export type TrendSummary = {
   to: Date;
   provenance: DataProvenance;
   confidence: number;
+  /** true when any point used is sample data — the badge then says "Sample data". */
+  isSample: boolean;
 };
 
 /** The weaker of the listed sources (PROVENANCE_VALUES runs strongest first). */
@@ -55,5 +59,6 @@ export function summarizeTrend(
     to: usable[usable.length - 1].periodStart,
     provenance: weakestProvenance(usable.map((p) => p.provenance)),
     confidence: Math.min(...usable.map((p) => p.confidence)),
+    isSample: usable.some((p) => p.isSample),
   };
 }

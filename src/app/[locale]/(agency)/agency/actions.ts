@@ -2,11 +2,12 @@
 
 import { z } from "zod";
 import { getLocale } from "next-intl/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import type { Session } from "next-auth";
 import type { InquiryStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { MARKET_DATA_CACHE_TAG } from "@/lib/db/market-stats";
 import { redirect } from "@/i18n/navigation";
 import {
   agencyById,
@@ -157,6 +158,9 @@ export async function submitAgencyListing(
     },
   });
 
+  // New property + listing: refresh the cached market pages (the listing is
+  // pending, but the property already counts for the neighbourhood page).
+  updateTag(MARKET_DATA_CACHE_TAG);
   revalidatePath("/", "layout");
   const locale = await getLocale();
   redirect({ href: "/agency/listings?submitted=1", locale });

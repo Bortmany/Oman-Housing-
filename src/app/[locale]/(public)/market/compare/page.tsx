@@ -163,6 +163,7 @@ export default async function ComparePage({
                       <ProvenanceBadge
                         provenance={stat.provenance}
                         confidence={stat.confidence}
+                        isSample={stat.isSample}
                       />
                     </div>
                   </>

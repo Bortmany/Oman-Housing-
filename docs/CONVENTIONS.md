@@ -19,7 +19,14 @@ and ships its docs in `node_modules/next/dist/docs/`.**
    `confidence`, and `sourceNote`. Every figure shown to users renders a
    `ProvenanceBadge`. Never write a stat without provenance; never display a
    number without its badge nearby. Never label generated/estimated values as
-   `VERIFIED` or `OFFICIAL_STAT`.
+   `VERIFIED` or `OFFICIAL_STAT`. Sample rows carry `isSample`; the badge says
+   'Sample data' and public queries hide a sample row once a real row exists
+   for the same place, type and month. (The one rule lives in
+   `src/lib/db/sampleData.ts`, tested in `sampleData.test.ts`.) An admin
+   edit to a seeded home or listing does NOT clear its sample flag — it stays
+   'Sample data' (erring on the safe side); only saving a market figure
+   through `upsertMarketStat` turns a stat real. "Mark verified" is hidden
+   for sample rows in the review queue (and the verify action refuses them).
 2. **OMR has 3 decimal places (baisa).** All money columns are
    `Decimal @db.Decimal(12,3)`. Never `Float` for money. Every displayed
    amount goes through `formatOMR` / `formatOMRWhole` in `src/lib/money.ts`
@@ -77,6 +84,16 @@ npx prisma migrate deploy # apply committed migrations to the DEV database (same
 npm run db:seed           # idempotent
 npm run verify            # lint → typecheck → build → tests, stopping at the first failure
 ```
+
+**What the seed writes.** Every market figure, property, listing and valuation
+the seed creates is invented sample data and is written with `isSample: true`
+(badge "Sample data" / "بيانات تجريبية", no confidence percentage). Re-running
+it is idempotent and also re-flags seeded rows an older seed wrote without the
+flag (the `add_is_sample` migration does the same for databases seeded before
+it). Rows written through the app are never sample: `upsertMarketStat`
+replaces a sample figure in place and marks it real. Sample listings and homes
+step aside publicly once a real live listing exists in the same neighbourhood
+and property type; admin screens always show every row, marked.
 
 `npm run verify` is the whole check in one command:
 `npm run lint && npm run typecheck && npm run build && npm test`.

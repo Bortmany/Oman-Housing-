@@ -196,6 +196,7 @@ export default async function MarketPage({
                       <ProvenanceBadge
                         provenance={s.provenance}
                         confidence={s.confidence}
+                        isSample={s.isSample}
                       />
                       <span className="text-xs text-stone-400 rtl:text-sm dark:text-stone-500">
                         {formatMonth(locale, s.periodStart)}

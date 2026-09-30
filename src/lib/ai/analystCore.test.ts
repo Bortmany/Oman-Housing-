@@ -30,6 +30,7 @@ function datum(overrides: Partial<OfferedDatum>): OfferedDatum {
     promptText: "avg sale price 100000",
     provenance: "OFFICIAL_STAT",
     confidence: 0.8,
+    isSample: false,
     snapshot: { value: 100_000 },
     ...overrides,
   };
@@ -157,6 +158,26 @@ expectEqual(
   );
   expectEqual("verdict.modelDeclines", v.rating, "INSUFFICIENT_DATA");
   expectEqual("verdict.modelDeclinesConfidence", v.confidence, 0);
+}
+
+{
+  // A sample figure cited in an answer stays labelled sample, and its
+  // confidence still caps the answer — being sample never lifts the cap.
+  const sampleStat = datum({
+    tag: "STAT-PRICE",
+    provenance: "AI_ESTIMATED",
+    confidence: 0.35,
+    isSample: true,
+  });
+  const realVal = datum({ tag: "VAL-MID", sourceType: "VALUATION", confidence: 0.7 });
+  const v = finalizeVerdict(
+    { rating: "CONSIDER", confidence: 0.9, answer: "x", citedTags: ["STAT-PRICE", "VAL-MID"] },
+    [sampleStat, realVal],
+  );
+  expectEqual("sample.citationKept", v.citations.length, 2);
+  expectEqual("sample.citationLabelledSample", v.citations[0].isSample, true);
+  expectEqual("sample.realCitationNotSample", v.citations[1].isSample, false);
+  expectEqual("sample.confidenceCappedBySampleFigure", v.confidence, 0.35);
 }
 
 if (failures > 0) {

@@ -125,7 +125,7 @@ export default async function AdminReviewPage() {
                       {te(`propertyType.${p.type}`)} ·{" "}
                       {localName(locale, p.neighborhood.nameEn, p.neighborhood.nameAr)}
                       <span className="ms-2">
-                        <ProvenanceBadge provenance={p.provenance} confidence={p.confidence} />
+                        <ProvenanceBadge provenance={p.provenance} confidence={p.confidence} isSample={p.isSample} />
                       </span>
                     </p>
                   </div>
@@ -136,12 +136,15 @@ export default async function AdminReviewPage() {
                     >
                       {t("review.openEditor")}
                     </Link>
-                    <form action={verifyProperty}>
-                      <input type="hidden" name="id" value={p.id} />
-                      <button className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-600">
-                        {t("review.markVerified")}
-                      </button>
-                    </form>
+                    {/* Invented sample rows can never be marked verified (house rule 1). */}
+                    {!p.isSample && (
+                      <form action={verifyProperty}>
+                        <input type="hidden" name="id" value={p.id} />
+                        <button className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-600">
+                          {t("review.markVerified")}
+                        </button>
+                      </form>
+                    )}
                   </div>
                 </Card>
               </li>
@@ -172,16 +175,19 @@ export default async function AdminReviewPage() {
                         {s.periodStart.toISOString().slice(0, 7)}
                         {s.propertyType && ` · ${te(`propertyType.${s.propertyType}`)}`}
                         <span className="ms-2">
-                          <ProvenanceBadge provenance={s.provenance} confidence={s.confidence} />
+                          <ProvenanceBadge provenance={s.provenance} confidence={s.confidence} isSample={s.isSample} />
                         </span>
                       </p>
                     </div>
-                    <form action={verifyStat}>
-                      <input type="hidden" name="id" value={s.id} />
-                      <button className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-600">
-                        {t("review.markVerified")}
-                      </button>
-                    </form>
+                    {/* Invented sample rows can never be marked verified (house rule 1). */}
+                    {!s.isSample && (
+                      <form action={verifyStat}>
+                        <input type="hidden" name="id" value={s.id} />
+                        <button className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-600">
+                          {t("review.markVerified")}
+                        </button>
+                      </form>
+                    )}
                   </Card>
                 </li>
               );
