@@ -17,6 +17,7 @@ import {
   isSampleValuation,
   preferRealValuation,
 } from "@/lib/db/sampleData";
+import { publicStatWhere } from "@/lib/statVisibility";
 import {
   finalizeVerdict,
   hasSufficientData,
@@ -77,11 +78,13 @@ export async function gatherOfferedData(
         orderBy: { createdAt: "desc" },
         take: 10,
       }),
+      // Same public rule as the market pages: unapproved submissions are
+      // never offered to the model (src/lib/statVisibility.ts).
       prisma.marketStat.findMany({
-        where: {
+        where: publicStatWhere({
           neighborhoodId: property.neighborhoodId,
           propertyType: property.type,
-        },
+        }),
         orderBy: { periodStart: "desc" },
         take: 26, // room for a real and a sample row sharing a month
       }),

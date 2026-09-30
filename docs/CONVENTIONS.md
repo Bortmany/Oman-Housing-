@@ -138,6 +138,11 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
     IP. Leave unset locally.
   - `ANTHROPIC_API_KEY` — powers the AI analyst; without it the analyst card
     shows a friendly "not switched on yet" message and everything else works.
+  - `CRON_SECRET` — at least 16 characters; the password for the daily job
+    `POST /api/jobs/listing-averages` (sent as `Authorization: Bearer ...`).
+    Unset or shorter = the job address refuses everyone (503). Railway: run
+    the job daily; schedule `0 23 * * *` = 03:00 Oman time. The admin
+    "Recompute now" button works without it.
   - `SENTRY_DSN` — error tracking; empty = off, nothing is sent.
   - `TURNSTILE_SECRET_KEY` + `NEXT_PUBLIC_TURNSTILE_SITE_KEY` — Cloudflare
     Turnstile (free CAPTCHA) on the login, register and list-with-us forms.

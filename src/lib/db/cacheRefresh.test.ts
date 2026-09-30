@@ -32,6 +32,15 @@ const DB = join(SRC, "lib", "db");
 const TABLE_WRITE =
   /\.(marketStat|property|listing)\.(create|createMany|update|updateMany|upsert|delete|deleteMany)\(/;
 const REFRESH = /updateTag\(MARKET_DATA_CACHE_TAG\)/;
+// A route handler cannot call updateTag (server actions only); it uses
+// revalidateTag instead — the daily listing-averages job route (Build C).
+const ROUTE_REFRESH = /revalidateTag\(MARKET_DATA_CACHE_TAG,/;
+// The averages job writes market figures from outside an actions.ts, so it is
+// listed here: the file itself is exempt, but every caller of it (below) must
+// be a server action or job route that refreshes the cache.
+const JOB_FILE = "listingAveragesJob.ts";
+const JOB_CALL = /\brunListingAveragesJob\(/;
+const WRITER_FILES = ["actions.ts", "recompute-actions.ts", "route.ts"];
 
 /**
  * Query-module functions allowed to write market data, one line of reason
@@ -98,16 +107,16 @@ function functionsOf(source: string): Map<string, string> {
 
 // ---- 1. Server actions refresh the cache -----------------------------------
 const allowedCall = new RegExp(`\\b(${Object.keys(DB_WRITE_ALLOW_LIST).join("|")})\\(`);
-const ACTION_WRITE = new RegExp(`${TABLE_WRITE.source}|${allowedCall.source}`);
+const ACTION_WRITE = new RegExp(`${TABLE_WRITE.source}|${allowedCall.source}|${JOB_CALL.source}`);
 
 let checked = 0;
-for (const file of walk(APP, (n) => n === "actions.ts")) {
+for (const file of walk(APP, (n) => WRITER_FILES.includes(n))) {
   const fns = functionsOf(stripComments(readFileSync(file, "utf8")));
   for (const [name, body] of fns) {
     if (!ACTION_WRITE.test(body)) continue;
     checked++;
     const label = `${relative(process.cwd(), file)} → ${name}()`;
-    if (REFRESH.test(body)) {
+    if (REFRESH.test(body) || (file.endsWith("/route.ts") && ROUTE_REFRESH.test(body))) {
       console.log(`ok   ${label} refreshes the market cache`);
     } else {
       console.error(`FAIL ${label} writes market data but never calls updateTag(MARKET_DATA_CACHE_TAG)`);
@@ -151,10 +160,11 @@ for (const name of Object.keys(DB_WRITE_ALLOW_LIST)) {
 // Every caller of an allow-listed writer must be a server action (covered by 1).
 for (const file of walk(SRC, (n) => /\.tsx?$/.test(n) && !/\.test\.tsx?$/.test(n))) {
   if (file.startsWith(DB + "/")) continue; // the definitions themselves
+  if (file.endsWith("/" + JOB_FILE)) continue; // the job: its callers are checked in part 1
   const source = stripComments(readFileSync(file, "utf8"));
   if (!allowedCall.test(source)) continue;
   const label = relative(process.cwd(), file);
-  if (file.endsWith("/actions.ts")) {
+  if (WRITER_FILES.some((n) => file.endsWith("/" + n))) {
     console.log(`ok   ${label} calls an allowed writer from a checked server action`);
   } else {
     console.error(`FAIL ${label} calls an allowed market-data writer outside a server action (actions.ts)`);

@@ -12,6 +12,7 @@ import {
   latestVisibleStat,
   neighborhoodTypeKey,
 } from "./sampleData";
+import { publicStatWhere } from "../statVisibility";
 
 // Sample data (seeded demonstration homes and listings) follows the one rule
 // in ./sampleData.ts: a sample listing or property is hidden from PUBLIC
@@ -230,7 +231,7 @@ async function latestVisibleStatWhere(where: Prisma.MarketStatWhereInput) {
   // A superseded sample row shares its month with the real row hiding it, so
   // the newest few rows are enough.
   const rows = await prisma.marketStat.findMany({
-    where,
+    where: publicStatWhere(where), // unapproved submissions are never public
     orderBy: { periodStart: "desc" },
     take: 6,
   });

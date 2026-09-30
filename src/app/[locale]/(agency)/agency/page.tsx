@@ -7,8 +7,9 @@ import { Card } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 
 export default async function AgencyDashboardPage() {
-  const [t, locale, session] = await Promise.all([
+  const [t, tData, locale, session] = await Promise.all([
     getTranslations("agency"),
+    getTranslations("agencyData"),
     getLocale(),
     auth(),
   ]);
@@ -66,6 +67,9 @@ export default async function AgencyDashboardPage() {
             </ButtonLink>
             <ButtonLink href="/agency/profile" variant="secondary">
               {t("nav.profile")}
+            </ButtonLink>
+            <ButtonLink href="/agency/data" variant="secondary">
+              {tData("dashboardButton")}
             </ButtonLink>
           </div>
         </Card>

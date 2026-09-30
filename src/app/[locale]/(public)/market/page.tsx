@@ -1,12 +1,14 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { PropertyType } from "@prisma/client";
 import {
+  latestAreaFiguresFor,
   latestStatsByNeighborhood,
   neighborhoodTrends,
 } from "@/lib/db/market-stats";
 import { decimalToNumber, formatOMRWhole, formatPercent } from "@/lib/money";
 import { localName, formatMonth } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
+import { AreaFigureCard } from "@/components/market/AreaFigureCard";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { ChartSampleNote } from "@/components/provenance/ChartSampleNote";
@@ -27,12 +29,51 @@ export default async function MarketPage({
   const { type } = await searchParams;
   const propertyType: PropertyType = type === "villa" ? "VILLA" : "APARTMENT";
 
-  const [t, tc, locale, stats] = await Promise.all([
+  const [t, tc, ta, locale, stats, areaRows] = await Promise.all([
     getTranslations("market"),
     getTranslations("common"),
+    getTranslations("areaFigure"),
     getLocale(),
     latestStatsByNeighborhood(type === "villa" ? "VILLA" : "APARTMENT"),
+    // Official whole-governorate figures; a context section only, so a failed
+    // read just leaves it out.
+    latestAreaFiguresFor("all").catch(() => []),
   ]);
+
+  // One card per governorate that has an official row for the selected type.
+  const governorateCards = areaRows
+    .filter((r) => r.cityId == null && r.propertyType === propertyType && r.governorate)
+    .sort((a, b) =>
+      a.governorate!.nameEn.localeCompare(b.governorate!.nameEn),
+    );
+  const areaSection =
+    governorateCards.length > 0 ? (
+      <>
+        <h2 className="mt-10 text-lg font-semibold text-stone-900 dark:text-stone-100">
+          {ta("indexHeading")}
+        </h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {governorateCards.map((r) => {
+            const name = localName(
+              locale,
+              r.governorate!.nameEn,
+              r.governorate!.nameAr,
+            );
+            return (
+              <AreaFigureCard
+                key={r.id}
+                title={ta("governorateTitle", { name })}
+                note={ta("indexNote", {
+                  area: ta("governorateName", { name }),
+                })}
+                rows={[r]}
+                locale={locale}
+              />
+            );
+          })}
+        </div>
+      </>
+    ) : null;
 
   const sorted = [...stats].sort(
     (a, b) =>
@@ -124,6 +165,8 @@ export default async function MarketPage({
             </Card>
           )}
 
+          {areaSection}
+
           <h2 className="mt-10 text-lg font-semibold text-stone-900 dark:text-stone-100">
             {t("neighborhoods")}
           </h2>
@@ -201,6 +244,7 @@ export default async function MarketPage({
                         provenance={s.provenance}
                         confidence={s.confidence}
                         isSample={s.isSample}
+                        sampleSize={s.sampleSize}
                         focusable={false}
                       />
                       <span className="text-xs text-stone-400 rtl:text-sm dark:text-stone-500">
@@ -214,6 +258,9 @@ export default async function MarketPage({
           </div>
         </>
       )}
+
+      {/* No neighbourhood figures yet: the official area cards still show. */}
+      {stats.length === 0 && areaSection}
     </div>
   );
 }

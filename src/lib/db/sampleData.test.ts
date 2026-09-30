@@ -202,7 +202,6 @@ expectEqual("one real market figure → sample-only mode off", isSampleOnlySite(
   expectEqual("unsupplied yield cleared", data.grossYieldPct, null);
   expectEqual("unsupplied transaction count cleared", data.transactionCount, null);
   expectEqual("unsupplied price per sqm cleared", data.avgPricePerSqm, null);
-  expectEqual("non-verified write sets no verifier", "verifiedAt" in data, false);
 
   const now = new Date(Date.UTC(2026, 8, 30));
   const verified = buildMarketStatWriteData(
@@ -211,6 +210,7 @@ expectEqual("one real market figure → sample-only mode off", isSampleOnlySite(
   );
   expectEqual("verified write records who and when", [verified.verifiedById, verified.verifiedAt], ["admin1", now]);
   expectEqual("verified write is not sample either", verified.isSample, false);
+  expectEqual("non-verified write clears stale verified stamp", [data.verifiedById, data.verifiedAt], [null, null]);
 }
 
 if (failures > 0) {

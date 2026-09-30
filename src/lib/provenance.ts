@@ -10,6 +10,9 @@ export const provenanceStyles: Record<DataProvenance, string> = {
     "bg-amber-100 text-amber-800 ring-amber-600/20 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-400/30",
   AI_ESTIMATED:
     "bg-violet-100 text-violet-800 ring-violet-600/20 dark:bg-violet-950 dark:text-violet-200 dark:ring-violet-400/30",
+  // Averages worked out from live listings (asking prices). Teal: distinct from the other four.
+  LISTING_DERIVED:
+    "bg-teal-100 text-teal-800 ring-teal-600/20 dark:bg-teal-950 dark:text-teal-200 dark:ring-teal-400/30",
 };
 
 // Sample (invented demonstration) data: plain grey with a dashed outline so it
@@ -18,6 +21,8 @@ export const provenanceStyles: Record<DataProvenance, string> = {
 export const SAMPLE_STYLE =
   "bg-stone-100 text-stone-700 ring-stone-500/30 border border-dashed border-stone-400 dark:bg-stone-800 dark:text-stone-200 dark:ring-stone-400/30 dark:border-stone-500";
 
+// LISTING_DERIVED is deliberately NOT in this list: it feeds the manual forms,
+// and a person must never be able to type a figure in as "from live listings".
 export const PROVENANCE_VALUES = [
   "VERIFIED",
   "OFFICIAL_STAT",

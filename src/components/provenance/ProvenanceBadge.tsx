@@ -16,12 +16,15 @@ type ProvenanceBadgeProps =
       confidence?: number;
       /** true = invented demonstration data: draws the Sample badge and ignores confidence. */
       isSample?: boolean;
+      /** Listings behind a LISTING_DERIVED average: the badge then reads "From live listings · n". */
+      sampleSize?: number | null;
       focusable?: boolean;
     }
   | {
       provenance?: undefined;
       confidence?: undefined;
       isSample: true;
+      sampleSize?: undefined;
       /**
        * false when the badge sits inside a link or button: the link itself is
        * already the tab stop, and a second one inside it would be confusing.
@@ -37,6 +40,7 @@ export function ProvenanceBadge({
   provenance,
   confidence,
   isSample,
+  sampleSize,
   focusable = true,
 }: ProvenanceBadgeProps) {
   const t = useTranslations("provenance");
@@ -53,14 +57,24 @@ export function ProvenanceBadge({
     );
   }
 
+  const derived = provenance === "LISTING_DERIVED";
+  const baseHint = derived ? t("listingHint") : t("badgeHint");
   const hint =
     confidence != null
-      ? `${t("badgeHint")} ${t("confidence")}: ${formatConfidence(confidence)}`
-      : t("badgeHint");
+      ? `${baseHint} ${t("confidence")}: ${formatConfidence(confidence)}`
+      : baseHint;
+  // "From live listings · 7" — the count is shown only for derived averages.
+  const count = derived && sampleSize != null && sampleSize > 0 ? sampleSize : null;
   return (
     <Tooltip label={hint}>
       <span className={`${BASE} ${provenanceStyles[provenance]}`}>
         {t(provenance)}
+        {count != null && (
+          <span className="tabular-nums">
+            <span aria-hidden="true">·</span> {count}
+            <span className="sr-only"> {t("listingCount", { count })}</span>
+          </span>
+        )}
         {confidence != null && (
           <span className="opacity-70">{formatConfidence(confidence)}</span>
         )}

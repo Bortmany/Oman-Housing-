@@ -27,6 +27,7 @@ enum DataProvenance {
   OFFICIAL_STAT
   USER_SUBMITTED
   AI_ESTIMATED
+  LISTING_DERIVED // averages worked out from live listings by the daily job; never typed in by hand
 }
 
 enum PropertyType {

@@ -29,11 +29,20 @@ export type TrendSummary = {
   isSample: boolean;
 };
 
-/** The weaker of the listed sources (PROVENANCE_VALUES runs strongest first). */
+// Strongest first. Averages from live listings (asking prices) rank below a
+// user-submitted figure and above a model estimate. LISTING_DERIVED is not in
+// PROVENANCE_VALUES (the manual-form list), so the order is spelled out here.
+const STRENGTH_ORDER: readonly DataProvenance[] = [
+  ...PROVENANCE_VALUES.slice(0, 3),
+  "LISTING_DERIVED",
+  ...PROVENANCE_VALUES.slice(3),
+];
+
+/** The weaker of the listed sources (STRENGTH_ORDER runs strongest first). */
 export function weakestProvenance(values: DataProvenance[]): DataProvenance {
   let worst = 0;
-  for (const v of values) worst = Math.max(worst, PROVENANCE_VALUES.indexOf(v));
-  return PROVENANCE_VALUES[worst];
+  for (const v of values) worst = Math.max(worst, STRENGTH_ORDER.indexOf(v));
+  return STRENGTH_ORDER[worst];
 }
 
 /**

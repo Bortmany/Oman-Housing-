@@ -22,6 +22,7 @@ export async function HonestData() {
     { provenance: "VERIFIED", body: t("honestyLegendVerified") },
     { provenance: "OFFICIAL_STAT", body: t("honestyLegendOfficial") },
     { provenance: "USER_SUBMITTED", body: t("honestyLegendUser") },
+    { provenance: "LISTING_DERIVED", body: t("honestyLegendDerived") },
     { provenance: "AI_ESTIMATED", body: t("honestyLegendAi") },
     { provenance: "SAMPLE", body: t("honestyLegendSample") },
   ] as const;

@@ -1,12 +1,15 @@
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import {
+  latestAreaFiguresFor,
   neighborhoodBySlug,
   neighborhoodTrends,
 } from "@/lib/db/market-stats";
 import { decimalToNumber, formatOMRWhole, formatPercent } from "@/lib/money";
 import { localName, isEnglishFallback, formatMonth } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
+import { AreaFigureCard } from "@/components/market/AreaFigureCard";
+import { OfficialSourceLink } from "@/components/market/OfficialSourceLink";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { ChartSampleNote } from "@/components/provenance/ChartSampleNote";
@@ -25,19 +28,59 @@ export default async function NeighborhoodPage({
   const hood = await neighborhoodBySlug(slug);
   if (!hood) notFound();
 
-  const [t, tc, te, tp, locale, aptTrend, villaTrend, hoodListings] =
+  const [t, tc, te, tp, ta, locale, aptTrend, villaTrend, hoodListings, areaRows] =
     await Promise.all([
       getTranslations("market"),
       getTranslations("common"),
       getTranslations("enums"),
       getTranslations("properties"),
+      getTranslations("areaFigure"),
       getLocale(),
       neighborhoodTrends([hood.id], "APARTMENT"),
       neighborhoodTrends([hood.id], "VILLA"),
       // Live listings here (sample-aware, the same query as search) — priced
       // rows for "Recorded properties".
       searchListings({ neighborhoodSlug: slug }),
+      // Official whole-area figures for this place's city and governorate.
+      // A context card only: if this read fails the card is simply absent.
+      latestAreaFiguresFor([hood.city.governorateId], [hood.cityId]).catch(
+        () => [],
+      ),
     ]);
+
+  // Labelled area-level card(s): city first (closest to the neighbourhood),
+  // then governorate. Never merged into the neighbourhood's own figures.
+  const hoodName = localName(locale, hood.nameEn, hood.nameAr);
+  const cityName = localName(locale, hood.city.nameEn, hood.city.nameAr);
+  const govName = localName(
+    locale,
+    hood.city.governorate.nameEn,
+    hood.city.governorate.nameAr,
+  );
+  const cityAreaRows = areaRows.filter((r) => r.cityId === hood.cityId);
+  const govAreaRows = areaRows.filter(
+    (r) => r.cityId == null && r.governorateId === hood.city.governorateId,
+  );
+  const areaSection =
+    cityAreaRows.length + govAreaRows.length > 0 ? (
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <AreaFigureCard
+          title={ta("cityTitle", { name: cityName })}
+          note={ta("notThisArea", { area: cityName, neighborhood: hoodName })}
+          rows={cityAreaRows}
+          locale={locale}
+        />
+        <AreaFigureCard
+          title={ta("governorateTitle", { name: govName })}
+          note={ta("notThisArea", {
+            area: ta("governorateName", { name: govName }),
+            neighborhood: hoodName,
+          })}
+          rows={govAreaRows}
+          locale={locale}
+        />
+      </div>
+    ) : null;
 
   const listingsByProperty = new Map<string, ListingWithProperty[]>();
   for (const l of hoodListings) {
@@ -143,6 +186,7 @@ export default async function NeighborhoodPage({
                     <ProvenanceBadge
                       provenance={stat!.provenance}
                       confidence={stat!.confidence}
+                      sampleSize={stat!.sampleSize}
                     />
                   )}
                 </div>
@@ -186,15 +230,23 @@ export default async function NeighborhoodPage({
                     </dd>
                   </div>
                 </dl>
-                <p className="mt-3 text-end text-xs text-stone-400 rtl:text-sm dark:text-stone-500">
-                  {formatMonth(locale, stat!.periodStart)}
-                </p>
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <OfficialSourceLink
+                    provenance={stat!.provenance}
+                    sourceUrl={stat!.isSample ? null : stat!.sourceUrl}
+                  />
+                  <p className="ms-auto text-xs text-stone-400 rtl:text-sm dark:text-stone-500">
+                    {formatMonth(locale, stat!.periodStart)}
+                  </p>
+                </div>
               </Card>
             ))}
           </div>
           <p className="mt-3 text-start text-xs text-stone-500 rtl:text-sm dark:text-stone-400">
             {t("areaAverageNote")}
           </p>
+
+          {areaSection}
 
           <Card className="mt-6">
             <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
@@ -217,6 +269,10 @@ export default async function NeighborhoodPage({
           </Card>
         </>
       )}
+
+      {/* With no neighbourhood figures the official area card still shows
+          (otherwise imported official data would be invisible). */}
+      {latest.length === 0 && areaSection}
 
       {pins.length > 0 && hood.lat != null && hood.lng != null && (
         <div className="mt-8">

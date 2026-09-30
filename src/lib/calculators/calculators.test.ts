@@ -4,6 +4,15 @@ import { mortgage } from "./mortgage";
 import { roi } from "./roi";
 import { investmentScore } from "./investmentScore";
 import { affordability, DBR_CAP } from "./affordability";
+import {
+  listingAverages,
+  listingAveragesSourceNote,
+  derivedListingConfidence,
+  DERIVED_CONFIDENCE_CAP as LISTING_CONFIDENCE_CAP,
+  type AveragesListing,
+} from "./listingAverages";
+import { AI_ANSWER_CONFIDENCE_CAP } from "../ai/analystCore";
+import { PROVENANCE_VALUES } from "../provenance";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -569,6 +578,131 @@ function derivedFigures(f: ReturnType<typeof workOutPropertyFinancials>): Figure
   const a = workOutPropertyFinancials(input({ floorAreaSqm: 75 }));
   const b = workOutPropertyFinancials(input({ floorAreaSqm: 75 }));
   expectTrue("sharedFinancials.deterministic", JSON.stringify(a) === JSON.stringify(b));
+}
+
+// ---------------------------------------------------------------------------
+// Averages from live listings (align-3, Build C): src/lib/calculators/listingAverages.ts
+// ---------------------------------------------------------------------------
+{
+  type L = AveragesListing;
+  const sale = (price: number, o: Partial<L> = {}): L => ({
+    listingType: "SALE", price, rentPeriod: null, areaSqm: null, propertyType: "APARTMENT",
+    neighborhoodId: "n1", cityId: "c1", governorateId: "g1", ...o,
+  });
+  const rent = (price: number, o: Partial<L> = {}): L => ({
+    listingType: "RENT", price, rentPeriod: "MONTHLY", areaSqm: null, propertyType: "APARTMENT",
+    neighborhoodId: "n1", cityId: "c1", governorateId: "g1", ...o,
+  });
+  const nb = (rows: ReturnType<typeof listingAverages>, id = "n1", type = "APARTMENT") =>
+    rows.find((r) => r.scope.kind === "neighborhood" && r.scope.id === id && r.propertyType === type);
+
+  // Median with an odd count (5) and an even count (6).
+  const odd = nb(listingAverages([100, 500, 200, 400, 300].map((p) => sale(p))));
+  expectClose("listingAverages.median.odd", odd!.medianSalePrice!, 300, 0.0005);
+  expectClose("listingAverages.mean.odd", odd!.avgSalePrice!, 300, 0.0005);
+  const even = nb(listingAverages([100, 200, 300, 400, 500, 1000].map((p) => sale(p))));
+  expectClose("listingAverages.median.even", even!.medianSalePrice!, 350, 0.0005);
+
+  // Exactly 4 vs 5 listings.
+  expectTrue("listingAverages.fourListings.noRow", listingAverages([1, 2, 3, 4].map((p) => sale(p * 1000))).length === 0);
+  expectTrue("listingAverages.fiveListings.row", nb(listingAverages([1, 2, 3, 4, 5].map((p) => sale(p * 1000)))) != null);
+
+  // Annual rents are divided by 12 first; rent and sale are never mixed.
+  const annual = nb(listingAverages(Array.from({ length: 5 }, () => rent(6000, { rentPeriod: "ANNUAL" }))));
+  expectClose("listingAverages.annualToMonthly", annual!.avgRentMonthly!, 500, 0.0005);
+  expectTrue("listingAverages.rentOnly.noSaleMetrics", annual!.avgSalePrice == null && annual!.medianSalePrice == null);
+  const mixed = listingAverages([...[1, 2, 3, 4].map((p) => sale(p * 1000)), ...[1, 2, 3].map(() => rent(400))]);
+  expectTrue("listingAverages.rentAndSaleNotMixed (4 sale + 3 rent = no row)", mixed.length === 0);
+  const both = nb(listingAverages([...Array.from({ length: 6 }, () => sale(80_000)), ...Array.from({ length: 5 }, () => rent(400))]));
+  expectTrue("listingAverages.bothSides.sampleSizeIsSmallestCount", both!.sampleSize === 5 && both!.saleCount === 6 && both!.rentCount === 5);
+  expectClose("listingAverages.bothSides.confidenceFromSmallest", both!.confidence, 0.3, 0.0001);
+
+  // Per-square-metre uses only listings with an area, and needs its own 5.
+  const sqmFour = nb(listingAverages([
+    ...[1, 2, 3, 4].map(() => sale(100_000, { areaSqm: 100 })),
+    sale(100_000), sale(100_000), // no area
+  ]));
+  expectTrue("listingAverages.perSqm.needsOwn5 (4 with area = none)", sqmFour!.avgPricePerSqm == null && sqmFour!.avgSalePrice != null);
+  const sqmFive = nb(listingAverages([
+    ...Array.from({ length: 5 }, () => sale(100_000, { areaSqm: 200 })),
+    sale(900_000), sale(900_000, { areaSqm: 0 }), // no usable area: ignored for per-sqm only
+  ]));
+  expectClose("listingAverages.perSqm.onlyListingsWithArea", sqmFive!.avgPricePerSqm!, 500, 0.0005);
+  expectTrue("listingAverages.perSqm.saleAverageUsesAll7", sqmFive!.saleCount === 7 && sqmFive!.sampleSize === 5);
+
+  // Confidence: 0.30 at 5, +0.02 each, cap 0.60, always under the AI cap.
+  expectClose("listingAverages.confidence.n5", derivedListingConfidence(5), 0.3, 0.0001);
+  expectClose("listingAverages.confidence.n6", derivedListingConfidence(6), 0.32, 0.0001);
+  expectClose("listingAverages.confidence.n20", derivedListingConfidence(20), 0.6, 0.0001);
+  expectClose("listingAverages.confidence.n200", derivedListingConfidence(200), 0.6, 0.0001);
+  expectTrue("listingAverages.confidence.neverAboveCap",
+    [5, 6, 12, 19, 20, 21, 50, 200, 10_000].every((n) => derivedListingConfidence(n) <= LISTING_CONFIDENCE_CAP));
+  expectTrue("listingAverages.confidence.belowAiCapAndOfficialDefault",
+    LISTING_CONFIDENCE_CAP === 0.6 && LISTING_CONFIDENCE_CAP < AI_ANSWER_CONFIDENCE_CAP && LISTING_CONFIDENCE_CAP < 0.9);
+  const big = nb(listingAverages(Array.from({ length: 200 }, (_, i) => sale(50_000 + i))));
+  expectTrue("listingAverages.confidence.rowAtN200IsCapped", big!.confidence === 0.6 && big!.sampleSize === 200);
+
+  // City / governorate roll-ups equal the pooled listings beneath them.
+  const pooled = [
+    ...[100, 200, 300].map((p) => sale(p * 1000, { neighborhoodId: "n1" })),
+    ...[400, 500, 600].map((p) => sale(p * 1000, { neighborhoodId: "n2" })),
+  ];
+  const pr = listingAverages(pooled);
+  expectTrue("listingAverages.rollup.neighbourhoodsTooSmallAlone", nb(pr, "n1") == null && nb(pr, "n2") == null);
+  const city = pr.find((r) => r.scope.kind === "city" && r.scope.id === "c1");
+  expectClose("listingAverages.rollup.cityEqualsPool", city!.avgSalePrice!, 350_000, 0.0005);
+  expectTrue("listingAverages.rollup.governorateAlsoPooled", pr.some((r) => r.scope.kind === "governorate" && r.scope.id === "g1" && r.sampleSize === 6));
+  const split = listingAverages([
+    ...Array.from({ length: 5 }, () => sale(100_000, { neighborhoodId: "n1", cityId: "c1" })),
+    ...Array.from({ length: 5 }, () => sale(300_000, { neighborhoodId: "n2", cityId: "c2" })),
+  ]);
+  expectClose("listingAverages.rollup.governorateSpansCities", split.find((r) => r.scope.kind === "governorate")!.avgSalePrice!, 200_000, 0.0005);
+  expectTrue("listingAverages.rollup.separateCitiesStaySeparate", split.filter((r) => r.scope.kind === "city").length === 2);
+
+  // No "all types" row: villas and apartments are never averaged together.
+  const types = listingAverages([
+    ...Array.from({ length: 3 }, () => sale(100_000, { propertyType: "APARTMENT" })),
+    ...Array.from({ length: 3 }, () => sale(300_000, { propertyType: "VILLA" })),
+  ]);
+  expectTrue("listingAverages.noAllTypesRow (3+3 of two types = no row)", types.length === 0);
+  const twoTypes = listingAverages([
+    ...Array.from({ length: 5 }, () => sale(100_000, { propertyType: "APARTMENT" })),
+    ...Array.from({ length: 5 }, () => sale(300_000, { propertyType: "VILLA" })),
+  ]);
+  expectTrue("listingAverages.everyRowHasOneType", twoTypes.length > 0 && twoTypes.every((r) => r.propertyType === "APARTMENT" || r.propertyType === "VILLA"));
+  expectClose("listingAverages.typesNotMixed", nb(twoTypes, "n1", "VILLA")!.avgSalePrice!, 300_000, 0.0005);
+
+  // Non-positive prices are ignored.
+  const bad = listingAverages([...Array.from({ length: 4 }, () => sale(100_000)), sale(0), sale(-5), sale(NaN)]);
+  expectTrue("listingAverages.nonPositivePriceIgnored (4 good + 3 bad = no row)", bad.length === 0);
+  const ok5 = nb(listingAverages([...Array.from({ length: 5 }, () => sale(100_000)), sale(0), sale(-5)]));
+  expectTrue("listingAverages.nonPositiveNotCounted", ok5!.saleCount === 5 && ok5!.avgSalePrice === 100_000);
+
+  // Money: decimal-safe, 3 places.
+  const dec = nb(listingAverages([0.1, 0.2, 0.3, 0.4, 0.7].map((p) => sale(p))));
+  expectClose("listingAverages.decimalSafeMean", dec!.avgSalePrice!, 0.34, 0.0000001);
+
+  // Source note: plain words, asking prices, exact counts.
+  expectTrue("listingAverages.sourceNote.wording",
+    listingAveragesSourceNote({ saleCount: 7, rentCount: 5 }, "2026-10-03")
+      === "Sale: 7 active listings, rent: 5 active listings. Asking prices, not sale prices. Computed 2026-10-03.");
+  expectTrue("listingAverages.sourceNote.rentOnly",
+    listingAveragesSourceNote({ saleCount: null, rentCount: 5 }, "2026-10-03")
+      === "Rent: 5 active listings. Asking prices, not sale prices. Computed 2026-10-03.");
+
+  // "From live listings" can never be typed in by hand.
+  const statActions = readFileSync(
+    join(process.cwd(), "src/app/[locale]/(admin)/admin/market-stats/actions.ts"), "utf8");
+  expectTrue("listingAverages.notInManualProvenanceList",
+    !(PROVENANCE_VALUES as readonly string[]).includes("LISTING_DERIVED"));
+  expectTrue("listingAverages.manualSaveRefusesIt",
+    /formData\.get\("provenance"\) === "LISTING_DERIVED"/.test(statActions) && /z\.enum\(PROVENANCE_VALUES\)/.test(statActions));
+
+  // Pure: same input twice, same output; the input is not changed.
+  const inp = [100, 200, 300, 400, 500].map((p) => sale(p));
+  const before = JSON.stringify(inp);
+  expectTrue("listingAverages.deterministicAndPure",
+    JSON.stringify(listingAverages(inp)) === JSON.stringify(listingAverages(inp)) && JSON.stringify(inp) === before);
 }
 
 if (failures > 0) {

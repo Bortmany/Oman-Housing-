@@ -54,6 +54,36 @@ export function buildMarketStatWriteData(
     isSample: false,
     ...(args.provenance === "VERIFIED"
       ? { verifiedById: args.verifiedById ?? null, verifiedAt: now }
-      : {}),
+      : // A replaced row must not keep a stale verified stamp.
+        { verifiedById: null, verifiedAt: null }),
   };
+}
+
+// ---------- Conflict setting (Align Step 3) ----------
+
+/**
+ * What upsertMarketStat does when a row already exists for the same place +
+ * type + month:
+ * - "replace" (default): overwrite it — the single-row form and the admin
+ *   official import;
+ * - "skip": leave it alone and report skipped — agency uploads, so a hidden
+ *   submission can never replace a public figure;
+ * - "replace-derived-only": overwrite only a row that is itself
+ *   LISTING_DERIVED (or an invented sample row); skip anything real that is
+ *   official, verified or user-submitted — the listing-averages job.
+ */
+export type StatConflictMode = "replace" | "skip" | "replace-derived-only";
+
+// Compared as a plain string so this compiles before the LISTING_DERIVED enum
+// value exists in the schema (Build C adds it with its own migration).
+const LISTING_DERIVED_PROVENANCE = "LISTING_DERIVED";
+
+/** Pure decision, exported for tests: may this write replace `existing`? */
+export function mayReplaceExistingStat(
+  mode: StatConflictMode,
+  existing: { provenance: string; isSample: boolean },
+): boolean {
+  if (mode === "replace") return true;
+  if (mode === "skip") return false;
+  return existing.isSample || existing.provenance === LISTING_DERIVED_PROVENANCE;
 }

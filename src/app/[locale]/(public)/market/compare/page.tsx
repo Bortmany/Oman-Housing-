@@ -168,6 +168,7 @@ export default async function ComparePage({
                         provenance={stat.provenance}
                         confidence={stat.confidence}
                         isSample={stat.isSample}
+                        sampleSize={stat.sampleSize}
                       />
                     </div>
                   </>

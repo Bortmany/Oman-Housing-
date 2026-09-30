@@ -79,14 +79,37 @@ export async function verifyProperty(formData: FormData) {
   await backToReview();
 }
 
+/** Reject a user-submitted market figure: deletes the row. Only rows that are
+ *  still USER_SUBMITTED and unverified can go — never an official, verified,
+ *  or already-approved figure. */
+export async function rejectStat(formData: FormData) {
+  const session = await requireAdmin();
+  if (!session || !adminAllowed(session.user.id)) return;
+  const id = readId(formData);
+  if (id) {
+    await prisma.marketStat.deleteMany({
+      where: { id, provenance: "USER_SUBMITTED", verifiedAt: null },
+    });
+    updateTag(MARKET_DATA_CACHE_TAG);
+  }
+  await backToReview();
+}
+
 export async function verifyStat(formData: FormData) {
   const session = await requireAdmin();
   if (!session || !adminAllowed(session.user.id)) return;
   const id = readId(formData);
   if (id) {
-    // Never stamp invented sample data VERIFIED (house rule 1).
+    // Never stamp invented sample data VERIFIED (house rule 1), and only a
+    // still-unverified user submission can be approved — never an official
+    // or listing-derived row, even on a forged request.
     await prisma.marketStat.updateMany({
-      where: { id, isSample: false },
+      where: {
+        id,
+        isSample: false,
+        provenance: "USER_SUBMITTED",
+        verifiedAt: null,
+      },
       data: {
         provenance: "VERIFIED",
         verifiedById: session.user.id,

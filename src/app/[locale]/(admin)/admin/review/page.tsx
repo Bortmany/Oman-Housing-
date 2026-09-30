@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/Card";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { Link } from "@/i18n/navigation";
 import { enforceAdminPage } from "@/lib/require-admin";
-import { approveListing, rejectListing, verifyProperty, verifyStat } from "./actions";
+import { isAgencyUploadNote } from "@/lib/csv/agencyUpload";
+import { approveListing, rejectListing, rejectStat, verifyProperty, verifyStat } from "./actions";
 
 export async function generateMetadata() {
   const t = await getTranslations("admin");
@@ -40,7 +41,7 @@ export default async function AdminReviewPage() {
     }),
     prisma.marketStat.findMany({
       where: { provenance: "USER_SUBMITTED", verifiedAt: null },
-      include: { neighborhood: true, city: true },
+      include: { neighborhood: true, city: true, governorate: true },
       orderBy: { periodStart: "desc" },
       take: 100,
     }),
@@ -165,7 +166,11 @@ export default async function AdminReviewPage() {
                 ? localName(locale, s.neighborhood.nameEn, s.neighborhood.nameAr)
                 : s.city
                   ? localName(locale, s.city.nameEn, s.city.nameAr)
-                  : t("review.nationalScope");
+                  : s.governorate
+                    ? t("review.governorateScope", {
+                        name: localName(locale, s.governorate.nameEn, s.governorate.nameAr),
+                      })
+                    : t("review.nationalScope");
               return (
                 <li key={s.id}>
                   <Card className="flex flex-wrap items-center justify-between gap-3">
@@ -178,16 +183,51 @@ export default async function AdminReviewPage() {
                           <ProvenanceBadge provenance={s.provenance} confidence={s.confidence} isSample={s.isSample} />
                         </span>
                       </p>
+                      {(s.sourceNote || s.sourceUrl) && (
+                        <div className="mt-2 flex flex-wrap items-start gap-2 text-sm text-stone-600 dark:text-stone-300">
+                          {isAgencyUploadNote(s.sourceNote) && (
+                            <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700 dark:bg-stone-800 dark:text-stone-300">
+                              {t("review.agencyUpload")}
+                            </span>
+                          )}
+                          {s.sourceNote && (
+                            <details className="group min-w-0 max-w-prose">
+                              <summary className="line-clamp-2 cursor-pointer group-open:line-clamp-none">
+                                {s.sourceNote}
+                              </summary>
+                            </details>
+                          )}
+                          {s.sourceUrl && /^https?:\/\//i.test(s.sourceUrl) && (
+                            <a
+                              href={s.sourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={s.sourceUrl}
+                              className="whitespace-nowrap text-teal-800 hover:underline dark:text-teal-300"
+                            >
+                              {t("review.sourceLink")} <span aria-hidden="true" className="inline-block rtl:-scale-x-100">↗</span>
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    {/* Invented sample rows can never be marked verified (house rule 1). */}
-                    {!s.isSample && (
-                      <form action={verifyStat}>
+                    <div className="flex gap-2">
+                      {/* Invented sample rows can never be marked verified (house rule 1). */}
+                      {!s.isSample && (
+                        <form action={verifyStat}>
+                          <input type="hidden" name="id" value={s.id} />
+                          <button className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-600">
+                            {t("review.markVerified")}
+                          </button>
+                        </form>
+                      )}
+                      <form action={rejectStat}>
                         <input type="hidden" name="id" value={s.id} />
-                        <button className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-600">
-                          {t("review.markVerified")}
+                        <button className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-rose-700 ring-1 ring-stone-300 hover:bg-stone-100 dark:bg-stone-900 dark:text-rose-400 dark:ring-stone-700 dark:hover:bg-stone-800">
+                          {t("review.reject")}
                         </button>
                       </form>
-                    )}
+                    </div>
                   </Card>
                 </li>
               );
