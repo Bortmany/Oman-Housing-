@@ -120,7 +120,13 @@ Sources: carto.com/legal/basemap-terms (updated 29 Sep 2026) · maptiler.com/clo
 
 ---
 
-## ✅ Your answers (reply with the numbers, or "go" to accept all recommendations)
+## ✅ Owner's answer — 30 Sep 2026: "go with recommendations"
+
+All six recommendations accepted, and every open-question default in specs align-1, 3, 4, 5 and 7:
+Thawani (bank transfer + hand-featuring until live) · Featured 3.000 owners / 6.000 agencies per 30 days
+at launch · the launch ad prices above · Plausible · Twilio Verify · Protomaps.
+
+## The questions as asked
 
 1. **Gateway:** Thawani (with bank transfer until it's live) — or PayTabs / other?
 2. **Featured price:** launch 3.000 owners / 6.000 agencies per 30 days — or different?

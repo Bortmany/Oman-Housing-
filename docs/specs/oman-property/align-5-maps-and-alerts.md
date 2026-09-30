@@ -18,7 +18,7 @@ Checked in this worktree's code (all facts below were read, not assumed):
 - `/api/images/[...path]` only serves `.jpg/.png/.webp`, so files in `DATA_DIR/outbox/` (`.eml`) cannot be fetched through it.
 
 NOT possible to check:
-- **`docs/decisions/ads-stats-and-services.md` does not exist** in this worktree or under `~/claude/Agents`. The tile provider choice is therefore unknown; per the brief the app keeps working through `NEXT_PUBLIC_MAP_TILE_URL` and nothing here depends on which provider is picked (one licence caveat: attribution text, see A6).
+- **`docs/decisions/ads-stats-and-services.md` did not exist in this worktree when the spec was first written.** The owner has since chosen Protomaps for map tiles (30 Sep 2026); see A8. The raster path stays as the fallback.
 - **Steps 1 and 3 are not in this branch** (no `isSample` column, no `LISTING_DERIVED` provenance value in `prisma/schema.prisma`). The price map's "weakest source" and "Sample data" note need both. Dev-lead must merge Steps 1 and 3 before Build A starts (the plan orders them earlier); the spec below names the fields as the plan defines them.
 - **Mobbin was not reachable in this session**, so there are no `mobbin_url` citations. Comparable flows the ui-designer should pull from Mobbin before designing: Airbnb ("Search as I move the map"), Zillow ("Search this area" / price heat map), Bayut or Property Finder (map search + saved-search alerts), Zoopla or Rightmove (saved-search alert emails). I have not invented links.
 
@@ -43,7 +43,7 @@ New top-level message namespaces so the three never touch the same JSON block: A
 
 | File | Owner |
 |---|---|
-| `src/components/map/PriceMap.tsx` (new), `src/lib/priceMap.ts` + `src/lib/priceMap.test.ts` (new), `src/lib/db/price-map.ts` (new), `src/lib/chartPalette.ts` (add scale only), `src/app/[locale]/(public)/market/page.tsx`, `src/app/[locale]/(public)/market/loading.tsx`, GO-LIVE.md "map tile server" bullets | **A** |
+| `src/components/map/PriceMap.tsx` (new), `src/components/map/mapStyle.ts` (new, shared, see A8), `src/lib/priceMap.ts` + `src/lib/priceMap.test.ts` (new), `src/lib/db/price-map.ts` (new), `src/lib/chartPalette.ts` (add scale only), `src/app/[locale]/(public)/market/page.tsx`, `src/app/[locale]/(public)/market/loading.tsx`, `next.config.ts` (CSP, A8 only), `public/map/*` (self-hosted fonts and sprites, A8), `package.json` dependencies (`pmtiles`, Protomaps style package; A8), GO-LIVE.md "map tile server" bullets | **A** |
 | `src/components/map/PropertyMap.tsx`, `src/components/marketplace/{PropertyFilters,AppliedFilters}.tsx`, `src/app/[locale]/(public)/properties/page.tsx`, `properties/loading.tsx`, `src/lib/savedSearch.ts` + `savedSearch.test.ts` (extend existing), `src/lib/searchFilters.ts` (new), `src/lib/db/listings.ts`, `src/app/[locale]/(app)/account/actions.ts` (name of a saved search only) | **B** |
 | `prisma/schema.prisma` + new migration folder, `src/app/api/jobs/saved-search-alerts/route.ts` (new), `src/lib/alerts/*` (new: runner, template, tests), `src/lib/email/send.ts`, `src/lib/db/saved-searches.ts`, `src/components/marketplace/SaveSearchButton.tsx`, `src/app/[locale]/(app)/account/page.tsx`, `src/app/api/health/route.ts`, privacy page strings + `privacy/page.tsx`, GO-LIVE.md "Email" section + new "Alert job" section, `docs/CONVENTIONS.md` and `.env.example` (all env-var lines for A, B and C), `package.json` `test:unit` list | **C** |
 
@@ -110,10 +110,10 @@ Arabic digits: the page uses Latin digits in Arabic UI (house rule 2) — values
 
 ## A6. Tile provider and GO-LIVE
 
-- Keep `NEXT_PUBLIC_MAP_TILE_URL` (already read by the map and by the CSP). Provider chosen in `docs/decisions/ads-stats-and-services.md` (missing today); when it lands, A writes the production URL into GO-LIVE.md "Swap the map tile server" and tests it locally by setting that variable and restarting.
-- Provider licences usually require visible attribution. Add optional `NEXT_PUBLIC_MAP_ATTRIBUTION` (default "© OpenStreetMap contributors", today's hard-coded text) read by `PriceMap`; B reads it in `PropertyMap` too (one line each — deliberate duplication so A and B stay independent). C documents it in `.env.example` and `CONVENTIONS.md`.
+- Keep `NEXT_PUBLIC_MAP_TILE_URL` (already read by the map and by the CSP) as the fallback raster source. **The production provider is now Protomaps; the full setup is in A8**, which supersedes the earlier "provider not chosen" and "raster only" wording. A writes the production steps into GO-LIVE.md "Swap the map tile server" as described in A8.
+- Provider licences usually require visible attribution. Add optional `NEXT_PUBLIC_MAP_ATTRIBUTION` (default "© OpenStreetMap contributors", today's hard-coded text) read by `PriceMap`; B reads it in `PropertyMap` too (one line each — deliberate duplication so A and B stay independent). C documents it in `.env.example` and `CONVENTIONS.md`. (When PMTiles is in use, A8's attribution text takes over.)
 - Verify the CSP against a RUNNING dev server (standards §6): tiles load on `/en/market` with no CSP errors in the console, before and after changing the tile URL to a second host.
-- Use a plain single-host raster URL (`{z}/{x}/{y}`); vector-tile providers need a different setup and are out of scope.
+- The raster fallback keeps using a plain single-host raster URL (`{z}/{x}/{y}`).
 
 ## A7. Acceptance checks (Build A)
 
@@ -126,6 +126,25 @@ Arabic digits: the page uses Latin digits in Arabic UI (house rule 2) — values
 7. Before the page has loaded, no map code is requested (lazy). Blocking tile requests shows the "could not load" message and the cards still work.
 8. Unit tests (`priceMap.test.ts`): weakest-source order incl. sample and ties; a map with one sample row shows Sample as weakest even if 10 rows are official; quintile breaks with 3 values; radius floor/ceiling; a row with null price is grey and excluded from the weakest-source calculation.
 9. Dark mode: card frame follows theme; legend text readable; map tiles stay light.
+
+## A8. Map tiles: Protomaps (owner decision, 30 Sep 2026)
+
+**The owner chose Protomaps** (a self-hosted vector map file). **Owned by Build A**, because A owns the GO-LIVE map-tile bullets and is independent of B and C. A creates ONE shared helper, `src/components/map/mapStyle.ts` (new; builds the MapLibre style from the env vars below, given the locale), and uses it in `PriceMap`. `PropertyMap.tsx` belongs to B, so B adopts the helper there in "B-rest" (after A in the merge order; one small swap, no other change to `PropertyMap`). Until B adopts it, `/properties` and the property detail page keep the old raster path unchanged, which is safe. A also owns the `next.config.ts` CSP edit and adds the `pmtiles` and Protomaps style package lines to `package.json` dependencies (C still owns the `test:unit` list; A hands C any new test file name as usual).
+
+What A builds:
+- **Packages and protocol.** Add the `pmtiles` package and register its protocol with MapLibre once, on first map creation, inside the same lazy import as MapLibre (so `/market` still ships no map code up front, A4). Style comes from the Protomaps base-style package (npm `protomaps-themes-base` at time of writing; the builder checks the current package name and version on npm and notes it in the commit if it has moved). Use the light flavour only (tiles stay light in dark mode, A2). Label language: `lang: "ar"` on `/ar`, `lang: "en"` on `/en`.
+- **New env `NEXT_PUBLIC_MAP_PMTILES_URL`** (full URL of the `.pmtiles` file). **When unset, the map falls back to today's raster `NEXT_PUBLIC_MAP_TILE_URL` path, unchanged**, so local development needs no setup. When set, it wins over the raster URL.
+- **Fonts and icons self-hosted.** Glyph (font) files and sprites are served from the app's own origin (under `/public`, e.g. `/map/fonts/...` and `/map/sprites/...`), fetched by the builder and committed, with the fonts' licence text alongside. No new `font-src` and no third-party font host. Arabic letters must be covered (the builder confirms the chosen font set includes Arabic glyphs).
+- **CSP (`next.config.ts`).** `connect-src` gains the PMTiles origin, derived from `NEXT_PUBLIC_MAP_PMTILES_URL` the same way the raster tile origin is derived today (a small origin function next to `tileOrigin`); nothing is added when the variable is unset. Glyphs and sprites are same origin, so nothing else changes. Verify against a RUNNING dev server (standards §6): no CSP errors in the console with the variable unset, and none with it set to a test file on a second host.
+- **Attribution.** When PMTiles is used the attribution reads "Protomaps © OpenStreetMap" (with the usual links). When it is not used, today's text (or `NEXT_PUBLIC_MAP_ATTRIBUTION` from A6) stays. Same text on EN and AR pages (proper names).
+- **GO-LIVE.md owner steps** (A rewrites its "Swap the map tile server" bullet): (1) create a Cloudflare R2 bucket and attach a custom domain to it (for example `tiles.<your domain>`); (2) set the bucket CORS to allow GET and HEAD from the site's origin, allow the `Range` request header, and expose the `ETag` header; (3) cut an Oman extract from the Protomaps world build with the `pmtiles extract` command, bounding box about `51.5,16.4,60.0,26.5` (west, south, east, north); (4) upload the file to the bucket; (5) set `NEXT_PUBLIC_MAP_PMTILES_URL` to the file's public address and redeploy (it is a build-time variable). Also note: refresh the file a few times a year. C lists the new variable in `.env.example` and `CONVENTIONS.md` (added to C6's list).
+- **Standards note for this change.** No new personal data beyond the IP-visibility sentence already in C7 (the tile file is fetched from the owner's own Cloudflare domain; the wording "third-party map server" stays accurate because Cloudflare hosts it). No new mutations. The external call is a read-only file fetch from the owner's own bucket; no app-side rate limiting needed (Cloudflare fronts it). Core guarantee untouched.
+
+Acceptance (A8):
+1. With `NEXT_PUBLIC_MAP_PMTILES_URL` unset, `/en/market` and `/ar/market` look exactly as they do today (same raster tiles, same attribution), with no requests to any Protomaps address and no CSP errors.
+2. With it set to a local test `.pmtiles` file (the builder may generate a tiny extract, or use a public Protomaps demo file for local testing only; never committed and never referenced in GO-LIVE as production), the map draws vector tiles, attribution reads "Protomaps © OpenStreetMap", and **Arabic place names appear on `/ar/market`** while `/en/market` shows English names.
+3. Fonts and sprites load from the app's own origin (network panel: no request to a third-party font host); the CSP header differs from before only by the extra `connect-src` origin.
+4. A tiny extract may not cover all of Oman; the check is that names appear, not full coverage.
 
 ---
 
@@ -164,6 +183,7 @@ Arabic digits: the page uses Latin digits in Arabic UI (house rule 2) — values
 - `PropertyMap.tsx` is also used on the property detail page: extend it additively (optional props such as `onUserMove`, `initialBounds`, `fitToPins`); its default behaviour must not change.
 - **Trap:** its effect rebuilds the whole map whenever `pins` (or centre) changes identity. In the interactive version a parent state update on every move must NOT recreate the map. Keep the map instance stable and update markers separately.
 - Pin popups are raw HTML — keep `escapeHtml`.
+- In B-rest (after A merges), switch `PropertyMap` to build its map style through A's shared `mapStyle.ts` helper (A8), so the Protomaps vector tiles and Arabic labels apply on `/properties` and the detail page too. With `NEXT_PUBLIC_MAP_PMTILES_URL` unset the result must be identical to today.
 
 ## B5. Exact strings — namespace `searchMap`
 
@@ -242,7 +262,7 @@ Arabic digits: the page uses Latin digits in Arabic UI (house rule 2) — values
 
 ## C6. GO-LIVE and docs (C owns)
 
-GO-LIVE.md: rewrite the "Email" section to match the code (alerts now exist; the enquiry notification is still a TODO); add "Alert job": set `CRON_SECRET` (long random, e.g. `openssl rand -base64 32`), add the hourly Railway cron with the command above, set `RESEND_API_KEY` + `EMAIL_FROM` (domain verified in Resend), note the Resend plan's daily send limit, `EMAIL_DEV_LOG` is for local testing only, `DATA_DIR/outbox` is throw-away test output and needs no backup, `AlertLog` is in the database backup. `CONVENTIONS.md` deploy env list and `.env.example`: `CRON_SECRET`, `EMAIL_DEV_LOG`, `RESEND_API_KEY`, `EMAIL_FROM`, `NEXT_PUBLIC_MAP_ATTRIBUTION`.
+GO-LIVE.md: rewrite the "Email" section to match the code (alerts now exist; the enquiry notification is still a TODO); add "Alert job": set `CRON_SECRET` (long random, e.g. `openssl rand -base64 32`), add the hourly Railway cron with the command above, set `RESEND_API_KEY` + `EMAIL_FROM` (domain verified in Resend), note the Resend plan's daily send limit, `EMAIL_DEV_LOG` is for local testing only, `DATA_DIR/outbox` is throw-away test output and needs no backup, `AlertLog` is in the database backup. `CONVENTIONS.md` deploy env list and `.env.example`: `CRON_SECRET`, `EMAIL_DEV_LOG`, `RESEND_API_KEY`, `EMAIL_FROM`, `NEXT_PUBLIC_MAP_ATTRIBUTION`, `NEXT_PUBLIC_MAP_PMTILES_URL` (A8).
 
 ## C7. Privacy page (same build, both languages — standards §6)
 
@@ -307,19 +327,20 @@ Edit the existing `legal.privacy.collectSavedSearches` line and the retention li
 
 ## What is explicitly OUT of scope
 
-- Choosing the production tile provider (separate decision file); vector tiles; heat-map layers, clustering, drawing shapes, "search near me" / device location (Permissions-Policy forbids geolocation — do not change it).
+- Choosing a different tile provider (decided: Protomaps, see A8; the vector setup in A8 is in scope); heat-map layers, clustering, drawing shapes, "search near me" / device location (Permissions-Policy forbids geolocation — do not change it).
 - Auto-searching while dragging (owner rule: never).
 - Map search on the market pages, or price maps for cities/governorates; per-area historical playback.
 - SMS/WhatsApp/push alerts; one-click `List-Unsubscribe` headers or unsubscribe links that work without signing in; per-search pause/edit; changing frequency after saving (delete and re-save); alerts for price drops or status changes; digest across searches.
 - The enquiry-notification email (`TODO(Phase 5 email)`).
 - Password reset, email verification of the address.
-- Creating Resend, Railway-cron or map-provider accounts (owner steps in GO-LIVE).
+- Creating Resend, Railway-cron, Cloudflare or map-provider accounts (owner steps in GO-LIVE).
 - Rate-limit store changes (still per-process; Redis stays a later switch).
 
 ## Bilingual notes (one place)
 
 - Every string above ships in both `en.json` and `ar.json` in the same commit; Arabic keeps Latin digits.
 - The map box stays `dir="ltr"` (house rule 4); everything around it — legend, "Search this area" button and hint, chips, notes — sits outside it and is written with logical properties, so it mirrors in Arabic. Popup HTML inside the map gets its own `dir`.
+- Map place-name labels follow the page language when Protomaps is in use (Arabic names on `/ar`, English on `/en`, A8).
 - Alert emails use the recipient's saved `locale`; Arabic emails are RTL by attribute; plain text is always included in the same language.
 - Data names use `localName` (Arabic optional, falls back to English).
 
@@ -335,14 +356,18 @@ Edit the existing `legal.privacy.collectSavedSearches` line and the retention li
 - [ ] The account page tells the truth about whether alerts are being sent.
 - [ ] Privacy page (both languages) describes alert emails, the alert log and the map tile server.
 - [ ] Everything works at 390px (phone) and 1280px (laptop), English and Arabic, light and dark, with no sideways scrolling.
+- [ ] With the Protomaps address not set, the map looks exactly as it does today; with a test map file set, Arabic place names show on `/ar`.
 - [ ] `npm run verify` is green, including the new tests (map weakest-source, bounds validation, email template, idempotent job).
-- [ ] GO-LIVE.md, CONVENTIONS.md and `.env.example` match the code.
+- [ ] GO-LIVE.md, CONVENTIONS.md and `.env.example` match the code (including the Cloudflare R2 map-file steps).
 
 ## Recommend `ui-designer` runs before building
 
 Yes — screens are new: the price-map card with its legend (mirrored), the "Search this area" button and area chip on phone and laptop, the map-moved hint, and the alert email in English and Arabic (RTL). Suggest the designer pulls the Mobbin flows listed above first. Builders A and B should not start layout until the legend/button positions are fixed; Build C's job, migration and template logic can start immediately.
 
 ## Open questions (with my suggested defaults)
+
+**Decisions recorded**
+- Tile provider: Protomaps (owner, 30 Sep 2026) — see A8.
 
 1. **Click on a circle: popup first, or straight to the area page?** The plan says "click → neighbourhood page". Default: popup with a "View area" link (safer on phones where a fingertip lands on the wrong circle).
 2. **How to rank "weakest source" on the map legend.** Default order, weakest first: Sample data, AI estimated, User submitted, From live listings, Official statistic, Verified — ties broken by lowest confidence.
