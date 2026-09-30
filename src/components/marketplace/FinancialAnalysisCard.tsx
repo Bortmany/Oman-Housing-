@@ -106,14 +106,12 @@ export function FinancialAnalysisCard({
     yieldNote = t("yieldBasisAsking", { rent: formatOMRWhole(f.yieldRentUsed, locale) });
   } else if (f.grossYieldPct && f.yieldRentUsed != null && f.yieldBasis === "ESTIMATE") {
     yieldNote = t("yieldBasisEstimate", { rent: formatOMRWhole(f.yieldRentUsed, locale) });
-  } else if (!f.grossYieldPct && !f.listedRent) {
-    yieldNote = t("yieldBasisNone");
-  } else if (!f.grossYieldPct && !f.estimatedValue &&
-             f.investment.band !== "INSUFFICIENT_DATA") {
-    // An advertised rent but no value at all: say why there is no yield —
-    // unless the card footer already shows this same explanation.
-    // (With an area-average value, the value row already says it.)
-    yieldNote = t("insufficientDataHint");
+  } else if (!f.grossYieldPct && f.yieldMissingReason === "NO_FLOOR_AREA") {
+    yieldNote = t("yieldNoneNoFloorArea");
+  } else if (!f.grossYieldPct && f.yieldMissingReason === "NO_AREA_FIGURES") {
+    yieldNote = t("yieldNoneNoAreaFigures");
+  } else if (!f.grossYieldPct && f.yieldMissingReason === "NO_VALUE") {
+    yieldNote = t("yieldNoneNoValue");
   }
 
   return (

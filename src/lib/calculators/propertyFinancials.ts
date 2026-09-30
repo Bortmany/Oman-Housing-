@@ -37,6 +37,15 @@ export type Figure = {
   isSample: boolean;
 };
 
+/**
+ * Why no yield could be worked out (null when there is one):
+ * NO_FLOOR_AREA = this home's floor area is not recorded, so neither its own
+ * value nor its own rent can be estimated; NO_AREA_FIGURES = the area's
+ * market figures are missing or lack the numbers needed; NO_VALUE = there is
+ * no usable value for this home (e.g. a stored valuation of zero).
+ */
+export type YieldMissingReason = "NO_FLOOR_AREA" | "NO_AREA_FIGURES" | "NO_VALUE";
+
 /** STORED = a saved valuation; THIS_PROPERTY = worked out for this home; AREA_AVERAGE = the area's figure only. */
 export type FigureBasis = "STORED" | "THIS_PROPERTY" | "AREA_AVERAGE";
 
@@ -60,6 +69,8 @@ export type PropertyFinancials = {
   yieldBasis: YieldRentBasis;
   /** The monthly rent the yield was worked out from (null when no yield). */
   yieldRentUsed: number | null;
+  /** Why there is no yield (null when there is one), so the card can say the true reason. */
+  yieldMissingReason: YieldMissingReason | null;
   investment: InvestmentScoreResult;
   investmentConfidence: number | null;
   /** True when the score was worked out from any sample input. */
@@ -111,6 +122,7 @@ export const EMPTY_FINANCIALS: PropertyFinancials = {
   grossYieldPct: null,
   yieldBasis: "NONE",
   yieldRentUsed: null,
+  yieldMissingReason: "NO_VALUE",
   investment: { score: null, band: "INSUFFICIENT_DATA" },
   investmentConfidence: null,
   investmentIsSample: false,
@@ -263,6 +275,21 @@ export function workOutPropertyFinancials(
     };
   }
 
+  // Say which missing input stopped the yield (checked in the order the
+  // yield needs them: a rent of its own, then a usable value).
+  let yieldMissingReason: YieldMissingReason | null = null;
+  if (!grossYieldPct) {
+    if (!rentFigure) {
+      // No advertised rent, and no per-property rent estimate.
+      yieldMissingReason = area == null ? "NO_FLOOR_AREA" : "NO_AREA_FIGURES";
+    } else if (!valuation) {
+      // A rent exists; the value is missing or only an area average.
+      yieldMissingReason = area == null ? "NO_FLOOR_AREA" : "NO_AREA_FIGURES";
+    } else {
+      yieldMissingReason = "NO_VALUE";
+    }
+  }
+
   const investment = investmentScore({
     grossYieldPct: grossYieldPct?.value ?? null,
     confidence: grossYieldPct?.confidence ?? 0,
@@ -282,6 +309,7 @@ export function workOutPropertyFinancials(
     grossYieldPct,
     yieldBasis: grossYieldPct ? choice.basis : "NONE",
     yieldRentUsed: grossYieldPct ? choice.monthlyRent : null,
+    yieldMissingReason,
     investment,
     investmentConfidence: grossYieldPct?.confidence ?? null,
     investmentIsSample: grossYieldPct?.isSample ?? false,

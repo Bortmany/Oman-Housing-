@@ -9,6 +9,7 @@ import { localName, formatMonth } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
+import { ChartSampleNote } from "@/components/provenance/ChartSampleNote";
 import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
 import { Link } from "@/i18n/navigation";
 import { DirectionalLink } from "@/components/ui/DirectionalLink";
@@ -117,6 +118,9 @@ export default async function MarketPage({
               <div className="mt-4">
                 <TrendChart data={trendData} series={trendSeries} />
               </div>
+              <ChartSampleNote
+                rows={trendRows.filter((r) => r.avgSalePrice != null)}
+              />
             </Card>
           )}
 
@@ -197,6 +201,7 @@ export default async function MarketPage({
                         provenance={s.provenance}
                         confidence={s.confidence}
                         isSample={s.isSample}
+                        focusable={false}
                       />
                       <span className="text-xs text-stone-400 rtl:text-sm dark:text-stone-500">
                         {formatMonth(locale, s.periodStart)}

@@ -110,7 +110,6 @@
     "listCtaBodyClosed": "New agency sign-ups are paused for now. See our plans and how listing works, and sign in if you already have an account.",
     "listCtaButtonClosed": "See agency plans",
     "heroBadgeSample": "Sample figures while we load real data",
-    "featureCompareBodySample": "Al Mouj vs Qurum vs Muscat Hills — side by side (sample figures for now).",
     "dataHonestyBodySample": "Every number on this platform carries a label saying where it came from: verified, official statistic, user-submitted, AI-estimated or sample, with a confidence score where one applies. Right now the figures are sample data, and we say so on every one.",
     "sampleNotice": "For now, every figure on this site is sample data. We are loading official statistics, and sample figures disappear as real ones arrive.",
     "honestyLegendSample": "Example figures that show how the site works. Replaced as soon as real ones exist for the same area."
@@ -124,7 +123,9 @@
     "source": "Source",
     "badgeHint": "Where this figure came from, and how sure we are of it.",
     "sample": "Sample data",
-    "sampleHint": "Example figures that show how the site works. Do not rely on them for decisions. They are replaced as soon as real figures exist for the same area."
+    "sampleHint": "Example figures that show how the site works. Do not rely on them for decisions. They are replaced as soon as real figures exist for the same area.",
+    "chartSampleOnly": "This chart shows sample data only.",
+    "chartIncludesSample": "Includes sample months — some points on this chart are sample data."
   },
   "enums": {
     "propertyType": {
@@ -551,7 +552,9 @@
     "rentBasisAreaAverage": "Area average, not this property's own rent. Left out of the yield and the score.",
     "yieldBasisAsking": "Yield worked out from the advertised rent of {rent} a month.",
     "yieldBasisEstimate": "Yield worked out from the estimated market rent of {rent} a month (this property has no advertised rent).",
-    "yieldBasisNone": "No yield shown: without this property's size or an advertised rent, we cannot work out a rent for it honestly.",
+    "yieldNoneNoFloorArea": "No yield shown: this property's floor area is not recorded, so we cannot work out its own value or rent honestly.",
+    "yieldNoneNoAreaFigures": "No yield shown: the area's market figures are missing or incomplete, so we cannot work out this property's own value or rent honestly.",
+    "yieldNoneNoValue": "No yield shown: there is no reliable value recorded for this property to work it out from.",
     "listedRentFromAnnual": "Advertised as {annual} a year; shown per month.",
     "valueBasisAreaAverage": "Area average price, not this property's own value. Left out of the yield and the score."
   },

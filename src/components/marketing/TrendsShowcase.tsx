@@ -117,6 +117,7 @@ export async function TrendsShowcase() {
                   provenance={s.provenance}
                   confidence={s.confidence}
                   isSample={s.isSample}
+                  focusable={false}
                 />
                 <span className="text-xs text-stone-500 rtl:text-sm dark:text-stone-400">
                   {formatMonth(locale, s.from)} – {formatMonth(locale, s.to)}

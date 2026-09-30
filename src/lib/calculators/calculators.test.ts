@@ -460,6 +460,32 @@ function derivedFigures(f: ReturnType<typeof workOutPropertyFinancials>): Figure
   expectTrue("financials.storedValueNoArea.noYield", f.grossYieldPct === null && f.investment.score === null);
 }
 
+// A missing yield says WHY — and never blames the size when the size is known.
+{
+  const asking = { price: 650, rentPeriod: "MONTHLY" as const, provenance: "USER_SUBMITTED" as const, confidence: 0.7, isSample: false };
+  const ok = workOutPropertyFinancials(input({ floorAreaSqm: 75 }));
+  expectTrue("yieldReason.noneWhenYield", ok.grossYieldPct != null && ok.yieldMissingReason === null);
+  expectTrue("yieldReason.noArea",
+    workOutPropertyFinancials(input({ floorAreaSqm: null })).yieldMissingReason === "NO_FLOOR_AREA");
+  expectTrue("yieldReason.noAreaWithAsking",
+    workOutPropertyFinancials(input({ floorAreaSqm: null, rentListing: asking })).yieldMissingReason === "NO_FLOOR_AREA");
+  // Size known, but the area's figures lack the numbers for a rent estimate.
+  expectTrue("yieldReason.sizeKnown.areaFiguresIncomplete",
+    workOutPropertyFinancials(input({
+      floorAreaSqm: 110, comp: { ...alMoujApt, avgPricePerSqm: null, avgSalePrice: null },
+    })).yieldMissingReason === "NO_AREA_FIGURES");
+  // Size known and a rent advertised, but no area figures at all for a value.
+  expectTrue("yieldReason.sizeKnown.noAreaFigures",
+    workOutPropertyFinancials(input({ floorAreaSqm: 110, comp: null, rentListing: asking }))
+      .yieldMissingReason === "NO_AREA_FIGURES");
+  // A stored valuation of zero is not a usable value.
+  expectTrue("yieldReason.noValue",
+    workOutPropertyFinancials(input({
+      floorAreaSqm: 110, rentListing: asking,
+      valuation: { valueMid: 0, provenance: "AI_ESTIMATED", confidence: 0.4, assumptions: null, isSample: false },
+    })).yieldMissingReason === "NO_VALUE");
+}
+
 // Sample in ⇒ sample out; all-real in ⇒ not sample.
 {
   const sampleComp = workOutPropertyFinancials(input({ floorAreaSqm: 75, comp: { ...alMoujApt, isSample: true } }));

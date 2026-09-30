@@ -9,6 +9,7 @@ import { localName, isEnglishFallback, formatMonth } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
+import { ChartSampleNote } from "@/components/provenance/ChartSampleNote";
 import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
 import { PropertyMap } from "@/components/map/PropertyMap";
 import { DirectionalLink } from "@/components/ui/DirectionalLink";
@@ -60,6 +61,11 @@ export default async function NeighborhoodPage({
       map.get(key)!.villa = decimalToNumber(r[metric]);
     }
     return [...map.entries()].sort(([a], [b]) => a - b).map(([, v]) => v);
+  }
+
+  // The rows a chart actually plots (a month with no figure draws no point).
+  function plottedRows(metric: "avgSalePrice" | "avgRentMonthly") {
+    return [...aptTrend, ...villaTrend].filter((r) => r[metric] != null);
   }
 
   const series = [
@@ -197,6 +203,7 @@ export default async function NeighborhoodPage({
             <div className="mt-4">
               <TrendChart data={chartData("avgSalePrice")} series={series} />
             </div>
+            <ChartSampleNote rows={plottedRows("avgSalePrice")} />
           </Card>
 
           <Card className="mt-6">
@@ -206,6 +213,7 @@ export default async function NeighborhoodPage({
             <div className="mt-4">
               <TrendChart data={chartData("avgRentMonthly")} series={series} />
             </div>
+            <ChartSampleNote rows={plottedRows("avgRentMonthly")} />
           </Card>
         </>
       )}
@@ -229,72 +237,81 @@ export default async function NeighborhoodPage({
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {hood.properties.map((p) => {
               const live = listingsByProperty.get(p.id) ?? [];
-              return (
+              // Only a home with a live (public) listing links to its page;
+              // any other recorded home — including one still awaiting
+              // review — is shown as a plain card with no link.
+              const linked = live.length > 0;
+              const card = (
+                <Card className="h-full text-sm transition group-hover:ring-teal-600/40 group-active:ring-teal-600/60">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium text-stone-900 group-hover:text-teal-800 dark:text-stone-100 dark:group-hover:text-teal-300">
+                      {localName(locale, p.titleEn, p.titleAr)}
+                      {isEnglishFallback(locale, p.titleAr) && (
+                        <span className="ms-2 text-xs text-stone-400 dark:text-stone-500">
+                          ({tc("englishOnly")})
+                        </span>
+                      )}
+                    </p>
+                    {p.isSample ? (
+                      <ProvenanceBadge isSample focusable={!linked} />
+                    ) : (
+                      <ProvenanceBadge provenance={p.provenance} confidence={p.confidence} />
+                    )}
+                  </div>
+                  {live.length > 0 ? (
+                    live.map((l) => (
+                      <div
+                        key={l.id}
+                        className="mt-2 flex flex-wrap items-center justify-between gap-2"
+                      >
+                        <p className="text-lg font-bold text-teal-800 dark:text-teal-300">
+                          {formatOMRWhole(decimalToNumber(l.price)!, locale)}
+                          {l.listingType === "RENT" && l.rentPeriod && (
+                            <span className="ms-1 text-xs font-medium text-stone-500 dark:text-stone-400">
+                              {te(`rentPeriod.${l.rentPeriod}`)}
+                            </span>
+                          )}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+                            {l.listingType === "SALE" ? tp("sale") : tp("rent")}
+                          </span>
+                          {l.isSample ? (
+                            <ProvenanceBadge isSample focusable={false} />
+                          ) : (
+                            <ProvenanceBadge provenance={l.provenance} confidence={l.confidence} />
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
+                      {t("recordedNoListing")}
+                    </p>
+                  )}
+                  <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
+                    {te(`propertyType.${p.type}`)}
+                    {p.bedrooms != null && <> · {p.bedrooms} {tc("beds")}</>}
+                    {p.bathrooms != null && <> · {p.bathrooms} {tc("baths")}</>}
+                    {p.areaSqm != null && (
+                      <> · {decimalToNumber(p.areaSqm)} {tc("sqm")}</>
+                    )}
+                  </p>
+                  <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+                    {te(`ownership.${p.ownership}`)}
+                  </p>
+                </Card>
+              );
+              return linked ? (
                 <Link
                   key={p.id}
                   href={`/properties/${p.id}`}
                   className="group block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
                 >
-                  <Card className="h-full text-sm transition group-hover:ring-teal-600/40 group-active:ring-teal-600/60">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="font-medium text-stone-900 group-hover:text-teal-800 dark:text-stone-100 dark:group-hover:text-teal-300">
-                        {localName(locale, p.titleEn, p.titleAr)}
-                        {isEnglishFallback(locale, p.titleAr) && (
-                          <span className="ms-2 text-xs text-stone-400 dark:text-stone-500">
-                            ({tc("englishOnly")})
-                          </span>
-                        )}
-                      </p>
-                      {p.isSample ? (
-                        <ProvenanceBadge isSample />
-                      ) : (
-                        <ProvenanceBadge provenance={p.provenance} confidence={p.confidence} />
-                      )}
-                    </div>
-                    {live.length > 0 ? (
-                      live.map((l) => (
-                        <div
-                          key={l.id}
-                          className="mt-2 flex flex-wrap items-center justify-between gap-2"
-                        >
-                          <p className="text-lg font-bold text-teal-800 dark:text-teal-300">
-                            {formatOMRWhole(decimalToNumber(l.price)!, locale)}
-                            {l.listingType === "RENT" && l.rentPeriod && (
-                              <span className="ms-1 text-xs font-medium text-stone-500 dark:text-stone-400">
-                                {te(`rentPeriod.${l.rentPeriod}`)}
-                              </span>
-                            )}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600 dark:bg-stone-800 dark:text-stone-300">
-                              {l.listingType === "SALE" ? tp("sale") : tp("rent")}
-                            </span>
-                            {l.isSample ? (
-                              <ProvenanceBadge isSample />
-                            ) : (
-                              <ProvenanceBadge provenance={l.provenance} confidence={l.confidence} />
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
-                        {t("recordedNoListing")}
-                      </p>
-                    )}
-                    <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
-                      {te(`propertyType.${p.type}`)}
-                      {p.bedrooms != null && <> · {p.bedrooms} {tc("beds")}</>}
-                      {p.bathrooms != null && <> · {p.bathrooms} {tc("baths")}</>}
-                      {p.areaSqm != null && (
-                        <> · {decimalToNumber(p.areaSqm)} {tc("sqm")}</>
-                      )}
-                    </p>
-                    <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-                      {te(`ownership.${p.ownership}`)}
-                    </p>
-                  </Card>
+                  {card}
                 </Link>
+              ) : (
+                <div key={p.id}>{card}</div>
               );
             })}
           </div>

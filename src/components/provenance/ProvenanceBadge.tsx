@@ -16,8 +16,18 @@ type ProvenanceBadgeProps =
       confidence?: number;
       /** true = invented demonstration data: draws the Sample badge and ignores confidence. */
       isSample?: boolean;
+      focusable?: boolean;
     }
-  | { provenance?: undefined; confidence?: undefined; isSample: true };
+  | {
+      provenance?: undefined;
+      confidence?: undefined;
+      isSample: true;
+      /**
+       * false when the badge sits inside a link or button: the link itself is
+       * already the tab stop, and a second one inside it would be confusing.
+       */
+      focusable?: boolean;
+    };
 
 // The data-honesty badge: which kind of source a figure came from, and how
 // confident we are in it. Shown next to every market figure in the app.
@@ -27,14 +37,16 @@ export function ProvenanceBadge({
   provenance,
   confidence,
   isSample,
+  focusable = true,
 }: ProvenanceBadgeProps) {
   const t = useTranslations("provenance");
 
   if (isSample || provenance == null) {
     return (
       <Tooltip label={t("sampleHint")}>
-        {/* Focusable so a tap on a phone reveals the hint (Tooltip shows on focus-within). */}
-        <span tabIndex={0} className={`${BASE} whitespace-nowrap ${SAMPLE_STYLE}`}>
+        {/* Focusable so a tap on a phone reveals the hint (Tooltip shows on focus-within),
+            except inside a link, where the link itself is the tab stop. */}
+        <span tabIndex={focusable ? 0 : undefined} className={`${BASE} whitespace-nowrap ${SAMPLE_STYLE}`}>
           {t("sample")}
         </span>
       </Tooltip>
