@@ -34,9 +34,26 @@ export type ListingAllowance = {
   unlimited: boolean;
 };
 
-/** How much room an agency on `tier` has, given its current live-listing count. */
-export function listingAllowance(tier: Tier, activeCount: number): ListingAllowance {
-  const limit = ACTIVE_LISTING_LIMIT[tier];
+export type AllowanceOptions = {
+  /**
+   * True while the owner's "free launch period" switch is on (read it with
+   * getFreeLaunch() in src/lib/siteSettings.ts). Every agency tier is then
+   * unlimited. Omitted = off, so old two-argument calls keep today's behaviour.
+   * The private-owner cap is separate and is not changed by this.
+   */
+  freeLaunch?: boolean;
+};
+
+/**
+ * How much room an agency on `tier` has, given its current live-listing count.
+ * While the free-launch switch is on, the answer is "unlimited" for every tier.
+ */
+export function listingAllowance(
+  tier: Tier,
+  activeCount: number,
+  options: AllowanceOptions = {},
+): ListingAllowance {
+  const limit = options.freeLaunch ? Infinity : ACTIVE_LISTING_LIMIT[tier];
   const used = Math.max(0, activeCount);
   const unlimited = limit === Infinity;
   const remaining = unlimited ? Infinity : Math.max(0, limit - used);
@@ -44,6 +61,10 @@ export function listingAllowance(tier: Tier, activeCount: number): ListingAllowa
 }
 
 /** True when an agency on `tier` may take on one more live listing. */
-export function canAddListing(tier: Tier, activeCount: number): boolean {
-  return listingAllowance(tier, activeCount).canAdd;
+export function canAddListing(
+  tier: Tier,
+  activeCount: number,
+  options: AllowanceOptions = {},
+): boolean {
+  return listingAllowance(tier, activeCount, options).canAdd;
 }

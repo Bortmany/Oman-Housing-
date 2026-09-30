@@ -2,6 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { agencyById, agencyListings, countListingsInPlay } from "@/lib/db/agencies";
 import { listingAllowance } from "@/lib/tiers";
+import { getFreeLaunch } from "@/lib/siteSettings";
 import { decimalToNumber, formatOMRWhole } from "@/lib/money";
 import { localName } from "@/lib/i18nData";
 import { StatusPill } from "@/components/marketplace/StatusPill";
@@ -13,9 +14,10 @@ export default async function AgencyListingsPage({
 }: {
   searchParams: Promise<{ submitted?: string }>;
 }) {
-  const [{ submitted }, t, tp, te, locale, session] = await Promise.all([
+  const [{ submitted }, t, tf, tp, te, locale, session] = await Promise.all([
     searchParams,
     getTranslations("agency"),
+    getTranslations("freeLaunch"),
     getTranslations("properties"),
     getTranslations("enums"),
     getLocale(),
@@ -26,11 +28,12 @@ export default async function AgencyListingsPage({
   const agency = await agencyById(session.user.agencyId);
   if (!agency) return null;
 
-  const [listings, inPlay] = await Promise.all([
+  const [listings, inPlay, freeLaunch] = await Promise.all([
     agencyListings(agency.id),
     countListingsInPlay(agency.id),
+    getFreeLaunch(),
   ]);
-  const allowance = listingAllowance(agency.tier, inPlay);
+  const allowance = listingAllowance(agency.tier, inPlay, { freeLaunch });
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -46,7 +49,9 @@ export default async function AgencyListingsPage({
       </div>
 
       <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
-        {allowance.unlimited
+        {freeLaunch
+          ? tf("allowance", { count: allowance.used })
+          : allowance.unlimited
           ? t("dashboard.allowanceUnlimited", { used: allowance.used })
           : t("dashboard.allowance", {
               used: allowance.used,

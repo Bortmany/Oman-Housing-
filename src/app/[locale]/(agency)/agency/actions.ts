@@ -20,6 +20,7 @@ import {
   INQUIRY_STATUSES,
 } from "@/lib/db/inquiries";
 import { canAddListing } from "@/lib/tiers";
+import { getFreeLaunch } from "@/lib/siteSettings";
 import {
   DEFAULT_DIAL_CODE,
   checkPhone,
@@ -95,7 +96,9 @@ export async function submitAgencyListing(
 
   // Plan limit: block a new submission when the agency is already at its cap.
   const inPlay = await countListingsInPlay(ctx.agencyId);
-  if (!canAddListing(agency.tier, inPlay)) {
+  // (While the owner's free-launch switch is on there is no cap.)
+  const freeLaunch = await getFreeLaunch();
+  if (!canAddListing(agency.tier, inPlay, { freeLaunch })) {
     return { error: "atListingLimit", values: typed };
   }
 

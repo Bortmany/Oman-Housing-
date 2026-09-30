@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/Card";
 import { ACTIVE_LISTING_LIMIT, TIER_ORDER, TIER_PRICE_OMR } from "@/lib/tiers";
 import { formatOMRWhole } from "@/lib/money";
 import { getSignupMode } from "@/lib/signupMode";
+import { getFreeLaunch } from "@/lib/siteSettings";
+import { ButtonLink } from "@/components/ui/Button";
 
 export async function generateMetadata() {
   const t = await getTranslations("agency");
@@ -15,10 +17,12 @@ export async function generateMetadata() {
 }
 
 export default async function ListWithUsPage() {
-  const [t, session, locale] = await Promise.all([
+  const [t, tf, session, locale, freeLaunch] = await Promise.all([
     getTranslations("agency"),
+    getTranslations("freeLaunch"),
     auth(),
     getLocale(),
+    getFreeLaunch(),
   ]);
 
   // An agency owner already signed in goes straight to their portal.
@@ -45,6 +49,40 @@ export default async function ListWithUsPage() {
 
       {/* Plans and prices. Numbers come from src/lib/tiers.ts so the page can
           never drift from the limits the app actually enforces. */}
+      {freeLaunch ? (
+        // Free launch ON: no prices and no payment note, just the offer.
+        <section className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl bg-teal-50 p-6 text-teal-800 ring-1 ring-inset ring-teal-600/30 md:col-span-2 dark:bg-teal-950 dark:text-teal-200 dark:ring-teal-400/30">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="size-6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20 12v9H4v-9" />
+              <path d="M2 7h20v5H2z" />
+              <path d="M12 21V7" />
+              <path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7z" />
+              <path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z" />
+            </svg>
+            <h2 className="mt-3 text-2xl font-bold">{tf("planName")}</h2>
+            <p className="mt-2 text-sm">{tf("banner.body")}</p>
+          </div>
+          <Card className="flex flex-col">
+            <h3 className="font-semibold text-stone-900 dark:text-stone-100">{tf("ownerCta.title")}</h3>
+            <p className="mt-2 flex-1 text-sm text-stone-600 dark:text-stone-300">
+              {tf("ownerCta.body", { limit: 3 })}
+            </p>
+            <ButtonLink href="/account/listings" variant="secondary" className="mt-4">
+              {tf("ownerCta.button")}
+            </ButtonLink>
+          </Card>
+        </section>
+      ) : (
       <section className="mt-10">
         <h2 className="text-xl font-semibold text-stone-900 dark:text-stone-100">
           {t("signup.pricing.heading")}
@@ -78,6 +116,7 @@ export default async function ListWithUsPage() {
           {t("signup.pricing.manualNote")}
         </p>
       </section>
+      )}
 
       <div className="mt-8">
         {signupMode === "closed" ? (

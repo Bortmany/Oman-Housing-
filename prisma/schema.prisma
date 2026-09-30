@@ -462,3 +462,12 @@ model Favorite {
 
   @@unique([userId, listingId])
 }
+
+// Small key/value table for owner-flipped site switches (e.g. the free-launch
+// period). Values are text; typed getters live in src/lib/siteSettings.ts.
+// A missing row means "use the default" — no seed needed.
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

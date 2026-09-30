@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "@/i18n/navigation";
 import { agencyById, countListingsInPlay } from "@/lib/db/agencies";
 import { canAddListing } from "@/lib/tiers";
+import { getFreeLaunch } from "@/lib/siteSettings";
 import { allNeighborhoods } from "@/lib/db/market-stats";
 import { AgencyListingForm } from "../AgencyListingForm";
 
@@ -18,8 +19,11 @@ export default async function NewAgencyListingPage() {
   if (!agency) return null;
 
   // At the plan cap — bounce back to the list, which explains why.
-  const inPlay = await countListingsInPlay(agency.id);
-  if (!canAddListing(agency.tier, inPlay)) {
+  const [inPlay, freeLaunch] = await Promise.all([
+    countListingsInPlay(agency.id),
+    getFreeLaunch(),
+  ]);
+  if (!canAddListing(agency.tier, inPlay, { freeLaunch })) {
     redirect({ href: "/agency/listings", locale });
   }
 

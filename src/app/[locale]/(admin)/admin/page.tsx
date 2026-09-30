@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { Link } from "@/i18n/navigation";
 import { enforceAdminPage } from "@/lib/require-admin";
+import { getFreeLaunch } from "@/lib/siteSettings";
 
 export async function generateMetadata() {
   const t = await getTranslations("admin");
@@ -22,6 +23,8 @@ export default async function AdminHome() {
     agencyCount,
     pendingAgencies,
     newInquiries,
+    freeLaunch,
+    tSettings,
   ] = await Promise.all([
     getTranslations("admin"),
     prisma.marketStat.count(),
@@ -33,6 +36,8 @@ export default async function AdminHome() {
     prisma.agency.count(),
     prisma.agency.count({ where: { isApproved: false } }),
     prisma.inquiry.count({ where: { status: "NEW" } }),
+    getFreeLaunch(),
+    getTranslations("adminSettings"),
   ]);
 
   const reviewCount = pendingListings + unverifiedProps + unverifiedStats;
@@ -76,6 +81,13 @@ export default async function AdminHome() {
       title: t("listings"),
       hint: t("listingsHint"),
       count: listingCount,
+    },
+    {
+      href: "/admin/settings",
+      title: tSettings("title"),
+      hint: tSettings("dashHint"),
+      // The card's big figure is the switch itself: On / Off.
+      count: freeLaunch ? tSettings("freeLaunch.on") : tSettings("freeLaunch.off"),
     },
   ];
 

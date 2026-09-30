@@ -1011,5 +1011,42 @@
     "indexHeading": "Official figures for whole areas",
     "indexNote": "For the whole {area}; individual neighborhoods are below.",
     "source": "Source"
+  },
+  "freeLaunch": {
+    "banner": {
+      "body": "List as many properties as you like at no cost while we launch. We'll tell you before paid plans start."
+    },
+    "planName": "Free during launch",
+    "allowance": "{count, plural, =0 {No listings yet} one {# listing} other {# listings}} · no limit during the free launch.",
+    "tierReturns": "Your plan ({tier}) returns when the launch ends.",
+    "ownerCta": {
+      "title": "Selling or renting your own home?",
+      "body": "Private owners can list up to {limit} properties free. We check every listing before it goes public.",
+      "button": "List as an owner"
+    }
+  },
+  "adminSettings": {
+    "title": "Site settings",
+    "subtitle": "Switches that change how the whole site behaves.",
+    "dashHint": "The free launch switch.",
+    "freeLaunch": {
+      "label": "Free launch period",
+      "on": "On",
+      "off": "Off",
+      "helpOn": "ON: agencies can have unlimited live listings, whatever their plan. Prices are hidden on the public sign-up page.",
+      "helpOff": "OFF: each plan's listing limit applies again (Free 3, Premium 25, Business unlimited). Listings already live stay live; an agency over its limit just can't add new ones.",
+      "turnOff": "Turn off free launch",
+      "turnOn": "Turn on free launch",
+      "tip": "This changes what every agency can do, straight away.",
+      "confirmOff": "Turn off the free launch period now? Agencies over their plan's limit won't be able to add new listings until they upgrade.",
+      "confirmYes": "Yes, turn it off",
+      "keepOn": "Keep it on",
+      "lastChanged": "Last changed {date}",
+      "neverChanged": "Never changed (on by default)."
+    },
+    "saved": "Saved.",
+    "tooMany": "Too many changes. Try again in a minute.",
+    "error": "Couldn't save. Please try again.",
+    "ownerCapNote": "Private owners can have up to 3 live listings. This isn't affected by the switch."
   }
 }
