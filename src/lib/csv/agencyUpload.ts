@@ -9,6 +9,7 @@
 //  - it NEVER replaces an existing figure (conflict mode "skip");
 //  - its source note always carries the agency's English name.
 
+import { isPubliclyVisibleStat } from "../statVisibility";
 import { AGENCY_CONFIDENCE, type ImportGroup } from "./marketStatsImport";
 
 export const AGENCY_PROVENANCE = "USER_SUBMITTED" as const;
@@ -41,8 +42,9 @@ export function agencyNoteMatch(agencyNameEn: string): { exact: string; startsWi
 
 /** What one parsed group is saved as. Provenance, confidence and conflict mode
  *  are fixed HERE — nothing from the file can change them. */
-export function agencyWriteFor(group: ImportGroup, agencyNameEn: string) {
+export function agencyWriteFor(group: ImportGroup, agencyNameEn: string, agencyId: string) {
   return {
+    submittedByAgencyId: agencyId,
     provenance: AGENCY_PROVENANCE,
     confidence: AGENCY_CONFIDENCE,
     sourceNote: agencySourceNote(agencyNameEn, group.sourceNote),
@@ -54,4 +56,21 @@ export function agencyWriteFor(group: ImportGroup, agencyNameEn: string) {
 /** Would sending `incoming` more rows overflow the agency's waiting queue? */
 export function queueHasRoom(waiting: number, incoming: number): boolean {
   return waiting < MAX_UNAPPROVED_PER_AGENCY && waiting + incoming <= MAX_UNAPPROVED_PER_AGENCY;
+}
+
+/** What the upload preview may say about a figure that already exists. An
+ *  agency only learns the source of a figure the public can already see; for an
+ *  unapproved row (anyone's) it learns only that a figure exists. */
+export type ExistingFigureInfo =
+  | { shown: false }
+  | { shown: true; provenance: string; confidence: number; isSample: boolean };
+
+export function existingFigureInfo(row: {
+  provenance: string;
+  confidence: number;
+  isSample: boolean;
+  verifiedAt: Date | string | null;
+}): ExistingFigureInfo {
+  if (!isPubliclyVisibleStat(row)) return { shown: false };
+  return { shown: true, provenance: row.provenance, confidence: row.confidence, isSample: row.isSample };
 }

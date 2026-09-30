@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { AreaFigureCard } from "@/components/market/AreaFigureCard";
 import { OfficialSourceLink } from "@/components/market/OfficialSourceLink";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { SampleCaption } from "@/components/provenance/SampleCaption";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { ChartSampleNote } from "@/components/provenance/ChartSampleNote";
 import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
@@ -315,7 +316,7 @@ export default async function NeighborhoodPage({
                     )}
                   </div>
                   {live.length > 0 ? (
-                    live.map((l) => (
+                    live.map((l, liveIndex) => (
                       <div
                         key={l.id}
                         className="mt-2 flex flex-wrap items-center justify-between gap-2"
@@ -323,8 +324,8 @@ export default async function NeighborhoodPage({
                         <p className="text-lg font-bold text-teal-800 dark:text-teal-300">
                           {formatOMRWhole(decimalToNumber(l.price)!, locale)}
                           {l.listingType === "RENT" && l.rentPeriod && (
-                            <span className="ms-1 text-xs font-medium text-stone-500 dark:text-stone-400">
-                              {te(`rentPeriod.${l.rentPeriod}`)}
+                            <span className="text-xs font-medium text-stone-500 dark:text-stone-400">
+                              {" "}{te(`rentPeriod.${l.rentPeriod}`)}
                             </span>
                           )}
                         </p>
@@ -332,8 +333,12 @@ export default async function NeighborhoodPage({
                           <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600 dark:bg-stone-800 dark:text-stone-300">
                             {l.listingType === "SALE" ? tp("sale") : tp("rent")}
                           </span>
+                          {/* One sample badge per card: the home's own badge already says so,
+                              and only the first sample listing adds one when the home is real. */}
                           {l.isSample ? (
-                            <ProvenanceBadge isSample focusable={false} />
+                            !p.isSample && liveIndex === 0 ? (
+                              <ProvenanceBadge isSample focusable={!linked} />
+                            ) : null
                           ) : (
                             <ProvenanceBadge provenance={l.provenance} confidence={l.confidence} />
                           )}
@@ -347,7 +352,7 @@ export default async function NeighborhoodPage({
                   )}
                   <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
                     {te(`propertyType.${p.type}`)}
-                    {p.bedrooms != null && <> · {p.bedrooms} {tc("beds")}</>}
+                    {p.bedrooms != null && <> · {tc("bedsCount", { count: p.bedrooms, n: String(p.bedrooms) })}</>}
                     {p.bathrooms != null && <> · {p.bathrooms} {tc("baths")}</>}
                     {p.areaSqm != null && (
                       <> · {decimalToNumber(p.areaSqm)} {tc("sqm")}</>
@@ -356,6 +361,10 @@ export default async function NeighborhoodPage({
                   <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
                     {te(`ownership.${p.ownership}`)}
                   </p>
+                  {/* Linked cards cannot hold a focusable hint, so say it in plain view. */}
+                  {linked && (p.isSample || live.some((l) => l.isSample)) && (
+                    <SampleCaption className="mt-2" />
+                  )}
                 </Card>
               );
               return linked ? (

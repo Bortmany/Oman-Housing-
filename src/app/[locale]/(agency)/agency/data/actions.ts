@@ -22,7 +22,7 @@ import {
 } from "@/lib/csv/marketStatsImport";
 import {
   MAX_UNAPPROVED_PER_AGENCY,
-  agencyNoteMatch,
+  existingFigureInfo,
   agencyWriteFor,
   queueHasRoom,
 } from "@/lib/csv/agencyUpload";
@@ -57,11 +57,11 @@ async function requireAgency(): Promise<
   return { ok: true, session, agencyId: agency.id, agencyNameEn: agency.nameEn };
 }
 
-export type ExistingFigure = {
-  provenance: DataProvenance;
-  confidence: number;
-  isSample: boolean;
-};
+/** Only a figure the public can already see shows its source; an unapproved
+ *  row (anyone's) is just "a figure already exists". */
+export type ExistingFigure =
+  | { shown: false }
+  | { shown: true; provenance: DataProvenance; confidence: number; isSample: boolean };
 
 /** One preview row — plain JSON, safe to hand to the client. */
 export type PreviewGroup = {
@@ -175,6 +175,7 @@ async function existingFigures(groups: ImportGroup[]): Promise<Map<string, Exist
       provenance: true,
       confidence: true,
       isSample: true,
+      verifiedAt: true,
     },
   });
   for (const r of rows) {
@@ -183,37 +184,44 @@ async function existingFigures(groups: ImportGroup[]): Promise<Map<string, Exist
       : r.cityId
         ? (["city", r.cityId] as const)
         : (["governorate", r.governorateId!] as const);
-    found.set(groupKey(level, id, r.propertyType, r.periodStart.toISOString()), {
-      provenance: r.provenance,
-      confidence: r.confidence,
-      isSample: r.isSample,
-    });
+    found.set(
+      groupKey(level, id, r.propertyType, r.periodStart.toISOString()),
+      existingFigureInfo(r) as ExistingFigure,
+    );
   }
   return found;
 }
 
-/** This agency's figures still waiting for the owner (recognised by the agency
- *  name in the source note — MarketStat has no agency column). */
-async function waitingCount(agencyNameEn: string): Promise<number> {
-  const m = agencyNoteMatch(agencyNameEn);
+/** This agency's figures still waiting for the owner (counted by the agency id
+ *  stored on each row it sent). */
+async function waitingCount(agencyId: string): Promise<number> {
   return prisma.marketStat.count({
     where: {
       provenance: "USER_SUBMITTED",
       verifiedAt: null,
-      OR: [{ sourceNote: m.exact }, { sourceNote: { startsWith: m.startsWith } }],
+      submittedByAgencyId: agencyId,
     },
   });
+}
+
+/** Figures that will actually be sent (new ones). The preview and the confirm
+ *  step both use this, so the queue-room check is the same in both. */
+function readyFigures(parsed: ParseResult, existing: Map<string, ExistingFigure>): number {
+  const skipped = parsed.groups
+    .filter((g) => existing.has(keyOf(g)))
+    .reduce((n, g) => n + figureCount(g), 0);
+  return parsed.counts.figures - skipped;
 }
 
 async function buildPreview(parsed: ParseResult): Promise<UploadState> {
   const existing = await existingFigures(parsed.groups);
   const shown = parsed.groups.slice(0, PREVIEW_GROUPS);
-  const skipped = parsed.groups.filter((g) => existing.has(keyOf(g)));
-  const skippedFigures = skipped.reduce((n, g) => n + figureCount(g), 0);
+  const ready = readyFigures(parsed, existing);
+  const skippedFigures = parsed.counts.figures - ready;
   return {
     kind: "preview",
     figures: parsed.counts.figures,
-    readyFigures: parsed.counts.figures - skippedFigures,
+    readyFigures: ready,
     skippedFigures,
     problems: parsed.rowErrors.length,
     rowErrors: parsed.rowErrors.slice(0, PREVIEW_PROBLEMS),
@@ -242,7 +250,7 @@ export async function checkAgencyData(_prev: UploadState, formData: FormData): P
   if (!limit.allowed) return { kind: "rateLimited", minutes: Math.ceil(limit.retryAfter / 60) };
 
   try {
-    const waiting = await waitingCount(who.agencyNameEn);
+    const waiting = await waitingCount(who.agencyId);
     if (waiting >= MAX_UNAPPROVED_PER_AGENCY) return { kind: "queueFull", waiting };
     const read = await readAndParse(formData);
     if (!read.ok) return read.state;
@@ -275,7 +283,7 @@ export async function confirmAgencyData(_prev: UploadState, formData: FormData):
 
   let parsed: ParseResult;
   try {
-    const waiting = await waitingCount(who.agencyNameEn);
+    const waiting = await waitingCount(who.agencyId);
     if (waiting >= MAX_UNAPPROVED_PER_AGENCY) return { kind: "queueFull", waiting };
     const read = await readAndParse(formData);
     if (!read.ok) return read.state;
@@ -283,7 +291,8 @@ export async function confirmAgencyData(_prev: UploadState, formData: FormData):
     if (parsed.rowErrors.length > 0 || parsed.groups.length === 0) {
       return await buildPreview(parsed);
     }
-    if (!queueHasRoom(waiting, parsed.groups.length)) return { kind: "queueFull", waiting };
+    const ready = readyFigures(parsed, await existingFigures(parsed.groups));
+    if (!queueHasRoom(waiting, ready)) return { kind: "queueFull", waiting };
   } catch (err) {
     console.error("[agency-data] re-check failed", err);
     return { kind: "serverError" };
@@ -299,7 +308,7 @@ export async function confirmAgencyData(_prev: UploadState, formData: FormData):
         propertyType: g.propertyType,
         periodStart: new Date(`${g.periodStart}T00:00:00.000Z`),
         metrics: g.metrics,
-        ...agencyWriteFor(g, who.agencyNameEn),
+        ...agencyWriteFor(g, who.agencyNameEn, who.agencyId),
       });
       if (result.skipped) skippedFigures += figureCount(g);
       else savedFigures += figureCount(g);

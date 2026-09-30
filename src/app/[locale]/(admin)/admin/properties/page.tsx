@@ -2,6 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { decimalToNumber } from "@/lib/money";
 import { localName } from "@/lib/i18nData";
+import { SampleCaption } from "@/components/provenance/SampleCaption";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -69,7 +70,7 @@ export default async function PropertiesAdminPage({
                 <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
                   {localName(locale, p.neighborhood.nameEn, p.neighborhood.nameAr)}{" "}
                   · {te(`propertyType.${p.type}`)}
-                  {p.bedrooms != null && <> · {p.bedrooms} {tc("beds")}</>}
+                  {p.bedrooms != null && <> · {tc("bedsCount", { count: p.bedrooms, n: String(p.bedrooms) })}</>}
                   {p.areaSqm != null && (
                     <> · {decimalToNumber(p.areaSqm)} {tc("sqm")}</>
                   )}
@@ -77,6 +78,7 @@ export default async function PropertiesAdminPage({
                 <div className="mt-3">
                   <ProvenanceBadge provenance={p.provenance} confidence={p.confidence} isSample={p.isSample} focusable={false} />
                 </div>
+                {p.isSample && <SampleCaption className="mt-2" />}
               </Card>
             </Link>
           ))}

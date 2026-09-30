@@ -47,8 +47,8 @@ export function ListingCard({
           <p className="text-lg font-bold text-teal-800 dark:text-teal-300">
             {formatOMRWhole(decimalToNumber(listing.price)!, locale)}
             {listing.listingType === "RENT" && listing.rentPeriod && (
-              <span className="ms-1 text-xs font-medium text-stone-500 dark:text-stone-400">
-                {te(`rentPeriod.${listing.rentPeriod}`)}
+              <span className="text-xs font-medium text-stone-500 dark:text-stone-400">
+                {" "}{te(`rentPeriod.${listing.rentPeriod}`)}
               </span>
             )}
           </p>
@@ -67,7 +67,7 @@ export function ListingCard({
           {localName(locale, p.neighborhood.nameEn, p.neighborhood.nameAr)},{" "}
           {localName(locale, p.neighborhood.city.nameEn, p.neighborhood.city.nameAr)}
           {" · "}{te(`propertyType.${p.type}`)}
-          {p.bedrooms != null && <> · {p.bedrooms} {tc("beds")}</>}
+          {p.bedrooms != null && <> · {tc("bedsCount", { count: p.bedrooms, n: String(p.bedrooms) })}</>}
           {p.areaSqm != null && <> · {decimalToNumber(p.areaSqm)} {tc("sqm")}</>}
         </p>
 

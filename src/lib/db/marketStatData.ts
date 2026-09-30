@@ -35,6 +35,8 @@ export type MarketStatWriteInput = {
   sourceNote?: string | null;
   sourceUrl?: string | null;
   verifiedById?: string | null;
+  /** Set only by agency uploads; every other write clears it. */
+  submittedByAgencyId?: string | null;
 };
 
 export function buildMarketStatWriteData(
@@ -52,6 +54,7 @@ export function buildMarketStatWriteData(
     sourceNote: args.sourceNote ?? null,
     sourceUrl: args.sourceUrl ?? null,
     isSample: false,
+    submittedByAgencyId: args.submittedByAgencyId ?? null,
     ...(args.provenance === "VERIFIED"
       ? { verifiedById: args.verifiedById ?? null, verifiedAt: now }
       : // A replaced row must not keep a stale verified stamp.

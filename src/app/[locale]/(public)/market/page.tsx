@@ -10,6 +10,7 @@ import { localName, formatMonth } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
 import { AreaFigureCard } from "@/components/market/AreaFigureCard";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { SampleCaption } from "@/components/provenance/SampleCaption";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { ChartSampleNote } from "@/components/provenance/ChartSampleNote";
 import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
@@ -251,6 +252,7 @@ export default async function MarketPage({
                         {formatMonth(locale, s.periodStart)}
                       </span>
                     </div>
+                    {s.isSample && <SampleCaption className="mt-2" />}
                   </Card>
                 </Link>
               );

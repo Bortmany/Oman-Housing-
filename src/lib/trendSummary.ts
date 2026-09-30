@@ -16,6 +16,8 @@ export type TrendInputPoint = {
   provenance: DataProvenance;
   confidence: number;
   isSample: boolean;
+  /** Listings behind a LISTING_DERIVED average; null/absent for other sources. */
+  sampleSize?: number | null;
 };
 
 export type TrendSummary = {
@@ -27,6 +29,8 @@ export type TrendSummary = {
   confidence: number;
   /** true when any point used is sample data — the badge then says "Sample data". */
   isSample: boolean;
+  /** Listings behind the newest LISTING_DERIVED point used (null when none). */
+  sampleSize: number | null;
 };
 
 // Strongest first. Averages from live listings (asking prices) rank below a
@@ -61,6 +65,7 @@ export function summarizeTrend(
   if (usable.length < 2) return null;
   const first = usable[0].value!;
   const last = usable[usable.length - 1].value!;
+  const newestDerived = [...usable].reverse().find((p) => p.provenance === "LISTING_DERIVED");
   return {
     series: usable.map((p) => p.value!),
     changePct: ((last - first) / first) * 100,
@@ -69,5 +74,17 @@ export function summarizeTrend(
     provenance: weakestProvenance(usable.map((p) => p.provenance)),
     confidence: Math.min(...usable.map((p) => p.confidence)),
     isSample: usable.some((p) => p.isSample),
+    sampleSize: newestDerived?.sampleSize ?? null,
   };
+}
+
+/** "+5.0%" / "-3.4%": always one decimal and a sign (Latin digits in both languages). */
+export function formatGrowthPct(changePct: number, locale: string): string {
+  if (!Number.isFinite(changePct)) return "—";
+  const n = new Intl.NumberFormat(locale === "ar" ? "ar-OM-u-nu-latn" : "en-OM", {
+    signDisplay: "exceptZero",
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(changePct);
+  return `${n}%`;
 }

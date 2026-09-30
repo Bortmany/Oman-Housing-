@@ -10,6 +10,7 @@ import {
   AGENCY_NOTE_PREFIX,
   MAX_UNAPPROVED_PER_AGENCY,
   agencyNoteMatch,
+  existingFigureInfo,
   agencySourceNote,
   agencyWriteFor,
   isAgencyUploadNote,
@@ -51,7 +52,7 @@ const sneaky = parseAgency(
 
 for (const [label, result] of [["good", good], ["sneaky", sneaky]] as const) {
   expectEqual(`${label}: parsed with no problems`, [result.fileErrors.length, result.rowErrors.length], [0, 0]);
-  const writes = result.groups.map((g) => agencyWriteFor(g, "Bay Estates"));
+  const writes = result.groups.map((g) => agencyWriteFor(g, "Bay Estates", "ag1"));
   expectEqual(`${label}: never OFFICIAL_STAT or VERIFIED`, writes.every((w) => w.provenance === "USER_SUBMITTED"), true);
   expectEqual(`${label}: confidence is the fixed agency value`, writes.every((w) => w.confidence === AGENCY_CONFIDENCE && w.confidence === 0.5), true);
   expectEqual(`${label}: every write is skip-on-conflict`, writes.every((w) => w.onConflict === "skip"), true);
@@ -63,7 +64,7 @@ for (const provenance of ["OFFICIAL_STAT", "VERIFIED", "USER_SUBMITTED", "AI_EST
   for (const isSample of [false, true]) {
     expectEqual(
       `skip never replaces ${provenance}${isSample ? " (sample)" : ""}`,
-      mayReplaceExistingStat(agencyWriteFor(good.groups[0], "Bay Estates").onConflict, { provenance, isSample }),
+      mayReplaceExistingStat(agencyWriteFor(good.groups[0], "Bay Estates", "ag1").onConflict, { provenance, isSample }),
       false,
     );
   }
@@ -78,7 +79,7 @@ expectEqual(
 );
 expectEqual(
   "saved notes carry the agency name",
-  good.groups.every((g) => agencyWriteFor(g, "Bay Estates").sourceNote.startsWith(`${AGENCY_NOTE_PREFIX}Bay Estates`)),
+  good.groups.every((g) => agencyWriteFor(g, "Bay Estates", "ag1").sourceNote.startsWith(`${AGENCY_NOTE_PREFIX}Bay Estates`)),
   true,
 );
 expectEqual("note recognised as an agency upload", [isAgencyUploadNote("Submitted by agency: X"), isAgencyUploadNote("Official"), isAgencyUploadNote(null)], [true, false, false]);
@@ -86,6 +87,33 @@ expectEqual("queue note shapes", agencyNoteMatch(" Bay Estates "), {
   exact: "Submitted by agency: Bay Estates",
   startsWith: "Submitted by agency: Bay Estates - ",
 });
+
+// The agency id is stored on every saved row (the queue is counted by it).
+expectEqual(
+  "saved rows carry the agency id",
+  good.groups.every((g) => agencyWriteFor(g, "Bay Estates", "ag1").submittedByAgencyId === "ag1"),
+  true,
+);
+
+// The preview never reveals the source of a figure the public cannot see.
+{
+  const base = { confidence: 0.5, isSample: false };
+  expectEqual(
+    "unapproved submission: nothing revealed",
+    existingFigureInfo({ ...base, provenance: "USER_SUBMITTED", verifiedAt: null }),
+    { shown: false },
+  );
+  expectEqual(
+    "approved submission: shown",
+    existingFigureInfo({ ...base, provenance: "USER_SUBMITTED", verifiedAt: new Date() }),
+    { shown: true, provenance: "USER_SUBMITTED", confidence: 0.5, isSample: false },
+  );
+  expectEqual(
+    "official figure: shown",
+    existingFigureInfo({ ...base, provenance: "OFFICIAL_STAT", verifiedAt: null }).shown,
+    true,
+  );
+}
 
 // The waiting-queue cap.
 expectEqual("queue: room", queueHasRoom(0, 8), true);

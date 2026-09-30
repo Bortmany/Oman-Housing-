@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { redirect } from "@/i18n/navigation";
 import { auth } from "@/auth";
 import { agencyById } from "@/lib/db/agencies";
 import { Card } from "@/components/ui/Card";
@@ -10,12 +11,16 @@ export async function generateMetadata() {
   return { title: t("title") };
 }
 
-export default async function AgencyDataPage() {
+export default async function AgencyDataPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   const [t, session] = await Promise.all([getTranslations("agencyData"), auth()]);
   // The (agency) layout guards the role; this page also needs the agency link.
-  if (session?.user.role !== "AGENCY" || !session.user.agencyId) return null;
+  // Same check as the actions: anyone else is sent away, not shown a blank page.
+  if (session?.user.role !== "AGENCY" || !session.user.agencyId) {
+    return redirect({ href: "/login", locale });
+  }
   const agency = await agencyById(session.user.agencyId);
-  if (!agency) return null;
+  if (!agency) return redirect({ href: "/login", locale });
 
   // Not approved yet: explain, offer the way back, show no upload box at all.
   if (!agency.isApproved) {

@@ -551,16 +551,18 @@ function PreviewTable({ groups, locale }: { groups: PreviewGroup[]; locale: stri
                     >
                       {t("status.skipped")}
                     </span>
-                    <div>
-                      {g.existing.isSample ? (
-                        <ProvenanceBadge isSample />
-                      ) : (
-                        <ProvenanceBadge
-                          provenance={g.existing.provenance as DataProvenance}
-                          confidence={g.existing.confidence}
-                        />
-                      )}
-                    </div>
+                    {g.existing.shown && (
+                      <div>
+                        {g.existing.isSample ? (
+                          <ProvenanceBadge isSample />
+                        ) : (
+                          <ProvenanceBadge
+                            provenance={g.existing.provenance}
+                            confidence={g.existing.confidence}
+                          />
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <span className="inline-block rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700 dark:bg-stone-800 dark:text-stone-300">

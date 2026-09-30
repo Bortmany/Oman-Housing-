@@ -210,6 +210,13 @@ expectEqual("one real market figure → sample-only mode off", isSampleOnlySite(
   );
   expectEqual("verified write records who and when", [verified.verifiedById, verified.verifiedAt], ["admin1", now]);
   expectEqual("verified write is not sample either", verified.isSample, false);
+  expectEqual("write with no agency clears the agency id", data.submittedByAgencyId, null);
+  expectEqual(
+    "agency write keeps the agency id",
+    buildMarketStatWriteData({ metrics: {}, provenance: "USER_SUBMITTED", confidence: 0.5, submittedByAgencyId: "ag1" })
+      .submittedByAgencyId,
+    "ag1",
+  );
   expectEqual("non-verified write clears stale verified stamp", [data.verifiedById, data.verifiedAt], [null, null]);
 }
 

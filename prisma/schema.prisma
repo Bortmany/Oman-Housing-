@@ -319,6 +319,10 @@ model MarketStat {
   verifiedById String?
   verifiedAt   DateTime?
   isSample     Boolean        @default(false) // see Property.isSample
+  // Which agency sent this figure (agency uploads only; null otherwise). Used
+  // to count an agency's own waiting queue — no relation, so deleting an
+  // agency never touches stat rows.
+  submittedByAgencyId String?
 
   governorate  Governorate?  @relation(fields: [governorateId], references: [id])
   city         City?         @relation(fields: [cityId], references: [id])
@@ -331,6 +335,7 @@ model MarketStat {
   @@unique([governorateId, cityId, neighborhoodId, propertyType, periodStart])
   @@index([neighborhoodId, propertyType, periodStart])
   @@index([periodStart])
+  @@index([submittedByAgencyId])
 }
 
 // ---------- Valuations & AI ----------

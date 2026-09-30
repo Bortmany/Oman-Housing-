@@ -324,7 +324,7 @@ export async function upsertMarketStat(
     periodStart: Date;
     onConflict?: StatConflictMode;
   },
-): Promise<{ id: string; updated: boolean; skipped: boolean }> {
+): Promise<{ id: string; updated: boolean; skipped: boolean; replacedSample: boolean }> {
   const scopeWhere: Prisma.MarketStatWhereInput = {
     governorateId: args.scope.kind === "governorate" ? args.scope.id : null,
     cityId: args.scope.kind === "city" ? args.scope.id : null,
@@ -346,10 +346,10 @@ export async function upsertMarketStat(
 
   if (existing) {
     if (!mayReplaceExistingStat(args.onConflict ?? "replace", existing)) {
-      return { id: existing.id, updated: false, skipped: true };
+      return { id: existing.id, updated: false, skipped: true, replacedSample: false };
     }
     await prisma.marketStat.update({ where: { id: existing.id }, data });
-    return { id: existing.id, updated: true, skipped: false };
+    return { id: existing.id, updated: true, skipped: false, replacedSample: existing.isSample };
   }
 
   const created = await prisma.marketStat.create({
@@ -364,5 +364,5 @@ export async function upsertMarketStat(
       periodStart: args.periodStart,
     },
   });
-  return { id: created.id, updated: false, skipped: false };
+  return { id: created.id, updated: false, skipped: false, replacedSample: false };
 }

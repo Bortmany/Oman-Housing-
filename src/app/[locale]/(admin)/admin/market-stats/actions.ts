@@ -113,7 +113,7 @@ export async function saveMarketStat(
   }
 
   const [year, month] = d.period.split("-").map(Number);
-  const { updated } = await upsertMarketStat({
+  const { updated, replacedSample } = await upsertMarketStat({
     scope: parseScope(d.scope),
     propertyType: d.propertyType,
     periodStart: new Date(Date.UTC(year, month - 1, 1)),
@@ -129,7 +129,7 @@ export async function saveMarketStat(
   revalidatePath("/", "layout");
   const locale = await getLocale();
   redirect({
-    href: `/admin/market-stats?saved=1${updated ? "&updated=1" : ""}`,
+    href: `/admin/market-stats?saved=1${replacedSample ? "&replacedSample=1" : updated ? "&updated=1" : ""}`,
     locale,
   });
   return null;

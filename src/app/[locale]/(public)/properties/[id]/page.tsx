@@ -149,8 +149,8 @@ export default async function PropertyDetailPage({
                       <span className="text-lg font-bold text-teal-800 dark:text-teal-300">
                         {formatOMRWhole(decimalToNumber(l.price)!, locale)}
                         {l.rentPeriod && (
-                          <span className="ms-1 text-xs font-medium text-stone-500 dark:text-stone-400">
-                            {te(`rentPeriod.${l.rentPeriod}`)}
+                          <span className="text-xs font-medium text-stone-500 dark:text-stone-400">
+                            {" "}{te(`rentPeriod.${l.rentPeriod}`)}
                           </span>
                         )}
                       </span>

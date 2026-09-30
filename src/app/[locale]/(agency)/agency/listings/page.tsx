@@ -89,8 +89,8 @@ export default async function AgencyListingsPage({
                   <td className="px-4 py-3">
                     {formatOMRWhole(decimalToNumber(l.price)!, locale)}
                     {l.rentPeriod && (
-                      <span className="ms-1 text-xs text-stone-500 dark:text-stone-400">
-                        {te(`rentPeriod.${l.rentPeriod}`)}
+                      <span className="text-xs text-stone-500 dark:text-stone-400">
+                        {" "}{te(`rentPeriod.${l.rentPeriod}`)}
                       </span>
                     )}
                   </td>

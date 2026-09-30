@@ -64,8 +64,8 @@ async function CompareColumn({
           <p className="text-lg font-bold text-teal-800 dark:text-teal-300">
             {formatOMRWhole(decimalToNumber(listing.price)!, locale)}
             {listing.rentPeriod && (
-              <span className="ms-1 text-xs font-medium text-stone-500 dark:text-stone-400">
-                {te(`rentPeriod.${listing.rentPeriod}`)}
+              <span className="text-xs font-medium text-stone-500 dark:text-stone-400">
+                {" "}{te(`rentPeriod.${listing.rentPeriod}`)}
               </span>
             )}
             <span className="ms-2 text-xs font-medium text-stone-500 dark:text-stone-400">
@@ -73,7 +73,7 @@ async function CompareColumn({
             </span>
           </p>
           <p className="text-xs text-stone-500 dark:text-stone-400">
-            {p.bedrooms != null && <>{p.bedrooms} {tc("beds")} · </>}
+            {p.bedrooms != null && <>{tc("bedsCount", { count: p.bedrooms, n: String(p.bedrooms) })} · </>}
             {p.bathrooms != null && <>{p.bathrooms} {tc("baths")} · </>}
             {p.areaSqm != null && <>{decimalToNumber(p.areaSqm)} {tc("sqm")}</>}
           </p>

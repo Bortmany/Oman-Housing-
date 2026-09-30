@@ -14,10 +14,10 @@ import { currentMonthStartUtc } from "@/lib/listingAveragesJob";
 export default async function MarketStatsAdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; updated?: string; deleted?: string }>;
+  searchParams: Promise<{ saved?: string; updated?: string; replacedSample?: string; deleted?: string }>;
 }) {
   await enforceAdminPage(); // guard BEFORE any DB query (see require-admin.ts)
-  const { saved, updated, deleted } = await searchParams;
+  const { saved, updated, replacedSample, deleted } = await searchParams;
   const [t, tm, te, tl, tr, locale, stats, lastDerived, liveDerived] = await Promise.all([
     getTranslations("admin"),
     getTranslations("market"),
@@ -74,7 +74,13 @@ export default async function MarketStatsAdminPage({
 
       {(saved || deleted) && (
         <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-400/30">
-          {deleted ? t("deleted") : updated ? t("duplicateUpdated") : t("saved")}
+          {deleted
+            ? t("deleted")
+            : replacedSample
+              ? t("replacedSample")
+              : updated
+                ? t("duplicateUpdated")
+                : t("saved")}
         </p>
       )}
 
