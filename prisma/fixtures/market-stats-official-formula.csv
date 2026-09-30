@@ -1,0 +1,4 @@
+area_level,area,property_type,metric,value,period_start,period_type,source_url,source_note,confidence
+governorate,muscat,APARTMENT,avgSalePrice,68500.000,2026-04-01,quarter,https://www.ncsi.gov.om/,"=HYPERLINK(""http://example.com"",""x"") TEST FIXTURE — not real data",
+governorate,muscat,VILLA,avgSalePrice,142750.000,2026-04-01,quarter,https://www.ncsi.gov.om/,+1+1 TEST FIXTURE — not real data,
+governorate,dhofar,APARTMENT,avgSalePrice,52300.000,2026-04-01,quarter,https://www.ncsi.gov.om/,@SUM(A1) TEST FIXTURE — not real data,

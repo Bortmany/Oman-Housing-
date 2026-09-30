@@ -1,0 +1,9 @@
+area_level,area,property_type,metric,value,period_start,period_type,source_url,source_note,confidence
+city,seeb,VILLA,avgSalePrice,158000.000,2026-06-01,month,https://www.bayestates.example/reports/2026-06,TEST FIXTURE — not real data (agency own listings data),0.95
+city,seeb,VILLA,avgRentMonthly,850.000,2026-06-01,month,https://www.bayestates.example/reports/2026-06,TEST FIXTURE — not real data (agency own listings data),0.95
+city,muttrah,APARTMENT,avgRentMonthly,290.000,2026-06-01,month,https://www.bayestates.example/reports/2026-06,TEST FIXTURE — not real data (agency own listings data),0.9
+neighborhood,qurum,APARTMENT,avgSalePrice,96500.000,2026-06-01,month,https://www.bayestates.example/reports/2026-06,TEST FIXTURE — not real data (agency own listings data),0.8
+neighborhood,qurum,APARTMENT,avgRentMonthly,480.000,2026-06-01,month,https://www.bayestates.example/reports/2026-06,TEST FIXTURE — not real data (agency own listings data),0.8
+neighborhood,al-khuwair,APARTMENT,avgPricePerSqm,835.500,2026-06-01,month,https://www.bayestates.example/reports/2026-06,TEST FIXTURE — not real data (agency own listings data),0.9
+neighborhood,al-mouj,APARTMENT,avgSalePrice,118000.000,2026-06-01,month,https://www.bayestates.example/reports/2026-06,TEST FIXTURE — not real data (agency own listings data),1
+neighborhood,hawana-salalah,VILLA,avgSalePrice,175000.000,2026-06-01,month,https://www.bayestates.example/reports/2026-06,TEST FIXTURE — not real data (agency own listings data),0.7

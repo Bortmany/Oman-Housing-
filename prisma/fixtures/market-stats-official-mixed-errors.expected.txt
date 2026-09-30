@@ -1,0 +1,19 @@
+# Expected problems for market-stats-official-mixed-errors.csv (official mode, neighbourhood box not ticked).
+# Format: line,column,code   (line 1 = header; blank column = the error belongs to the whole line)
+# Lines starting with # are comments. Each problem row has exactly one fault; nothing else is wrong with it.
+2,area,required
+3,area_level,badAreaLevel
+4,area,areaNotFound
+5,property_type,badPropertyType
+6,metric,badMetric
+7,value,badNumber
+8,value,outOfRange
+9,value,tooManyDecimals
+10,period_start,badDate
+11,period_type,badPeriodType
+12,source_url,badUrl
+13,confidence,badConfidence
+14,source_note,tooLong
+15,,duplicateRow
+16,,duplicateRow
+18,source_url,conflictingGroup

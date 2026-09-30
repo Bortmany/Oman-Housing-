@@ -1,0 +1,13 @@
+area_level,area,property_type,metric,value,period_start,period_type,source_url,source_note,confidence
+governorate,muscat,APARTMENT,avgSalePrice,٦٨٥٠٠٫٠٠٠,٢٠٢٦-٠٤-٠١,quarter,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped average sale price),
+governorate,muscat,APARTMENT,avgRentMonthly,٣٤٥٫٥٠٠,٢٠٢٦-٠٤-٠١,,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped average rent),
+governorate,muscat,APARTMENT,avgPricePerSqm,742.250,2026-04-01,,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped price per sqm),
+governorate,muscat,VILLA,avgSalePrice,۱۴۲۷۵۰٫۰۰۰,۲۰۲۶-۰۴-۰۱,,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped average sale price),
+governorate,muscat,VILLA,avgRentMonthly,820.000,2026-04-01,,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped average rent),
+governorate,muscat,,avgPricePerSqm,٦٩0.٥,2026-04-01,,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped all-types price per sqm; mixed-script value),
+governorate,dhofar,APARTMENT,avgSalePrice,52300.000,٢٠٢٦-٠٤-٠١,quarter,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped average sale price),
+governorate,dhofar,APARTMENT,avgRentMonthly,۲۱۰٫۵,2026-04-01,,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped average rent),
+governorate,dhofar,VILLA,avgSalePrice,"118,400.000",2026-04-01,,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped average sale price),
+governorate,dhofar,,avgPricePerSqm,٥١٢٫٧٥٠,2026-04-01,,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped all-types price per sqm),٠٫٨٥
+city,seeb,,transactionCount,"1,250",2026-04-01,month,https://mohup.gov.om/en/open-data/data/Realestate%20Transaction,TEST FIXTURE — not real data (MOHUP-shaped monthly land deals),
+city,salalah,,transactionCount,٢٦٨,2026-04-01,month,https://mohup.gov.om/en/open-data/data/Realestate%20Transaction,TEST FIXTURE — not real data (MOHUP-shaped monthly land deals),
