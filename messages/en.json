@@ -1326,5 +1326,26 @@
       "tipArea": "Inside walls, in square metres.",
       "photosOptional": "Photos (optional)"
     }
+  },
+  "priceMap": {
+    "title": "Price per square metre, by area",
+    "subtitle": "Each circle is one neighbourhood. Colour shows the price per square metre; a bigger circle means more data behind it.",
+    "mapLabel": "Map of average price per square metre by neighbourhood. The same figures are listed in the cards below.",
+    "legendTitle": "Price per square metre",
+    "noData": "No data",
+    "noDataHint": "No price per square metre recorded for this area yet.",
+    "sizeKey": "Bigger circle = larger sample",
+    "sourceLabel": "Weakest source shown on this map:",
+    "latestNote": "Each area shows its latest recorded month.",
+    "sampleNote": "This map currently shows sample data only — not real market prices.",
+    "unplaced": "{count} areas have figures but no map position yet — see the cards below.",
+    "popupPrice": "{value} per sqm",
+    "popupSample": "Sample size: {count}",
+    "popupMonth": "Figure for {month}",
+    "popupOpen": "View area",
+    "loading": "Loading map…",
+    "mapFailed": "The map could not load. The figures are listed below.",
+    "gestureTouch": "Use two fingers to move the map",
+    "gestureScroll": "Use Ctrl + scroll to zoom the map"
   }
 }
