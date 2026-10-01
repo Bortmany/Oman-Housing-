@@ -103,6 +103,13 @@ async function main() {
     expectEqual("4th unfinished draft refused", !d4.ok && d4.error, "draftLimit");
     expectEqual("drafts use no slots", await core.slotsUsed(A), 0);
 
+    // Five new drafts fired at once by a fresh owner: only the cap (3) get in.
+    const ownerD = await mkUser("d", { phone: "+968 93456789", phoneVerifiedAt: new Date() });
+    const D: TestActor = { userId: ownerD.id, agencyId: null };
+    const burst = await Promise.all(Array.from({ length: 5 }, () => core.saveListing(D, { values: values() })));
+    expectEqual("5 drafts at once: only the cap get in", burst.filter((r) => r.ok).length, rules.OWNER_DRAFT_CAP);
+    expectEqual("the rest told draftLimit", burst.filter((r) => !r.ok && r.error === "draftLimit").length, 5 - rules.OWNER_DRAFT_CAP);
+
     // ----- bytes check, size, count -----
     const fake = await core.addPhoto(A, idA, new File(["#!/bin/sh\necho hi"], "evil.jpg", { type: "image/jpeg" }));
     expectEqual("text file renamed .jpg refused by its bytes", !fake.ok && fake.error, "photoType");

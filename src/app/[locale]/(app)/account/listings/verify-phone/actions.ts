@@ -2,7 +2,9 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { claimCodeTry } from "@/lib/phoneAttempts";
+import { headers } from "next/headers";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import {
   codeExpiry,
   codeState,
@@ -18,6 +20,7 @@ import {
   parseOmaniMobile,
   toE164,
   triesLeft,
+  MAX_ATTEMPTS,
   RESEND_COOLDOWN_SECONDS,
 } from "@/lib/phoneVerify";
 import {
@@ -129,28 +132,37 @@ export async function verifyPhoneAction(
       return { step: "done", masked, nonce };
     }
 
-    // One verified number belongs to one account.
-    const taken = await prisma.user.findFirst({
-      where: { phone: stored, phoneVerifiedAt: { not: null }, id: { not: userId } },
-      select: { id: true },
-    });
-    if (taken) return { step: "phone", error: "phoneInUse", nonce };
-
     // 60 seconds between texts (checked first, so a refused click costs nothing).
     const wait = cooldownSecondsLeft(user.phoneVerifySentAt, now());
     if (wait > 0) {
       return { step: errorStep, masked, error: "wait", resendIn: wait, nonce };
     }
 
-    // Money guard: 3 texts an hour per account and per number.
+    // Money guard, applied BEFORE we look at anyone else's data: 3 texts an
+    // hour per account, 10 per network address, and 3 per account-and-number
+    // pair. The number's limit is per sender on purpose, so a stranger typing
+    // someone's number cannot use up that owner's own sends.
+    const ip = getClientIp(await headers());
     const perUser = checkRateLimit(`owner:sms:send:user:${userId}`, { limit: 3, windowMs: HOUR });
-    const perPhone = checkRateLimit(`owner:sms:send:phone:${e164}`, { limit: 3, windowMs: HOUR });
-    if (!perUser.allowed || !perPhone.allowed) {
-      return { step: errorStep, masked, error: "rateLimited", nonce };
+    const perIp = checkRateLimit(`owner:sms:send:ip:${ip}`, { limit: 10, windowMs: HOUR });
+    const perPair = checkRateLimit(`owner:sms:send:pair:${userId}:${e164}`, { limit: 3, windowMs: HOUR });
+    if (!perUser.allowed || !perIp.allowed || !perPair.allowed) {
+      return { step: errorStep, masked, error: "rateLimited", resendIn: wait, nonce };
     }
 
+    // One verified number belongs to one account. We do NOT say so here: the
+    // answer looks exactly like "code sent" (so nobody can probe which numbers
+    // are taken), but no text goes out and no usable code is kept. The refusal
+    // comes at the confirm step, in neutral words.
+    const taken = await prisma.user.findFirst({
+      where: { phone: stored, phoneVerifiedAt: { not: null }, id: { not: userId } },
+      select: { id: true },
+    });
+
     let codeHash: string | null = null;
-    if (mode === "twilio") {
+    if (taken) {
+      // Nothing is sent and no code exists: any code typed later will fail.
+    } else if (mode === "twilio") {
       const sent = await sendVerificationCode(e164);
       if (sent.status !== "sent") {
         return { step: errorStep, masked, error: "sendFailed", nonce };
@@ -200,8 +212,27 @@ export async function verifyPhoneAction(
       return { step: "code", masked, error: "rateLimited", resendIn: wait, nonce };
     }
 
+    // This is where "number can't be used" is told (never at send time).
+    const inUse = await prisma.user.findFirst({
+      where: { phone: pending, phoneVerifiedAt: { not: null }, id: { not: userId } },
+      select: { id: true },
+    });
+    if (inUse) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          phoneVerifyPending: null,
+          phoneVerifyCodeHash: null,
+          phoneVerifyExpiresAt: null,
+          phoneVerifyAttempts: 0,
+        },
+      });
+      return { step: "phone", error: "phoneInUse", nonce };
+    }
+
     const code = normalizeCode(String(formData.get("code") ?? ""));
     const state = codeState(user, now());
+    let attemptsBefore = user.phoneVerifyAttempts;
 
     // Is it the right code? (Only worth asking when our own rules allow a try.)
     let matches = false;
@@ -218,9 +249,21 @@ export async function verifyPhoneAction(
           nonce,
         };
       }
+      // Claim one of the 5 tries in a single database step BEFORE checking, so
+      // many parallel guesses cannot all slip in under the limit.
+      const before = await claimCodeTry(userId, pending);
+      if (before === null) {
+        return { step: "code", masked, error: "tooManyTries", resendIn: wait, nonce };
+      }
+      attemptsBefore = before;
       if (getSmsMode() === "twilio") {
         const checked = await checkVerificationCode(e164, code);
         if (checked.status === "failed" || checked.status === "not-configured") {
+          // Our fault, not the visitor's: give the try back.
+          await prisma.user.updateMany({
+            where: { id: userId, phoneVerifyAttempts: { gt: 0 } },
+            data: { phoneVerifyAttempts: { decrement: 1 } },
+          });
           return { step: "code", masked, error: "sendFailed", resendIn: wait, nonce };
         }
         matches = checked.status === "approved";
@@ -235,7 +278,7 @@ export async function verifyPhoneAction(
 
     const outcome = providerExpired
       ? ({ result: "expired" } as const)
-      : decideCheck(state, user.phoneVerifyAttempts, matches);
+      : decideCheck(state, attemptsBefore, matches);
 
     if (outcome.result === "verified") {
       // Re-check the one-number-one-account rule at the last moment.
@@ -259,10 +302,7 @@ export async function verifyPhoneAction(
     }
 
     if (outcome.result === "wrong") {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { phoneVerifyAttempts: outcome.attempts },
-      });
+      // The try was already counted when we claimed it above.
       return {
         step: "code",
         masked,

@@ -11,6 +11,7 @@ import {
   draftCapFor,
   isOwnersFirstListing,
   isPropertyPublic,
+  canMarkVerified,
   isSameIdSet,
   mayRemoveLastPhoto,
   ownerHasSlot,
@@ -174,6 +175,10 @@ expectEqual("owner can't drop the last photo of a live listing", mayRemoveLastPh
 expectEqual("owner can't drop the last photo of an in-review listing", mayRemoveLastPhoto(owner, "PENDING_REVIEW"), false);
 expectEqual("owner can on a draft", mayRemoveLastPhoto(owner, "DRAFT"), true);
 expectEqual("agency may (no minimum)", mayRemoveLastPhoto(agencyA, "ACTIVE"), true);
+expectEqual("private-owner home can't be marked verified", canMarkVerified([{ agencyId: null }]), false);
+expectEqual("agency home can", canMarkVerified([{ agencyId: "ag" }]), true);
+expectEqual("admin record with no listings can", canMarkVerified([]), true);
+expectEqual("mixed with an owner listing can't", canMarkVerified([{ agencyId: "ag" }, { agencyId: null }]), false);
 
 if (failures > 0) {
   console.error(`\n${failures} listing-rule test(s) failed`);

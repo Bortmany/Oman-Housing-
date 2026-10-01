@@ -201,31 +201,38 @@ export async function saveListing(
     if (!isPhoneVerified(await ownerRow(actor.userId))) return fail("phoneNotVerified");
   }
 
-  const drafts = await prisma.listing.count({
-    where: { ...ownershipWhere(actor), status: "DRAFT" },
-  });
-  if (!underDraftCap(actor, drafts)) return fail("draftLimit", { count: drafts });
+  // Count the drafts and create the new one in one transaction that first
+  // locks this user's row (the same lock sendForReview takes), so several quick
+  // clicks cannot all slip under the draft cap.
+  const created = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${actor.userId} FOR UPDATE`;
+    const drafts = await tx.listing.count({
+      where: { ...ownershipWhere(actor), status: "DRAFT" },
+    });
+    if (!underDraftCap(actor, drafts)) return { draftsAtCap: drafts };
 
-  // Never trusted from the browser: status, agency, creator, provenance.
-  const created = await prisma.property.create({
-    data: {
-      ...propertyData,
-      provenance: "USER_SUBMITTED",
-      confidence: SUBMITTED_CONFIDENCE,
-      sourceNote,
-      listings: {
-        create: {
-          ...listingData,
-          status: "DRAFT",
-          agencyId: actor.agencyId,
-          createdById: actor.userId,
-          provenance: "USER_SUBMITTED",
-          confidence: SUBMITTED_CONFIDENCE,
+    // Never trusted from the browser: status, agency, creator, provenance.
+    return tx.property.create({
+      data: {
+        ...propertyData,
+        provenance: "USER_SUBMITTED",
+        confidence: SUBMITTED_CONFIDENCE,
+        sourceNote,
+        listings: {
+          create: {
+            ...listingData,
+            status: "DRAFT",
+            agencyId: actor.agencyId,
+            createdById: actor.userId,
+            provenance: "USER_SUBMITTED",
+            confidence: SUBMITTED_CONFIDENCE,
+          },
         },
       },
-    },
-    select: { listings: { select: { id: true } } },
+      select: { listings: { select: { id: true } } },
+    });
   });
+  if ("draftsAtCap" in created) return fail("draftLimit", { count: created.draftsAtCap });
   return { ok: true, listingId: created.listings[0].id, status: "DRAFT", changed: true };
 }
 

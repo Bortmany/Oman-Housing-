@@ -41,6 +41,8 @@ Plain-English list of what to set up before launch. Full context: `Agents/docs/g
   5. Check Twilio is allowed to text Oman numbers (messaging geo-permissions in the console) and test with your own mobile from the Account page. A signed-in admin sees `sms: configured` at `/api/health`.
 - The privacy page and terms already say the number goes to an SMS provider (Twilio) and is shown on the owner's own listings.
 
+- [ ] **Set `REDIS_URL` in production** so the text-sending limits (3 an hour per person, 10 an hour per network address) hold across several server copies. Until the shared store is switched on, each copy counts on its own.
+
 ## Payments
 - **Thawani / PayTabs checkout is deferred (not built).** For now you grant Premium/Business tiers by hand from `/admin/agencies`. Stripe is not an option (it doesn't serve Oman merchants).
 

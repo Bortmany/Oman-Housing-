@@ -52,6 +52,15 @@ export function ownsListing(
   return listing.agencyId == null && listing.createdById === actor.userId;
 }
 
+/**
+ * May an admin stamp this home "verified"? Never for a private owner's home
+ * (a listing with no agency): owner listings are never VERIFIED. Agency homes,
+ * and homes with no listings (admin records), can be.
+ */
+export function canMarkVerified(listings: { agencyId: string | null }[]): boolean {
+  return !listings.some((l) => l.agencyId === null);
+}
+
 /** The same rule as a Prisma filter (so a query never loads then checks). */
 export function ownershipWhere(actor: Actor): Prisma.ListingWhereInput {
   return actor.agencyId

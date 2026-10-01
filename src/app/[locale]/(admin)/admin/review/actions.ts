@@ -111,9 +111,10 @@ export async function verifyProperty(formData: FormData) {
   if (!session || !adminAllowed(session.user.id)) return;
   const id = readId(formData);
   if (id) {
-    // Never stamp invented sample data VERIFIED (house rule 1).
+    // Never stamp invented sample data VERIFIED (house rule 1), and never a
+    // private owner's home (owner listings are never VERIFIED).
     await prisma.property.updateMany({
-      where: { id, isSample: false },
+      where: { id, isSample: false, listings: { none: { agencyId: null } } },
       data: {
         provenance: "VERIFIED",
         verifiedById: session.user.id,

@@ -7,7 +7,7 @@ import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { Link } from "@/i18n/navigation";
 import { enforceAdminPage } from "@/lib/require-admin";
 import { isAgencyUploadNote } from "@/lib/csv/agencyUpload";
-import { isOwnersFirstListing, REVIEW_NOTE_MAX } from "@/lib/listings/rules";
+import { canMarkVerified, isOwnersFirstListing, REVIEW_NOTE_MAX } from "@/lib/listings/rules";
 import {
   approveListing,
   rejectListing,
@@ -50,7 +50,7 @@ export default async function AdminReviewPage() {
         // A property whose only listings are unfinished drafts is not in the queue.
         OR: [{ listings: { none: {} } }, { listings: { some: { status: { not: "DRAFT" } } } }],
       },
-      include: { neighborhood: true },
+      include: { neighborhood: true, listings: { select: { agencyId: true } } },
       orderBy: { createdAt: "asc" },
       take: 100,
     }),
@@ -255,7 +255,7 @@ export default async function AdminReviewPage() {
                       {t("review.openEditor")}
                     </Link>
                     {/* Invented sample rows can never be marked verified (house rule 1). */}
-                    {!p.isSample && (
+                    {!p.isSample && canMarkVerified(p.listings) && (
                       <form action={verifyProperty}>
                         <input type="hidden" name="id" value={p.id} />
                         <button className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-600">

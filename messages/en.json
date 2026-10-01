@@ -1143,7 +1143,7 @@
         "tooManyTries": "Too many wrong codes. Ask for a new code.",
         "rateLimited": "Too many codes requested. Please wait an hour and try again.",
         "invalidPhone": "Enter an Omani mobile number: 8 digits starting with 9 or 7.",
-        "phoneInUse": "This number is already verified on another account.",
+        "phoneInUse": "This number can't be used for this account.",
         "sendFailed": "We couldn't send the text message. Please try again in a few minutes."
       },
       "notAvailable": "Phone verification isn't switched on yet, so owner listings are not open. Please check back soon.",
