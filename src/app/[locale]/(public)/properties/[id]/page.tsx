@@ -5,7 +5,10 @@ import { prisma } from "@/lib/prisma";
 import {
   activeListingsForProperty,
   agencyContactForProperty,
+  ownerContactForProperty,
 } from "@/lib/db/listings";
+import { publicPropertyWhere } from "@/lib/listings/rules";
+import { PhotoGallery } from "@/components/marketplace/PhotoGallery";
 import { propertyFinancials } from "@/lib/db/valuations";
 import { isFavoritedSet } from "@/lib/db/favorites";
 import { decimalToNumber, formatOMRWhole } from "@/lib/money";
@@ -27,8 +30,12 @@ export default async function PropertyDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const property = await prisma.property.findUnique({
-    where: { id },
+  // The public-property rule: a property opens only if it has no listings at
+  // all (the admin's reference records) or at least one LIVE listing. Pending,
+  // rejected, withdrawn, sold, rented and draft listings are never public, even
+  // to someone holding the address - the same not-found page as a wrong id.
+  const property = await prisma.property.findFirst({
+    where: { id, ...publicPropertyWhere },
     include: {
       neighborhood: { include: { city: true } },
       images: { orderBy: { sortOrder: "asc" } },
@@ -48,16 +55,22 @@ export default async function PropertyDetailPage({
       propertyFinancials(id),
     ]);
 
-  const agency = await agencyContactForProperty(id);
+  const [agency, owner] = await Promise.all([
+    agencyContactForProperty(id),
+    ownerContactForProperty(id),
+  ]);
 
   const favoritedSet = session
     ? await isFavoritedSet(session.user.id, listings.map((l) => l.id))
     : new Set<string>();
   const title = localName(locale, property.titleEn, property.titleAr);
-  // The primary photo leads; everything else becomes a thumbnail.
-  const heroImage =
-    property.images.find((i) => i.isPrimary) ?? property.images[0] ?? null;
-  const otherImages = property.images.filter((i) => i.id !== heroImage?.id);
+  // The cover photo leads, then the rest in the owner's order.
+  const galleryPhotos = [...property.images]
+    .sort((x, y) => Number(y.isPrimary) - Number(x.isPrimary) || x.sortOrder - y.sortOrder)
+    .map((img) => ({
+      src: `/api/images/${img.storagePath}`,
+      alt: localName(locale, img.altEn ?? title, img.altAr),
+    }));
   const here = `/properties/${property.id}`;
 
   const specs: Array<[string, string | number | null]> = [
@@ -105,31 +118,8 @@ export default async function PropertyDetailPage({
         {" · "}{te(`ownership.${property.ownership}`)}
       </p>
 
-      {/* Photos: the main one big, the rest as a thumbnail strip underneath. */}
-      {heroImage && (
-        <div className="mt-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={`/api/images/${heroImage.storagePath}`}
-            alt={localName(locale, heroImage.altEn ?? title, heroImage.altAr)}
-            className="h-72 w-full rounded-xl object-cover ring-1 ring-stone-200 sm:h-96 dark:ring-stone-700"
-          />
-          {otherImages.length > 0 && (
-            <ul className="mt-3 grid grid-cols-4 gap-3 sm:grid-cols-6">
-              {otherImages.map((img) => (
-                <li key={img.id}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`/api/images/${img.storagePath}`}
-                    alt={localName(locale, img.altEn ?? title, img.altAr)}
-                    className="h-20 w-full rounded-lg object-cover ring-1 ring-stone-200 dark:ring-stone-700"
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+      {/* Photos: cover big, thumbnail strip, full-screen viewer. */}
+      <PhotoGallery photos={galleryPhotos} />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
@@ -218,11 +208,13 @@ export default async function PropertyDetailPage({
             redirectTo={here}
           />
 
-          {agency && (
+          {agency ? (
             <ContactButtons
               phone={agency.phone}
               agencyName={localName(locale, agency.nameEn, agency.nameAr)}
             />
+          ) : (
+            owner && <ContactButtons phone={owner.phone} agencyName="" byOwner />
           )}
 
           <EnquiryCard

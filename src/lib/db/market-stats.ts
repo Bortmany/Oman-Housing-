@@ -9,6 +9,7 @@ import {
   latestVisibleStatPerNeighborhood,
 } from "./sampleData";
 import { publicStatWhere } from "../statVisibility";
+import { publicPropertyWhere } from "../listings/rules";
 import { latestAreaFigures } from "../areaFigures";
 import {
   buildMarketStatWriteData,
@@ -264,7 +265,9 @@ const cachedNeighborhoodBySlug = unstable_cache(
       where: { slug },
       include: {
         city: { include: { governorate: true } },
-        properties: { orderBy: { createdAt: "desc" }, take: 50 },
+        // Only homes the public may see: never one whose listings are all
+        // pending, rejected, withdrawn, sold, rented or draft.
+        properties: { where: publicPropertyWhere, orderBy: { createdAt: "desc" }, take: 50 },
       },
     });
     if (!hood) return null;
@@ -276,7 +279,7 @@ const cachedNeighborhoodBySlug = unstable_cache(
       properties: hideSupersededSampleProperties(hood.properties, realKeys),
     };
   },
-  ["neighborhood-by-slug-v2"],
+  ["neighborhood-by-slug-v3"],
   CACHE_OPTIONS,
 );
 

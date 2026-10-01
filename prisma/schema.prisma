@@ -288,6 +288,10 @@ model Listing {
   expiresAt   DateTime?
   viewCount   Int       @default(0)
 
+  // A short note from the admin when a listing is rejected, shown to the
+  // seller. Cleared when the listing is sent for review again.
+  reviewNote String?
+
   property  Property   @relation(fields: [propertyId], references: [id])
   agency    Agency?    @relation(fields: [agencyId], references: [id])
   createdBy User       @relation("ListingCreator", fields: [createdById], references: [id])

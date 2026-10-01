@@ -67,6 +67,23 @@ export async function inquiriesForAgency(
   });
 }
 
+/**
+ * A private owner's read-only enquiries on ONE of their own listings. The
+ * listing filter carries the ownership rule (no agency, created by this user),
+ * so another account's listing id returns nothing.
+ */
+export async function inquiriesForOwnerListing(
+  userId: string,
+  listingId: string,
+): Promise<InquiryWithListing[]> {
+  return prisma.inquiry.findMany({
+    where: { listing: { id: listingId, agencyId: null, createdById: userId } },
+    include: inquiryInclude,
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
+}
+
 /** Admin inbox: every enquiry, optionally filtered by status. */
 export async function allInquiries(
   status?: InquiryStatus,

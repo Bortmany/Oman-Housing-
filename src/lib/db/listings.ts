@@ -13,6 +13,8 @@ import {
   neighborhoodTypeKey,
 } from "./sampleData";
 import { publicStatWhere } from "../statVisibility";
+import { publicPropertyWhere } from "../listings/rules";
+import { verifiedPhoneOf } from "../phoneVerify";
 
 // Sample data (seeded demonstration homes and listings) follows the one rule
 // in ./sampleData.ts: a sample listing or property is hidden from PUBLIC
@@ -203,6 +205,38 @@ export async function agencyContactForProperty(propertyId: string) {
     },
   });
   return listing?.agency ?? null;
+}
+
+/**
+ * The ONE public-property rule at the database: a property may be shown on any
+ * public page only if it has no listings at all (the admin's reference
+ * records) or at least one live listing. Pending, rejected, withdrawn, sold,
+ * rented and draft listings are never public, even to someone holding the
+ * address. (The same rule as a pure function: isPropertyPublic in
+ * listings/rules.ts, tested in rules.test.ts.)
+ */
+export async function isPropertyPublicById(propertyId: string): Promise<boolean> {
+  const found = await prisma.property.findFirst({
+    where: { id: propertyId, ...publicPropertyWhere },
+    select: { id: true },
+  });
+  return found != null;
+}
+
+/**
+ * A private owner's contact details for a property's live listing: only when
+ * the owner has a VERIFIED phone (and so has ticked "show my number" on the
+ * listing form). No agency listing, no number, no verification = null, and the
+ * page shows no buttons.
+ */
+export async function ownerContactForProperty(propertyId: string) {
+  const listing = await prisma.listing.findFirst({
+    where: { propertyId, status: "ACTIVE", agencyId: null, createdBy: { role: "USER" } },
+    orderBy: { publishedAt: "desc" },
+    select: { createdBy: { select: { phone: true, phoneVerifiedAt: true } } },
+  });
+  const phone = verifiedPhoneOf(listing?.createdBy);
+  return phone ? { phone } : null;
 }
 
 export async function listingsForCompare(a: string, b: string) {

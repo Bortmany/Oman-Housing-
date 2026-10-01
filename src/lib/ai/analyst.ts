@@ -18,6 +18,7 @@ import {
   preferRealValuation,
 } from "@/lib/db/sampleData";
 import { publicStatWhere } from "@/lib/statVisibility";
+import { publicPropertyWhere } from "@/lib/listings/rules";
 import {
   finalizeVerdict,
   hasSufficientData,
@@ -51,8 +52,10 @@ export type AnalystResult =
 type PropertyForAnalysis = NonNullable<Awaited<ReturnType<typeof loadProperty>>>;
 
 async function loadProperty(propertyId: string) {
-  return prisma.property.findUnique({
-    where: { id: propertyId },
+  // Same public-property rule as the property page: the analyst can never be
+  // pointed at a home whose listings have not been reviewed and published.
+  return prisma.property.findFirst({
+    where: { id: propertyId, ...publicPropertyWhere },
     include: { neighborhood: { include: { city: true } } },
   });
 }

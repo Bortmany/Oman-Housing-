@@ -56,6 +56,17 @@ and ships its docs in `node_modules/next/dist/docs/`.**
 8. **Uploads go under `DATA_DIR`** via `src/lib/storage.ts` and are served by
    `/api/images/[...path]` (path-traversal guarded). On Railway, `DATA_DIR=/data`
    on a mounted Volume — **without the volume, photos are wiped every deploy**.
+   Owner/agency listing photos go one per request through the same function
+   (bytes-checked, 5 MB, max 15 per listing); the server-action body limit is
+   6 MB in `next.config.ts` for exactly that reason.
+   **Listings that owners and agencies share** live in `src/lib/listings/`:
+   `rules.ts` (pure rules, `ownsListing`, the form's checks, the state table)
+   and `core.ts` (the actions' database half). Every listing action checks
+   OWNERSHIP inside its query (`ownershipWhere`), so someone else's listing and
+   a missing one are indistinguishable (not-found). **Unreviewed content is never
+   public**: every public Property query uses `publicPropertyWhere` (no listings,
+   or at least one ACTIVE one). Tests: `listings/rules.test.ts`, `listings/core.test.ts`
+   (the first database-backed test; refuses to run off a `_test` database).
 9. **Calculators are pure functions** in `src/lib/calculators/` with tests in
    `calculators.test.ts`. UI never contains financial math.
 10. **Chart colors come from `src/lib/chartPalette.ts`** (validated, fixed

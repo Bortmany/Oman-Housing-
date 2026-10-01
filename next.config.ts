@@ -80,6 +80,14 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@prisma/client", "bcryptjs"],
+  // Server actions accept 1 MB by default, which a phone photo (2–5 MB) always
+  // exceeds. Photos go up ONE PER REQUEST (each at most 5 MB, checked again
+  // from the file's own bytes in src/lib/storage.ts), so 6 MB is the ceiling:
+  // one photo plus the form's own overhead — not a large general limit.
+  // (This also lifts the old 1 MB ceiling on the admin's multi-photo form.)
+  experimental: {
+    serverActions: { bodySizeLimit: "6mb" },
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
