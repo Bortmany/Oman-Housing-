@@ -82,6 +82,8 @@ export default async function AgencyListingsPage({
           ? tf("allowance", { count: allowance.used })
           : allowance.unlimited
           ? t("dashboard.allowanceUnlimited", { used: allowance.used })
+          : allowance.used > allowance.limit
+          ? t("dashboard.allowanceOver", { used: allowance.used, limit: allowance.limit })
           : t("dashboard.allowance", {
               used: allowance.used,
               limit: allowance.limit,

@@ -24,7 +24,7 @@ export function ContactButtons({
   return (
     <Card>
       <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
-        {t("contactTitle")}
+        {byOwner ? t("contactTitleOwner") : t("contactTitle")}
       </h2>
       <p className="mt-1 text-sm text-stone-600 dark:text-stone-300">
         {byOwner ? t("contactViaOwner") : t("contactVia", { agency: agencyName })}

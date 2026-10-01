@@ -1,3 +1,5 @@
+// While hidden the bubble is display:none, so it can never widen the page
+// (an invisible bubble still counts toward scroll width on small screens).
 // A small hover hint with no JavaScript at all — pure CSS, so it works in
 // server-rendered pages too. The bubble appears after a short pause when the
 // mouse rests on the control (or immediately on keyboard focus) and is
@@ -26,9 +28,9 @@ export function Tooltip({
       {children}
       <span
         aria-hidden="true"
-        className={`pointer-events-none absolute start-0 end-0 z-20 flex justify-center ${position}`}
+        className={`pointer-events-none absolute start-0 end-0 z-20 hidden justify-center group-hover/tooltip:flex group-focus-within/tooltip:flex ${position}`}
       >
-        <span className="w-max max-w-56 shrink-0 rounded-lg bg-stone-900 px-2.5 dark:bg-stone-700 py-1.5 text-center text-xs font-normal text-stone-50 shadow-md opacity-0 transition-opacity duration-150 group-hover/tooltip:opacity-100 group-hover/tooltip:delay-[400ms] group-focus-within/tooltip:opacity-100 group-focus-within/tooltip:delay-0 motion-reduce:transition-none">
+        <span className="w-max max-w-56 shrink-0 rounded-lg bg-stone-900 px-2.5 dark:bg-stone-700 py-1.5 text-center text-xs font-normal text-stone-50 shadow-md opacity-100 transition-opacity duration-150 starting:opacity-0 group-hover/tooltip:delay-[400ms] group-focus-within/tooltip:delay-0 motion-reduce:transition-none">
           {label}
         </span>
       </span>

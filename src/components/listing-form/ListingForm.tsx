@@ -194,14 +194,34 @@ export function ListingForm({
   };
 
   // ----- photos -----
-  const addFiles = (files: File[]) => {
+  // The file's own first bytes say what it really is (same rule the server
+  // applies in src/lib/storage.ts), so a text file renamed .jpg is refused
+  // the moment it is picked, not only when the form is sent.
+  const looksLikeImage = async (file: File): Promise<boolean> => {
+    try {
+      const b = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+      const jpg = b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+      const png = b.length >= 8 && [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((v, i) => b[i] === v);
+      const ascii = (from: number, to: number) => String.fromCharCode(...Array.from(b.slice(from, to)));
+      const webp = b.length >= 12 && ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP";
+      return jpg || png || webp;
+    } catch {
+      return false;
+    }
+  };
+
+  const addFiles = async (files: File[]) => {
     if (files.length === 0) return;
     setTouched(true);
+    const fake = new Set<File>();
+    for (const f of files) {
+      if (OK_TYPES.includes(f.type) && f.size <= MAX_BYTES && !(await looksLikeImage(f))) fake.add(f);
+    }
     const refused: string[] = [];
     const room = MAX_PHOTOS - photos.length;
     const accepted: PhotoItem[] = [];
     for (const file of files) {
-      if (!OK_TYPES.includes(file.type)) {
+      if (!OK_TYPES.includes(file.type) || fake.has(file)) {
         refused.push(tf("photoErrorType", { name: file.name }));
       } else if (file.size > MAX_BYTES) {
         refused.push(tf("photoErrorSize", { name: file.name, size: PHOTO_MAX_MB }));
@@ -661,6 +681,7 @@ export function ListingForm({
 
       {isOwner && isDraft && (
         <Card className="space-y-3">
+          {listingId && <p className="text-sm text-stone-600 dark:text-stone-300">{to("tickNote")}</p>}
           <label className="flex min-h-11 cursor-pointer items-start gap-3 text-sm text-stone-800 dark:text-stone-200">
             <input id="field-tickOwner" type="checkbox" checked={tickOwner} disabled={busy}
               onChange={(e) => { setTickOwner(e.target.checked); setTickErr(false); }}

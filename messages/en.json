@@ -712,6 +712,7 @@
     "myEnquiries": "My enquiries",
     "myEnquiriesEmpty": "You haven't sent any enquiries yet.",
     "contactTitle": "Contact the agent",
+    "contactTitleOwner": "Contact the owner",
     "contactVia": "Listed by {agency}.",
     "call": "Call",
     "whatsapp": "WhatsApp",
@@ -773,6 +774,7 @@
       "plan": "Your plan",
       "allowance": "{used} of {limit} listing slots used · {remaining} remaining.",
       "allowanceUnlimited": "{used} listings · unlimited slots.",
+      "allowanceOver": "{used} listings, which is over your plan's limit of {limit}. Listings already live stay live, but you can't add more until you upgrade or withdraw some.",
       "quickLinks": "Quick links"
     },
     "nav": {
@@ -867,7 +869,7 @@
       "accountsTitle": "Accounts",
       "accountsBody": "Keep your login details private and give us accurate information. We may suspend accounts that abuse the service, send spam enquiries, or try to disrupt the site.",
       "listingsTitle": "Listings and agencies",
-      "listingsBody": "Agencies are responsible for the accuracy of the listings they submit. Submitted listings are reviewed before publication, but we do not guarantee any listing's accuracy, availability, or price — confirm details directly with the agency. Private owners may list only properties they own or are allowed to list, may have up to 3 live listings at once, and may upload only photos they have the right to publish, without identifiable people, car number plates or documents. We may remove any listing and suspend any account that looks fake or misleading.",
+      "listingsBody": "Agencies are responsible for the accuracy of the listings they submit. Submitted listings are reviewed before publication, but we do not guarantee any listing's accuracy, availability, or price — confirm details directly with the agency. Private owners may list only properties they own or are allowed to list, may have up to 3 live or in-review listings at once, and may upload only photos they have the right to publish, without identifiable people, car number plates or documents. We may remove any listing and suspend any account that looks fake or misleading.",
       "liabilityTitle": "Liability",
       "liabilityBody": "The service is provided as-is. To the extent permitted by law, we accept no liability for decisions made based on the information shown here. Nothing in these terms excludes liability that cannot be excluded under Omani law.",
       "lawTitle": "Governing law",
@@ -1121,7 +1123,7 @@
     "saved": "Saved.",
     "tooMany": "Too many changes. Try again in a minute.",
     "error": "Couldn't save. Please try again.",
-    "ownerCapNote": "Private owners can have up to 3 live listings. This isn't affected by the switch."
+    "ownerCapNote": "Private owners can have up to 3 live or in-review listings. This isn't affected by the switch."
   },
   "owner": {
     "verify": {
@@ -1164,7 +1166,7 @@
     "newLede": "Add the details and photos. Nothing is public until our team has checked it.",
     "list": {
       "capLine": "{used} of {limit} live or in-review listings used.",
-      "capReached": "You've reached the limit of {limit} live listings. Withdraw one, or mark it as sold or rented, to add another.",
+      "capReached": "You've reached the limit of {limit} live or in-review listings. Withdraw one, or mark it as sold or rented, to add another.",
       "capHint": "Drafts don't count toward the limit.",
       "empty": "You haven't listed a property yet.",
       "emptyHint": "Add your first property. It's free, and we check it before it goes public.",
@@ -1188,10 +1190,12 @@
       "ownerConfirm": "I confirm I own this property or have the owner's permission to list it.",
       "phoneConsent": "Show my verified phone number ({phone}) on this listing so buyers can call or WhatsApp me.",
       "tickRequired": "Tick this box to continue.",
+      "tickNote": "We ask for these two confirmations each time you send a listing for review. They are not saved with a draft, so please tick them again.",
       "reviewNotice": "Every listing is checked by our team before it appears publicly. Your first listing may take a little longer."
     }
   },
   "myListing": {
+    "continue": "Continue",
     "status": {
       "DRAFT": "Draft — not sent yet",
       "PENDING_REVIEW": "In review",
