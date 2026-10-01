@@ -159,10 +159,19 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
     mailto link on the Privacy Policy and Terms of Use pages. Defaults to
     the owner's address (`naeljam@hotmail.com`). Logic and tests:
     `src/lib/legalContact.ts`.
+  - `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN` + `TWILIO_VERIFY_SERVICE_SID` —
+    Twilio Verify, the SMS that carries the phone code private owners need
+    before they can list. Dormant until ALL THREE are set. The site's own
+    rules always run (Omani +968 mobiles only, 10-minute expiry, 5 wrong
+    tries, 60 s between sends, one verified number per account — logic and
+    tests: `src/lib/phoneVerify.ts`). Unset in development: the site makes
+    its own code and prints it to the server console. Unset in production:
+    phone verification, and so owner listing, is closed (fail closed).
+    Provider code: `src/lib/sms/send.ts`.
   - optional `NEXT_PUBLIC_MAP_TILE_URL`, `REDIS_URL`
 - Health endpoint: `/api/health` (a signed-in admin also sees which of the
   optional integrations — Sentry, AI analyst, CAPTCHA — are configured, plus
-  `signups: open | invite | closed`)
+  `signups: open | invite | closed`, `sms: configured | dormant`)
 - The default OSM tile server is fine for low traffic only; swap
   `NEXT_PUBLIC_MAP_TILE_URL` to Carto/Protomaps before real traffic.
 

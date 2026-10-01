@@ -354,7 +354,12 @@
     "signedInAs": "Signed in as",
     "role": "Role",
     "tier": "Plan",
-    "language": "Preferred language"
+    "language": "Preferred language",
+    "phoneTitle": "Phone number",
+    "phoneVerified": "Verified:",
+    "phoneNotVerified": "Not verified yet. Private owners need a verified Omani mobile number to list a property.",
+    "phoneVerify": "Verify my phone",
+    "phoneChange": "Change number"
   },
   "admin": {
     "title": "Admin",
@@ -641,7 +646,7 @@
     "sending": "Sending…",
     "sent": "Your enquiry has been sent. The seller will be in touch.",
     "sentSaved": "Saved to your account — you can track it under My enquiries.",
-    "consent": "Your name, email and phone are shared with the listing agency. See our",
+    "consent": "Your name, email and phone are shared with the listing agency or owner. See our",
     "consentLink": "Privacy Policy.",
     "errors": {
       "invalid": "Please fill in your name, a valid email, and a message.",
@@ -762,11 +767,12 @@
     "contactBody": "For questions about this page or your information, email <mail>{contactEmail}</mail>.",
     "privacy": {
       "title": "Privacy Policy",
-      "updated": "Last updated: 18 July 2026",
+      "updated": "Last updated: 1 October 2026",
       "intro": "Oman Property Intelligence is a real-estate information service. This page explains, in plain words, what personal information the site collects, why, and what happens to it.",
       "collectTitle": "What we collect",
       "collectAccount": "Account details — your name, email address, and password. The password is stored only in a scrambled (hashed) form; we cannot read it.",
-      "collectEnquiry": "Buyer enquiries — when you send an enquiry about a property, we store the name, email address, phone number (optional), and message you type. These details are shown to the site administrator and to the estate agency whose listing you asked about, so they can reply to you.",
+      "collectEnquiry": "Buyer enquiries — when you send an enquiry about a property, we store the name, email address, phone number (optional), and message you type. These details are shown to the site administrator and to the estate agency, or the private owner, whose listing you asked about, so they can reply to you.",
+      "collectOwner": "Private owner details — an owner who lists a property gives us a mobile phone number. We send a one-time code by text message, through an SMS service provider (Twilio), to check it. We keep the number, the time it was verified, and a scrambled (hashed) copy of the code until it is used or expires. The number is shown publicly on that owner's listings so buyers can call or WhatsApp.",
       "collectAgency": "Agency details — an agency that signs up provides its company name, licence number, contact email and phone number, and may upload a logo.",
       "collectPhotos": "Property photos — photos uploaded for a listing are stored on our server and shown publicly with that listing.",
       "collectAi": "AI analyst questions — when you ask the AI property analyst a question, the question and the answer are saved with your account, so there is an auditable record of what the analyst said. The question text is also processed by our AI service provider in order to generate the answer.",
@@ -775,7 +781,7 @@
       "useTitle": "How we use it",
       "useBody": "We use this information only to run the service: to operate your account, to pass your enquiry to the right agency, to show listings and market data, to answer your questions to the AI analyst, and to keep the site safe. We do not sell personal information.",
       "shareTitle": "Who can see it",
-      "shareBody": "Enquiry details are visible to the site administrator and to the agency the enquiry is for. Listing content and property photos are public, and so is the agency's contact phone number, which is shown on its listings so buyers can call or WhatsApp. Phone numbers of private individuals are never shown publicly. Everything else stays private to your account and the site administrator.",
+      "shareBody": "Enquiry details are visible to the site administrator and to the agency the enquiry is for (or the owner, for a private owner's listing). Listing content and property photos are public, and so is the agency's contact phone number, which is shown on its listings so buyers can call or WhatsApp. A private owner's verified phone number is shown publicly only on that owner's own listings, and only after the owner confirms this on the listing form. Phone numbers are sent to our SMS provider, Twilio, only to deliver and check the one-time code. Everything else stays private to your account and the site administrator.",
       "retentionTitle": "How long we keep it",
       "retentionBody": "Account information is kept for as long as your account exists. Enquiries are kept so the agency and the administrator can follow up on them. AI questions and answers are kept as a record of the analyst's output. If you would like your account, an enquiry, or other personal information deleted, contact us and we will remove it unless the law requires us to keep it.",
       "pdplTitle": "Your rights under Oman's data protection law",
@@ -784,7 +790,7 @@
     },
     "terms": {
       "title": "Terms of Use",
-      "updated": "Last updated: 18 July 2026",
+      "updated": "Last updated: 1 October 2026",
       "intro": "These terms apply when you use Oman Property Intelligence. By using the site you accept them.",
       "infoTitle": "Information, not advice",
       "infoBody": "Market figures on this site are indicative, and every figure is labeled with its source and confidence. Nothing on the site is financial, legal, or investment advice. Always verify property regulations, ownership eligibility, prices, and financing with the official authorities and your bank before making decisions.",
@@ -793,7 +799,7 @@
       "accountsTitle": "Accounts",
       "accountsBody": "Keep your login details private and give us accurate information. We may suspend accounts that abuse the service, send spam enquiries, or try to disrupt the site.",
       "listingsTitle": "Listings and agencies",
-      "listingsBody": "Agencies are responsible for the accuracy of the listings they submit. Submitted listings are reviewed before publication, but we do not guarantee any listing's accuracy, availability, or price — confirm details directly with the agency.",
+      "listingsBody": "Agencies are responsible for the accuracy of the listings they submit. Submitted listings are reviewed before publication, but we do not guarantee any listing's accuracy, availability, or price — confirm details directly with the agency. Private owners may list only properties they own or are allowed to list, may have up to 3 live listings at once, and may upload only photos they have the right to publish, without identifiable people, car number plates or documents. We may remove any listing and suspend any account that looks fake or misleading.",
       "liabilityTitle": "Liability",
       "liabilityBody": "The service is provided as-is. To the extent permitted by law, we accept no liability for decisions made based on the information shown here. Nothing in these terms excludes liability that cannot be excluded under Omani law.",
       "lawTitle": "Governing law",
@@ -1048,5 +1054,41 @@
     "tooMany": "Too many changes. Try again in a minute.",
     "error": "Couldn't save. Please try again.",
     "ownerCapNote": "Private owners can have up to 3 live listings. This isn't affected by the switch."
+  },
+  "owner": {
+    "verify": {
+      "title": "Verify your phone number",
+      "why": "Buyers will contact you on this number, and we use it to keep fake listings out. We send one text message with a 6-digit code.",
+      "phoneLabel": "Omani mobile number",
+      "phoneHint": "Oman numbers only: 8 digits starting with 9 or 7.",
+      "sendCode": "Send code",
+      "codeSent": "We sent a code to <b>{phone}</b>. It works for 10 minutes.",
+      "codeLabel": "6-digit code",
+      "confirm": "Confirm",
+      "resend": "Send a new code",
+      "resendWait": "You can ask for a new code in {seconds} seconds.",
+      "changeNumber": "Use a different number",
+      "done": "Phone verified. You can now add your property.",
+      "errors": {
+        "wrongCode": "That code isn't right. Check the message and try again.",
+        "expired": "That code has expired. Ask for a new one.",
+        "tooManyTries": "Too many wrong codes. Ask for a new code.",
+        "rateLimited": "Too many codes requested. Please wait an hour and try again.",
+        "invalidPhone": "Enter an Omani mobile number: 8 digits starting with 9 or 7.",
+        "phoneInUse": "This number is already verified on another account.",
+        "sendFailed": "We couldn't send the text message. Please try again in a few minutes."
+      },
+      "notAvailable": "Phone verification isn't switched on yet, so owner listings are not open. Please check back soon.",
+      "step": "Step {n} of 2",
+      "codeChip": "Only Oman numbers for now.",
+      "sending": "Sending...",
+      "checking": "Checking...",
+      "resent": "New code sent.",
+      "triesLeft": "{count, plural, one {# try left.} other {# tries left.}}",
+      "backToAccount": "Back to my account",
+      "continue": "Continue",
+      "codePlaceholder": "123456",
+      "alreadyVerified": "Your verified number is"
+    }
   }
 }

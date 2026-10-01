@@ -111,6 +111,16 @@ model User {
   agencyId      String?
   agency        Agency?   @relation(fields: [agencyId], references: [id])
 
+  // Owner phone verification (src/lib/phoneVerify.ts). `phone` counts as
+  // verified only while phoneVerifiedAt is set; a number still being checked
+  // waits in phoneVerifyPending. Only a keyed hash of the code is kept.
+  phoneVerifiedAt       DateTime?
+  phoneVerifyPending    String?
+  phoneVerifyCodeHash   String?
+  phoneVerifyExpiresAt  DateTime?
+  phoneVerifyAttempts   Int       @default(0)
+  phoneVerifySentAt     DateTime?
+
   accounts           Account[]
   sessions           Session[]
   favorites          Favorite[]

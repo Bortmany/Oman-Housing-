@@ -30,6 +30,15 @@ Plain-English list of what to set up before launch. Full context: `Agents/docs/g
 - **Password reset is not built.** The site is invitation-only for now; the owner resets a forgotten password by hand from the database.
 - [ ] `NEXT_PUBLIC_MAP_TILE_URL` — see "Swap the map tile server" under **Must do** above; treat it as required once real visitors arrive.
 
+## Phone codes for private owners (Twilio)
+- [ ] **Needed before private owners can list.** Without it, in production, the "Verify your phone" page tells owners the service isn't switched on yet and owner listing stays closed. Nothing else breaks.
+  1. Create an account at [twilio.com](https://www.twilio.com) and add billing credit (each text costs a few cents; the site allows 3 texts an hour per person and per number, and Omani mobiles only).
+  2. In the Twilio console open **Verify, then Services, then Create new**, name it after the site, and copy its **Service SID** (starts `VA`).
+  3. From the console home copy the **Account SID** (starts `AC`) and the **Auth Token**.
+  4. Set all three on Railway: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID`. Dormant until all three are present.
+  5. Check Twilio is allowed to text Oman numbers (messaging geo-permissions in the console) and test with your own mobile from the Account page. A signed-in admin sees `sms: configured` at `/api/health`.
+- The privacy page and terms already say the number goes to an SMS provider (Twilio) and is shown on the owner's own listings.
+
 ## Payments
 - **Thawani / PayTabs checkout is deferred (not built).** For now you grant Premium/Business tiers by hand from `/admin/agencies`. Stripe is not an option (it doesn't serve Oman merchants).
 

@@ -9,6 +9,9 @@ import { localName } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
 import { InquiryStatusPill } from "@/components/marketplace/InquiryStatusPill";
 import { Link } from "@/i18n/navigation";
+import { ButtonLink } from "@/components/ui/Button";
+import { prisma } from "@/lib/prisma";
+import { isPhoneVerified, maskPhone } from "@/lib/phoneVerify";
 
 export default async function AccountPage() {
   const [t, te, ts, locale, session] = await Promise.all([
@@ -20,10 +23,15 @@ export default async function AccountPage() {
   ]);
   if (!session) return null; // layout already redirects
 
-  const [enquiries, savedSearches] = await Promise.all([
+  const [enquiries, savedSearches, phoneRow] = await Promise.all([
     inquiriesForUser(session.user.id),
     savedSearchesForUser(session.user.id),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { phone: true, phoneVerifiedAt: true },
+    }),
   ]);
+  const phoneVerified = isPhoneVerified(phoneRow);
   const dateFmt = new Intl.DateTimeFormat(locale === "ar" ? "ar-OM-u-nu-latn" : "en-OM", {
     dateStyle: "medium",
   });
@@ -46,6 +54,28 @@ export default async function AccountPage() {
           <span className="font-medium text-stone-500 dark:text-stone-400">{t("tier")}:</span>{" "}
           {session.user.tier}
         </p>
+      </Card>
+
+      <Card className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+        <div>
+          <p className="font-medium text-stone-900 dark:text-stone-100">{t("phoneTitle")}</p>
+          <p className="mt-1 text-stone-500 dark:text-stone-400">
+            {phoneVerified ? (
+              <>
+                {t("phoneVerified")}{" "}
+                <bdi dir="ltr" className="font-medium">{maskPhone(phoneRow?.phone)}</bdi>
+              </>
+            ) : (
+              t("phoneNotVerified")
+            )}
+          </p>
+        </div>
+        <ButtonLink
+          href="/account/listings/verify-phone"
+          variant={phoneVerified ? "secondary" : "primary"}
+        >
+          {phoneVerified ? t("phoneChange") : t("phoneVerify")}
+        </ButtonLink>
       </Card>
 
       <h2 className="mt-10 text-lg font-semibold text-stone-900 dark:text-stone-100">

@@ -18,6 +18,7 @@ export default async function PrivacyPage() {
   const collectKeys = [
     "collectAccount",
     "collectEnquiry",
+    "collectOwner",
     "collectAgency",
     "collectPhotos",
     "collectAi",
