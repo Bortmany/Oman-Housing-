@@ -33,6 +33,8 @@ type Props = {
   /** Rose box + message when an owner has no photo at submit. */
   requiredError: boolean;
   uploadLine: string | null;
+  /** Agencies: photos are optional, so the box title says so. */
+  optional?: boolean;
   onAddFiles: (files: File[]) => void;
   onMove: (key: string, move: "earlier" | "later" | "cover") => void;
   onRemove: (key: string) => void;
@@ -52,7 +54,7 @@ const PHOTO_PLUS = "M4 8a2 2 0 0 1 2-2h1.5l1-1.5h5L15.5 6H18a2 2 0 0 1 2 2v9a2 2
 const DOTS = "M5 12h.01M12 12h.01M19 12h.01";
 
 export function PhotoBox({
-  photos, busy, issues, requiredError, uploadLine,
+  photos, busy, issues, requiredError, uploadLine, optional = false,
   onAddFiles, onMove, onRemove, onRetry, onAlt,
 }: Props) {
   const t = useTranslations("myListing.form");
@@ -82,7 +84,7 @@ export function PhotoBox({
   return (
     <Card id="field-photos" className="space-y-3">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t("photosTitle")}</h2>
+        <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{optional ? t("photosOptional") : t("photosTitle")}</h2>
         <span className="text-xs text-stone-500 dark:text-stone-400" aria-live="polite">
           {t("photosCount", { count: photos.length })}
         </span>

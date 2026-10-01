@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
 import { Input, Label, FieldError } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { safePath } from "@/lib/safePath";
+import { landingForRole } from "@/lib/landing";
 import { Turnstile } from "@/components/ui/Turnstile";
 
 export function LoginForm() {
@@ -15,7 +16,8 @@ export function LoginForm() {
   const tc = useTranslations("contact");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = safePath(searchParams.get("callbackUrl"), "/account");
+  // Arrived from a specific page: go back there. Otherwise land by role (after sign-in).
+  const requestedUrl = searchParams.get("callbackUrl");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   // Bumped after every failed attempt so the (dormant) CAPTCHA widget hands
@@ -42,7 +44,14 @@ export function LoginForm() {
         result.code === "captcha" ? t("captchaFailed") : t("invalidCredentials"),
       );
     } else {
-      router.push(callbackUrl);
+      let target: string;
+      if (requestedUrl) {
+        target = safePath(requestedUrl, "/account");
+      } else {
+        const session = await getSession(); // the new session, to read the role
+        target = landingForRole(session?.user?.role);
+      }
+      router.push(target);
       router.refresh();
     }
   }

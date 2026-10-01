@@ -119,7 +119,67 @@ export default async function MarketStatsAdminPage({
           </p>
         </Card>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-800">
+        <>
+        {/* Phone (under 640 px): one card per figure, delete kept apart at the bottom. */}
+        <ul className="mt-6 space-y-3 sm:hidden">
+          {stats.map((s) => (
+            <li key={s.id}>
+              <Card className="space-y-3 p-4">
+                <div>
+                  <p className="font-medium text-stone-900 dark:text-stone-100">{scopeName(s)}</p>
+                  <p className="text-xs text-stone-500 dark:text-stone-400">
+                    {s.propertyType ? te(`propertyType.${s.propertyType}`) : tm("allTypes")}
+                    {" · "}
+                    {formatMonth(locale, s.periodStart)}
+                  </p>
+                </div>
+                <dl className="grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <dt className="text-xs text-stone-500 dark:text-stone-400">{t("table.price")}</dt>
+                    <dd>{s.avgSalePrice ? formatOMRWhole(s.avgSalePrice.toString(), locale) : "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-stone-500 dark:text-stone-400">{t("table.rent")}</dt>
+                    <dd>{s.avgRentMonthly ? formatOMRWhole(s.avgRentMonthly.toString(), locale) : "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-stone-500 dark:text-stone-400">{t("table.yield")}</dt>
+                    <dd>{s.grossYieldPct ? formatPercent(s.grossYieldPct.toString(), locale) : "—"}</dd>
+                  </div>
+                </dl>
+                <div>
+                  <ProvenanceBadge
+                    provenance={s.provenance}
+                    confidence={s.confidence}
+                    isSample={s.isSample}
+                    sampleSize={s.sampleSize}
+                  />
+                  {s.sourceUrl && !s.isSample && (
+                    <a
+                      href={s.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 block text-xs font-medium text-teal-800 underline underline-offset-2 dark:text-teal-300"
+                    >
+                      {tr("sourceLink")}
+                    </a>
+                  )}
+                </div>
+                <form action={deleteMarketStat} className="border-t border-stone-200 pt-3 dark:border-stone-800">
+                  <input type="hidden" name="id" value={s.id} />
+                  <button
+                    type="submit"
+                    className="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 active:bg-rose-100 dark:text-rose-300 dark:hover:bg-rose-950"
+                  >
+                    {t("table.deleteFigure")}
+                  </button>
+                </form>
+              </Card>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-6 hidden overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-stone-200 sm:block dark:bg-stone-900 dark:ring-stone-800">
           <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-stone-200 text-start text-xs text-stone-500 dark:border-stone-800 dark:text-stone-400">
@@ -194,6 +254,7 @@ export default async function MarketStatsAdminPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

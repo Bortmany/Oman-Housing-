@@ -22,7 +22,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={() => setTheme(next)}
-      className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-semibold text-stone-600 ring-1 ring-stone-300 hover:bg-stone-100 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800"
+      className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-stone-600 ring-1 ring-stone-300 hover:bg-stone-100 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800"
       aria-label={`${t("label")}: ${t(theme)}`}
       title={t("switchTo", { mode: t(next) })}
     >

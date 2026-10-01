@@ -33,7 +33,12 @@
     "register": "Create account",
     "properties": "Browse",
     "favorites": "Favorites",
-    "agency": "For agencies"
+    "agency": "For agencies",
+    "myProperties": "My properties",
+    "mainNav": "Main",
+    "signOutHint": "Sign out of this device",
+    "signingOut": "Signing out…",
+    "signedOut": "Signed out."
   },
   "footer": {
     "disclaimer": "Market figures are indicative and clearly labeled by source. Property regulations, ownership eligibility, and financing terms should be verified with the official authorities and your bank.",
@@ -42,7 +47,10 @@
     "terms": "Terms of Use",
     "tagline": "Neighborhood trends, honest valuations, and investment calculators for Oman — every figure labeled by its source.",
     "explore": "Explore",
-    "platform": "Platform"
+    "platform": "Platform",
+    "listWithUs": "List with us",
+    "listYourProperty": "List your property",
+    "forSellers": "For sellers"
   },
   "home": {
     "heroTitle": "Know the Oman property market before you commit",
@@ -359,7 +367,34 @@
     "phoneVerified": "Verified:",
     "phoneNotVerified": "Not verified yet. Private owners need a verified Omani mobile number to list a property.",
     "phoneVerify": "Verify my phone",
-    "phoneChange": "Change number"
+    "phoneChange": "Change number",
+    "roleNames": {
+      "USER": "Property owner or buyer",
+      "AGENCY": "Agency",
+      "ADMIN": "Administrator"
+    },
+    "tierNames": {
+      "FREE": "Free",
+      "PREMIUM": "Premium",
+      "BUSINESS": "Business"
+    },
+    "roleCard": {
+      "USER": {
+        "title": "List your property",
+        "body": "Selling or renting your own home? Add it here, free.",
+        "button": "My properties"
+      },
+      "AGENCY": {
+        "title": "Your agency workspace",
+        "body": "Your listings, enquiries and agency profile.",
+        "button": "Open workspace"
+      },
+      "ADMIN": {
+        "title": "Admin desk",
+        "body": "Review listings, manage data and site settings.",
+        "button": "Open admin desk"
+      }
+    }
   },
   "admin": {
     "title": "Admin",
@@ -448,7 +483,8 @@
       "emptyStatsHint": "Add your first market statistic to light up the dashboard.",
       "emptyBulkHint": "Have an official file? Use Bulk upload.",
       "emptyPropertiesHint": "Add your first property record.",
-      "emptyListingsHint": "Add your first listing."
+      "emptyListingsHint": "Add your first listing.",
+      "deleteFigure": "Delete this figure"
     },
     "listings": "Listings",
     "listingsHint": "Sale and rent offers with moderation.",
@@ -780,6 +816,17 @@
       "saved": "Profile saved.",
       "failed": "Please check the form and try again.",
       "save": "Save profile"
+    },
+    "workspace": {
+      "limitTip": "Free launch is off, so your plan's limit applies.",
+      "upgrade": "Upgrade your plan",
+      "emptyWarm": "No listings yet — your shop window is empty.",
+      "openToSee": "Open to see why.",
+      "opens": "Opens the listing",
+      "seeEnquiries": "See enquiries",
+      "atLimitResend": "You've reached your plan's listing limit. Withdraw one or upgrade to send this one again.",
+      "lockedTitle": "This home's details are verified",
+      "lockedBody": "Our team has verified this home, so its details can't be changed here. Contact us to change them. You can still withdraw this listing or mark it as sold or rented."
     }
   },
   "legal": {
@@ -1272,7 +1319,8 @@
       "partialFail": "Your listing is saved as a draft. One photo didn't upload — fix it below and press Submit again.",
       "photoKeep": "Keep it",
       "tipOwnership": "Do you hold the title deed? Choose \"Ownership not confirmed\" if unsure.",
-      "tipArea": "Inside walls, in square metres."
+      "tipArea": "Inside walls, in square metres.",
+      "photosOptional": "Photos (optional)"
     }
   }
 }

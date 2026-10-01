@@ -14,8 +14,12 @@ export async function Footer() {
     { href: "/calculators", label: tn("calculators") },
   ];
 
+  const sellers = [
+    { href: "/list-with-us", label: t("listWithUs") },
+    { href: "/account/listings", label: t("listYourProperty") },
+  ];
+
   const platform = [
-    { href: "/list-with-us", label: tn("agency") },
     { href: "/privacy", label: t("privacy") },
     { href: "/terms", label: t("terms") },
   ];
@@ -66,6 +70,21 @@ export async function Footer() {
                   <Link
                     href={link.href}
                     className="text-sm font-medium text-stone-600 hover:text-teal-800 dark:text-stone-300 dark:hover:text-teal-300"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <h3 className="mt-5 text-xs font-semibold tracking-wide text-stone-400 uppercase dark:text-stone-500">
+              {t("forSellers")}
+            </h3>
+            <ul className="mt-1">
+              {sellers.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="inline-flex min-h-11 items-center text-sm font-medium text-stone-600 hover:text-teal-800 dark:text-stone-300 dark:hover:text-teal-300"
                   >
                     {link.label}
                   </Link>

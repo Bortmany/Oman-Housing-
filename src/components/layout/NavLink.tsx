@@ -21,8 +21,8 @@ export function NavLink({
       aria-current={active ? "page" : undefined}
       className={
         active
-          ? "rounded-full bg-teal-50 px-3 py-1.5 font-semibold text-teal-800 dark:bg-teal-950 dark:text-teal-200"
-          : "px-3 py-1.5 hover:text-teal-800 dark:hover:text-teal-300"
+          ? "inline-flex min-h-11 items-center rounded-full bg-teal-50 px-3 font-semibold text-teal-800 active:bg-teal-100 dark:bg-teal-950 dark:text-teal-200 dark:active:bg-teal-900"
+          : "inline-flex min-h-11 items-center rounded-full px-3 hover:bg-stone-100 hover:text-teal-800 active:bg-stone-200 dark:hover:bg-stone-800 dark:hover:text-teal-300 dark:active:bg-stone-700"
       }
     >
       {children}

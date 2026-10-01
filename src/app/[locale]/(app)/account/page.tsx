@@ -48,12 +48,34 @@ export default async function AccountPage() {
         </p>
         <p>
           <span className="font-medium text-stone-500 dark:text-stone-400">{t("role")}:</span>{" "}
-          {session.user.role}
+          {t(`roleNames.${session.user.role}`)}
         </p>
         <p>
           <span className="font-medium text-stone-500 dark:text-stone-400">{t("tier")}:</span>{" "}
-          {session.user.tier}
+          {t(`tierNames.${session.user.tier}`)}
         </p>
+      </Card>
+
+      {/* One card that depends on who is signed in. */}
+      <Card className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+        <div>
+          <p className="font-medium text-stone-900 dark:text-stone-100">
+            {t(`roleCard.${session.user.role}.title`)}
+          </p>
+          <p className="mt-1 text-stone-500 dark:text-stone-400">
+            {t(`roleCard.${session.user.role}.body`)}
+          </p>
+        </div>
+        <ButtonLink
+          href={
+            session.user.role === "AGENCY" ? "/agency"
+            : session.user.role === "ADMIN" ? "/admin"
+            : "/account/listings"
+          }
+          className="w-full sm:w-auto"
+        >
+          {t(`roleCard.${session.user.role}.button`)}
+        </ButtonLink>
       </Card>
 
       <Card className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">

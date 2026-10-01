@@ -536,3 +536,15 @@ export type { OwnedListing };
 export function scopedToActor(actor: Actor): Prisma.ListingWhereInput {
   return ownershipWhere(actor);
 }
+
+/**
+ * True when the home behind this listing can't be edited here: an admin has
+ * verified it, or several listings share it (saveListing refuses both with
+ * "wrongState"). The agency page uses this to explain it up front instead of
+ * showing a form that would fail on save. Same ownership rule as everything else.
+ */
+export async function homeEditLocked(actor: Actor, listingId: string): Promise<boolean> {
+  const l = await loadOwned(actor, listingId);
+  if (!l) return false;
+  return Boolean(l.property.verifiedAt) || l.property.listings.length > 1;
+}

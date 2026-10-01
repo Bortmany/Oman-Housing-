@@ -505,6 +505,7 @@ export function ListingForm({
         issues={issues}
         requiredError={photoRequired}
         uploadLine={uploadLine}
+        optional={!isOwner}
         onAddFiles={addFiles}
         onMove={onMove}
         onRemove={onRemove}
