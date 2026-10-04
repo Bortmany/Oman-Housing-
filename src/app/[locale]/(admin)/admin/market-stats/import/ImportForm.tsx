@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState, type ReactNode } from "react";
+import { startTransition, useActionState, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { DataProvenance } from "@prisma/client";
 import {
@@ -75,19 +75,36 @@ export function ImportForm({ intro }: { intro: ReactNode }) {
   const [fileSize, setFileSize] = useState(0);
   const [showGood, setShowGood] = useState(false);
   // Which action ran last, and whether "choose a different file" cleared it.
-  const [last, setLast] = useState<"check" | "confirm">("check");
+  // One action state for both steps. The confirm button must stay mounted
+  // until the browser has sent the form, so nothing click-time may swap the
+  // preview away (that used to remove the button before the submit fired).
+  const [intent, setIntent] = useState<"check" | "confirm">("check");
   const [cleared, setCleared] = useState(false);
 
-  const [checkState, checkAction, checking] = useActionState<ImportState, FormData>(
-    checkMarketStatsImport,
+  const [rawState, formAction, pending] = useActionState<ImportState, FormData>(
+    async (prev, formData) => {
+      setCleared(false);
+      return formData.get("intent") === "confirm"
+        ? confirmMarketStatsImport(prev, formData)
+        : checkMarketStatsImport(prev, formData);
+    },
     null,
   );
-  const [confirmState, confirmAction, importing] = useActionState<ImportState, FormData>(
-    confirmMarketStatsImport,
-    null,
-  );
-  const state: ImportState = cleared ? null : last === "confirm" ? confirmState : checkState;
+  const checking = pending && intent === "check";
+  const importing = pending && intent === "confirm";
+  const state: ImportState = cleared ? null : rawState;
   const busy = checking || importing;
+
+  // The form is sent by hand rather than through <form action>: React empties
+  // an uncontrolled form (including the chosen file) as soon as a form action
+  // finishes, so the file was gone by the time "Import" was pressed and the
+  // second step had nothing to send.
+  function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLElement | null;
+    const data = new FormData(e.currentTarget, submitter);
+    startTransition(() => formAction(data));
+  }
 
   function reset() {
     formRef.current?.reset();
@@ -125,7 +142,7 @@ export function ImportForm({ intro }: { intro: ReactNode }) {
         {intro}
 
         <Card>
-          <form ref={formRef} className="space-y-4">
+          <form ref={formRef} onSubmit={submit} className="space-y-4">
             <ButtonLink
               href="/templates/market-stats-template.csv"
               variant="secondary"
@@ -184,11 +201,9 @@ export function ImportForm({ intro }: { intro: ReactNode }) {
 
             <Button
               type="submit"
-              formAction={checkAction}
-              onClick={() => {
-                setLast("check");
-                setCleared(false);
-              }}
+              name="intent"
+              value="check"
+              onClick={() => setIntent("check")}
               disabled={busy || !fileName || rateLimited}
               variant={isPreview(state) && state.problems === 0 ? "secondary" : "primary"}
               className="w-full"
@@ -210,11 +225,9 @@ export function ImportForm({ intro }: { intro: ReactNode }) {
             {isPreview(state) && state.problems === 0 && (
               <Button
                 type="submit"
-                formAction={confirmAction}
-                onClick={() => {
-                  setLast("confirm");
-                  setCleared(false);
-                }}
+                name="intent"
+                value="confirm"
+                onClick={() => setIntent("confirm")}
                 disabled={busy || state.figures === 0}
                 className="w-full"
               >

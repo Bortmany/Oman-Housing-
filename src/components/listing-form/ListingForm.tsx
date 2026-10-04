@@ -579,12 +579,19 @@ export function ListingForm({
           </div>
         </div>
 
+        {locale === "ar" && (
+          <p className="rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-900 ring-1 ring-sky-600/20 dark:bg-sky-950 dark:text-sky-100">
+            {tf("englishHint")}
+          </p>
+        )}
         <div>
           <Label htmlFor="field-titleEn">{ta("property.titleEn")}{req}</Label>
           <Input id="field-titleEn" dir="ltr" maxLength={200} value={v("titleEn")} disabled={busy}
             onChange={(e) => set("titleEn", e.target.value)} placeholder={ta("examples.titleEn")}
             error={invalid("titleEn")} />
-          <FieldError>{errText(errors.titleEn)}</FieldError>
+          <FieldError>
+            {errors.titleEn?.key === "required" ? t("errors.titleEnRequired") : errText(errors.titleEn)}
+          </FieldError>
         </div>
         <div>
           <Label htmlFor="field-titleAr">{ta("property.titleAr")}{opt}</Label>

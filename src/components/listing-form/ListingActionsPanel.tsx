@@ -133,7 +133,7 @@ export function ListingActionsPanel({ listingId, status, listingType, actions, l
                   {pending ? t("working") : t("confirm")}
                 </Button>
                 <Button type="button" variant="secondary" className="flex-1" autoFocus disabled={pending} onClick={() => setOpen(null)}>
-                  {t("keepLive")}
+                  {isReview ? t("keepInReview") : t("keepLive")}
                 </Button>
               </div>
             </div>

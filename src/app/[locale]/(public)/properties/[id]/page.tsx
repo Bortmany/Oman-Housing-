@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import { PropertyDetailLoading } from "./PropertyDetailLoading";
 import { getLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -94,12 +96,29 @@ export async function generateMetadata({
   });
 }
 
+// A wrong or hidden address must answer with a real 404. A route-level
+// loading file starts streaming before the page can decide, which makes the
+// "not found" page arrive with a 200. So the cheap existence check runs first
+// (before anything is sent), and only the heavy body streams behind the skeleton.
 export default async function PropertyDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const exists = await prisma.property.findFirst({
+    where: { id, ...publicPropertyWhere },
+    select: { id: true },
+  });
+  if (!exists) notFound();
+  return (
+    <Suspense fallback={<PropertyDetailLoading />}>
+      <PropertyDetailBody id={id} />
+    </Suspense>
+  );
+}
+
+async function PropertyDetailBody({ id }: { id: string }) {
   // The public-property rule: a property opens only if it has no listings at
   // all (the admin's reference records) or at least one LIVE listing. Pending,
   // rejected, withdrawn, sold, rented and draft listings are never public, even
