@@ -179,6 +179,12 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
     Turnstile (free CAPTCHA) on the login, register and list-with-us forms.
     Dormant until BOTH are set: no widget is shown and nothing is verified.
     Get the pair from the Cloudflare dashboard (Turnstile → Add site).
+  - `NEXT_PUBLIC_STATS_SCRIPT_URL` + `NEXT_PUBLIC_STATS_SITE_ID` (+ optional
+    `NEXT_PUBLIC_STATS_ATTR`) — privacy-friendly visitor stats (Plausible
+    chosen; Umami/GoatCounter work by settings). Dormant until the script
+    address (https only) AND the site id are set: no script tag, CSP unchanged.
+    Parsed in `src/lib/stats.ts` (shared by `next.config.ts`, the layout, the
+    privacy page and `/api/health`). Cookieless; no consent banner.
   - `SIGNUP_INVITE_CODES` — comma-separated invite codes (8+ chars each).
     Sign-up (buyer register AND agency list-with-us) is invitation-only while
     this is set; in production with it unset and `SIGNUPS_OPEN` unset, sign-up

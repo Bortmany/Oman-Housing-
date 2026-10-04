@@ -1,5 +1,6 @@
 import { pageMetadata } from "@/lib/seo";
 import { getTranslations } from "next-intl/server";
+import { isStatsConfigured } from "@/lib/stats";
 import LegalContact from "@/components/legal/LegalContact";
 
 export async function generateMetadata() {
@@ -26,6 +27,8 @@ export default async function PrivacyPage() {
     "collectFavorites",
     "collectSavedSearches",
     "collectTechnical",
+    // Only claimed while the visitor-stats counter is actually switched on.
+    ...(isStatsConfigured() ? (["collectStats"] as const) : []),
   ] as const;
 
   return (

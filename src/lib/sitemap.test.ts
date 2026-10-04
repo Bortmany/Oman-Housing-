@@ -1,5 +1,11 @@
 // Sitemap builder tests. Run with: npm test
-import { buildSitemapEntries, STATIC_PATHS, type SitemapProperty } from "./sitemap";
+import {
+  buildSitemapEntries,
+  hasRealFigure,
+  neighborhoodHasRealFigureWhere,
+  STATIC_PATHS,
+  type SitemapProperty,
+} from "./sitemap";
 import { ROBOTS_ALLOW, ROBOTS_DISALLOW, buildRobots } from "./robotsRules";
 import { resolveSiteUrl } from "./siteUrl";
 
@@ -108,6 +114,15 @@ check("robots blocks /api/ but allows /api/images/", ROBOTS_DISALLOW.includes("/
 check("robots does not block public pages", !ROBOTS_DISALLOW.some((p) => ["/en", "/ar", "/en/market", "/en/properties"].includes(p)));
 check("robots sitemap line = base + /sitemap.xml", buildRobots(`${BASE}/`).sitemap === `${BASE}/sitemap.xml`);
 check("robots omits the sitemap line when the base is unknown", !("sitemap" in buildRobots(null)));
+
+// Sample-only neighbourhoods: same rule for the sitemap and the page's noindex.
+check("hasRealFigure: none -> false", !hasRealFigure([]));
+check("hasRealFigure: sample only -> false", !hasRealFigure([{ isSample: true }, { isSample: true }]));
+check("hasRealFigure: one real -> true", hasRealFigure([{ isSample: true }, { isSample: false }]));
+check(
+  "shared where clause asks for a non-sample figure",
+  JSON.stringify(neighborhoodHasRealFigureWhere) === JSON.stringify({ marketStats: { some: { isSample: false } } }),
+);
 
 if (failures > 0) {
   console.error(`\n${failures} sitemap test(s) failed`);

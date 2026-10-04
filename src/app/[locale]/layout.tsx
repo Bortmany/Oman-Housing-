@@ -8,6 +8,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { THEME_INIT_SCRIPT } from "@/components/theme/theme";
+import { StatsScript } from "@/components/analytics/StatsScript";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { defaultShareImage, ogLocale } from "@/lib/seoCore";
 import "../globals.css";
@@ -96,6 +97,7 @@ export default async function LocaleLayout({
             <Footer />
           </ThemeProvider>
         </NextIntlClientProvider>
+        <StatsScript />
       </body>
     </html>
   );

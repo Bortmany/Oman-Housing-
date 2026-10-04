@@ -27,6 +27,20 @@ export const STATIC_PATHS = [
  */
 export const MAX_SITEMAP_PROPERTIES = 20_000;
 
+/**
+ * The ONE rule for "this neighbourhood has a real (non-sample) market figure".
+ * The sitemap lists only such neighbourhoods, and the neighbourhood page
+ * asks search engines not to index the rest (sample figures only).
+ */
+export const neighborhoodHasRealFigureWhere = {
+  marketStats: { some: { isSample: false } },
+} as const;
+
+/** Same rule on plain data: any non-sample figure. */
+export function hasRealFigure(stats: { isSample: boolean }[]): boolean {
+  return stats.some((s) => !s.isSample);
+}
+
 export type SitemapProperty = {
   id: string;
   isSample: boolean;

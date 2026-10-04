@@ -848,6 +848,7 @@
       "collectAi": "AI analyst questions — when you ask the AI property analyst a question, the question and the answer are saved with your account, so there is an auditable record of what the analyst said. The question text is also processed by our AI service provider in order to generate the answer.",
       "collectFavorites": "Favourites — which listings you have saved, linked to your account.",
       "collectTechnical": "Technical basics — a login cookie that keeps you signed in, and short-lived counters that protect the site against abuse. We do not use advertising or tracking cookies. If technical error monitoring is switched on, reports about server faults may be processed solely to keep the site working. Maps load background tiles from a third-party map server, which can see your device's IP address.",
+      "collectStats": "Visitor statistics — if switched on, we count visits with a privacy-friendly tool: which pages are viewed and, roughly, which country and type of device visitors use. It sets no cookies, does not follow you between websites, and does not identify you personally.",
       "useTitle": "How we use it",
       "useBody": "We use this information only to run the service: to operate your account, to pass your enquiry to the right agency, to show listings and market data, to answer your questions to the AI analyst, and to keep the site safe. We do not sell personal information.",
       "shareTitle": "Who can see it",

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { isCaptchaConfigured } from "@/lib/captcha";
+import { isStatsConfigured } from "@/lib/stats";
 import { getSignupMode } from "@/lib/signupMode";
 import { isSmsConfigured } from "@/lib/sms/send";
 import { emailMode } from "@/lib/email/send";
@@ -24,6 +25,9 @@ export async function GET() {
         aiAnalyst: process.env.ANTHROPIC_API_KEY ? "configured" : "dormant",
         rateLimitStore: process.env.REDIS_URL ? "redis" : "in-memory",
         captcha: isCaptchaConfigured() ? "configured" : "dormant",
+        // Visitor stats (privacy-friendly counter) — src/lib/stats.ts. Only
+        // whether it is on; the script address and site id are never shown.
+        stats: isStatsConfigured() ? "configured" : "dormant",
         // Twilio Verify (phone codes for private owners) — src/lib/sms/send.ts.
         sms: isSmsConfigured() ? "configured" : "dormant",
         // Alert emails: "configured" (Resend), "outbox" (local test files) or

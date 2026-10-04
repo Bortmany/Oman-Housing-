@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { parseStatsConfig } from "./src/lib/stats";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
@@ -46,15 +47,22 @@ const turnstileOrigin = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
   ? " https://challenges.cloudflare.com"
   : "";
 
+// Visitor stats (dormant, privacy-friendly counter): when both settings are
+// valid the tool's host may serve the script and receive the count call.
+// Unset = both strings are empty and the policy is unchanged.
+const statsOrigins = parseStatsConfig(process.env).origins;
+const statsScript = statsOrigins.length ? ` ${statsOrigins[0]}` : "";
+const statsConnect = statsOrigins.length ? ` ${statsOrigins.join(" ")}` : "";
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   // Next.js needs inline scripts; the dev server additionally needs eval
   // and a WebSocket for fast refresh (dev only — never in production).
-  `script-src 'self' 'unsafe-inline'${wasmSource}${isDev ? " 'unsafe-eval'" : ""}${turnstileOrigin}`,
+  `script-src 'self' 'unsafe-inline'${wasmSource}${isDev ? " 'unsafe-eval'" : ""}${turnstileOrigin}${statsScript}`,
   ...(turnstileOrigin ? [`frame-src 'self'${turnstileOrigin}`] : []),
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${mapTileOrigin}`,
-  `connect-src 'self' ${mapTileOrigin}${pmtilesConnect}${isDev ? " ws:" : ""}`,
+  `connect-src 'self' ${mapTileOrigin}${pmtilesConnect}${statsConnect}${isDev ? " ws:" : ""}`,
   // MapLibre GL runs its workers from blob: URLs (child-src is the fallback
   // directive older browsers use for workers).
   "worker-src 'self' blob:",

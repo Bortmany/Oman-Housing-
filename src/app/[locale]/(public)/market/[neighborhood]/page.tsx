@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import {
   latestAreaFiguresFor,
   neighborhoodBySlug,
+  neighborhoodHasRealFigures,
   neighborhoodTrends,
 } from "@/lib/db/market-stats";
 import { decimalToNumber, formatOMRWhole, formatPercent } from "@/lib/money";
@@ -32,9 +33,14 @@ export async function generateMetadata({
   if (!hood) return {}; // the page itself shows not-found
   const [locale, ts] = await Promise.all([getLocale(), getTranslations("seo")]);
   const name = localName(locale, hood.nameEn, hood.nameAr);
+  // Sample-only neighbourhoods stay out of search engines (like sample homes
+  // and like the sitemap); links on the page may still be followed.
+  const noindex = !(await neighborhoodHasRealFigures(hood.id));
   const own = shortDescription(localName(locale, hood.descriptionEn ?? "", hood.descriptionAr));
   return pageMetadata({
     path: `/market/${encodeURIComponent(slug)}`,
+    noindex,
+    follow: true,
     title: name,
     description:
       own ||

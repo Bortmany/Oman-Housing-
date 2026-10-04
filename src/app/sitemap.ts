@@ -2,7 +2,11 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { publicPropertyWhere } from "@/lib/listings/rules";
 import { getSiteUrl } from "@/lib/siteUrl";
-import { buildSitemapEntries, MAX_SITEMAP_PROPERTIES } from "@/lib/sitemap";
+import {
+  buildSitemapEntries,
+  MAX_SITEMAP_PROPERTIES,
+  neighborhoodHasRealFigureWhere,
+} from "@/lib/sitemap";
 
 // Built on request, not at build time: it reads the database.
 export const dynamic = "force-dynamic";
@@ -17,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [hoods, properties] = await Promise.all([
     // A neighbourhood with only sample figures would show only sample data.
     prisma.neighborhood.findMany({
-      where: { marketStats: { some: { isSample: false } } },
+      where: neighborhoodHasRealFigureWhere,
       select: { slug: true },
       orderBy: { slug: "asc" },
     }),

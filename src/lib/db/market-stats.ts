@@ -17,6 +17,7 @@ import {
   type MarketStatWriteInput,
   type StatConflictMode,
 } from "./marketStatData";
+import { neighborhoodHasRealFigureWhere } from "../sitemap";
 import { realActiveListingKeysFor } from "./listings";
 
 // ---------------------------------------------------------------------------
@@ -282,6 +283,14 @@ const cachedNeighborhoodBySlug = unstable_cache(
   ["neighborhood-by-slug-v3"],
   CACHE_OPTIONS,
 );
+
+/** True when the neighbourhood has at least one non-sample figure (same rule as the sitemap). */
+export async function neighborhoodHasRealFigures(neighborhoodId: string): Promise<boolean> {
+  const n = await prisma.neighborhood.count({
+    where: { id: neighborhoodId, ...neighborhoodHasRealFigureWhere },
+  });
+  return n > 0;
+}
 
 export async function neighborhoodBySlug(slug: string) {
   const hood = await cachedNeighborhoodBySlug(slug);
