@@ -92,6 +92,12 @@ check("sample listing never shown", !sampled.text.includes("SAMPLE-HOME") && !sa
 // More than five
 const many = buildAlertEmail(input("en", [1, 2, 3, 4, 5, 6, 7].map((i) => mk(i)), 12));
 check("only 5 listings shown", (many.text.match(/View listing:/g) ?? []).length === 5);
+// At the fetch limit the count says "200+", never "200"
+const capped = buildAlertEmail({ ...input("en", [1, 2, 3, 4, 5, 6].map((i) => mk(i)), 200), totalCapped: true });
+check("capped count reads 200+", capped.text.includes("New since your last alert: 200+") && capped.text.includes("…and 195+ more."), capped.text);
+const notCapped = buildAlertEmail(input("en", [1, 2, 3, 4, 5, 6].map((i) => mk(i)), 200));
+check("uncapped count has no plus", notCapped.text.includes("alert: 200\n"), notCapped.text);
+
 check("…and N more + see all link", many.text.includes("…and 7 more.") && many.text.includes("https://example.test/en/properties?hood=al-mouj&type=VILLA"), many.text);
 
 // Outbox file

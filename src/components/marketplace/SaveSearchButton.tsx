@@ -4,6 +4,7 @@ import { saveSearchAction } from "@/app/[locale]/(app)/account/actions";
 import { Button } from "@/components/ui/Button";
 import { FREQUENCIES, DEFAULT_FREQUENCY } from "@/lib/savedSearch";
 import { emailMode } from "@/lib/email/send";
+import { alertsAreLive } from "@/lib/alerts/live";
 
 // "Save this search" — a plain server-action form when signed in, a link to
 // sign in when signed out (zero client JavaScript, same as the favorite
@@ -77,7 +78,7 @@ export function SaveSearchButton({
         </select>
       </div>
       <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-        {emailMode() === "off" ? t("emailNotLive") : t("emailLive")}
+        {alertsAreLive(emailMode(), process.env.CRON_SECRET) ? t("emailLive") : t("emailNotLive")}
       </p>
     </form>
   );

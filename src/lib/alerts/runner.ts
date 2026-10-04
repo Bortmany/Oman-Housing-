@@ -18,7 +18,8 @@ import { logger } from "@/lib/logger";
 import { searchListings } from "@/lib/db/listings";
 import { isSampleListing } from "@/lib/db/sampleData";
 import { parseSearchFilters } from "@/lib/searchFilters";
-import { normalizeSearchQuery } from "@/lib/savedSearch";
+import { FREQUENCY_OFF, normalizeSearchQuery } from "@/lib/savedSearch";
+import { buildUnsubscribeUrl, unsubscribeHeaders } from "@/lib/alerts/unsubscribe";
 import {
   buildAlertEmail,
   MAX_LISTINGS_PER_EMAIL,
@@ -29,6 +30,8 @@ import type { EmailMessage, EmailMode, SendResult } from "@/lib/email/send";
 
 export const MAX_EMAILS_PER_USER_PER_DAY = 10;
 export const MAX_EMAILS_PER_RUN = 100;
+/** A search whose sends keep failing is left alone after this many failures in 24 h. */
+export const MAX_FAILURES_PER_SEARCH_PER_DAY = 3;
 export const DAILY_GAP_MS = 24 * 60 * 60 * 1000;
 export const LOG_RETENTION_DAYS = 90;
 /** Searches looked at per run (oldest-alerted first, so none starves). */
@@ -84,6 +87,8 @@ export async function runSavedSearchAlerts(
     .catch((err) => logger.warn("alerts.cleanup.failed", { name: errName(err) }));
 
   const searches = await prisma.savedSearch.findMany({
+    // Someone who used the unsubscribe link has frequency "off": skip them.
+    where: { frequency: { not: FREQUENCY_OFF } },
     orderBy: [{ lastAlertedAt: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
     take: MAX_SEARCHES_SCANNED,
     include: { user: { select: { id: true, email: true, name: true, locale: true } } },
@@ -148,11 +153,25 @@ export async function runSavedSearchAlerts(
       const sentToday = await prisma.alertLog.count({
         where: {
           userId: search.userId,
-          status: { in: ["claimed", "sent"] },
+          // Failed attempts count too: a permanently failing address must
+          // not be retried (and billed) forever.
+          status: { in: ["claimed", "sent", "failed"] },
           createdAt: { gt: new Date(now.getTime() - DAY_MS) },
         },
       });
       if (sentToday >= maxPerUser) {
+        result.deferred++;
+        continue;
+      }
+      // Give up on one search for the day after repeated failed sends.
+      const failedToday = await prisma.alertLog.count({
+        where: {
+          savedSearchId: search.id,
+          status: "failed",
+          createdAt: { gt: new Date(now.getTime() - DAY_MS) },
+        },
+      });
+      if (failedToday >= MAX_FAILURES_PER_SEARCH_PER_DAY) {
         result.deferred++;
         continue;
       }
@@ -173,14 +192,18 @@ export async function runSavedSearchAlerts(
           provenance: m.provenance,
           isSample: false,
         }));
+      const alertLocale = toAlertLocale(search.user.locale);
+      const unsubscribeUrl = buildUnsubscribeUrl(opts.baseUrl, search.id, alertLocale);
       const email = buildAlertEmail({
         locale: toAlertLocale(search.user.locale),
         name: search.name,
         userName: search.user.name,
         listings,
         totalNew: matches.length,
+        totalCapped: rows.length >= MATCH_FETCH_LIMIT,
         baseUrl: opts.baseUrl,
         query,
+        unsubscribeUrl,
       });
       const newestId = matches[0].id; // searchListings returns newest first
 
@@ -212,6 +235,7 @@ export async function runSavedSearchAlerts(
         text: email.text,
         html: email.html,
         outboxName: search.id,
+        headers: unsubscribeHeaders(unsubscribeUrl),
       });
 
       if (outcome.status === "sent" || outcome.status === "outbox") {

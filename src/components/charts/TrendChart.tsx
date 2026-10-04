@@ -98,6 +98,9 @@ export function TrendChart({
               stroke={palette.colors[i % palette.colors.length]}
               strokeWidth={2}
               dot={false}
+              // No draw-in animation: a chart measured or captured while it
+              // animates (resize, print, screenshot) shows empty axes.
+              isAnimationActive={false}
               activeDot={{ r: 4, strokeWidth: 2, stroke: palette.activeDotStroke }}
               connectNulls
             />

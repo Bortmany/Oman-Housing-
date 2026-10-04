@@ -3,6 +3,7 @@ import { Link } from "@/i18n/navigation";
 import type { ListingWithProperty } from "@/lib/db/listings";
 import { decimalToNumber, formatOMRWhole } from "@/lib/money";
 import { localName } from "@/lib/i18nData";
+import { effectiveLocation } from "@/lib/approxLocation";
 import { Card } from "@/components/ui/Card";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { FavoriteButton } from "./FavoriteButton";
@@ -12,16 +13,20 @@ export function ListingCard({
   favorited,
   signedIn,
   redirectTo,
+  showLocationNote,
 }: {
   listing: ListingWithProperty;
   favorited?: boolean; // undefined = hide the favorite control
   signedIn?: boolean;
   redirectTo?: string;
+  /** Say so when the home has no spot of its own and the map shows its area centre. */
+  showLocationNote?: boolean;
 }) {
   const locale = useLocale();
   const t = useTranslations("properties");
   const te = useTranslations("enums");
   const tc = useTranslations("common");
+  const tm = useTranslations("searchMap");
   const p = listing.property;
   const image = p.images.find((i) => i.isPrimary) ?? p.images[0];
 
@@ -70,6 +75,12 @@ export function ListingCard({
           {p.bedrooms != null && <> · {tc("bedsCount", { count: p.bedrooms, n: String(p.bedrooms) })}</>}
           {p.areaSqm != null && <> · {decimalToNumber(p.areaSqm)} {tc("sqm")}</>}
         </p>
+
+        {showLocationNote && effectiveLocation(p, p.neighborhood)?.approximate && (
+          <p className="text-xs text-stone-500 rtl:text-sm dark:text-stone-400">
+            {tm("approximate")}
+          </p>
+        )}
 
         <div className="mt-auto flex items-center justify-between pt-2">
           <ProvenanceBadge

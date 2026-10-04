@@ -12,6 +12,7 @@ export type OutboxMessage = {
   subject: string;
   text: string;
   html?: string;
+  headers?: Record<string, string>;
 };
 
 const b64 = (s: string) =>
@@ -26,6 +27,9 @@ export function buildEml(message: OutboxMessage, boundary: string): string {
     `To: ${headerSafe(message.to)}`,
     `Subject: =?UTF-8?B?${Buffer.from(headerSafe(message.subject), "utf8").toString("base64")}?=`,
     `Date: ${new Date().toUTCString()}`,
+    ...Object.entries(message.headers ?? {})
+      .filter(([name]) => /^[A-Za-z0-9-]+$/.test(name))
+      .map(([name, value]) => `${name}: ${headerSafe(value)}`),
     `MIME-Version: 1.0`,
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
     ``,

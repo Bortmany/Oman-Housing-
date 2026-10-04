@@ -92,8 +92,8 @@ export type SearchFilters = {
   maxPrice?: number;
   minBedrooms?: number;
   ownership?: OwnershipEligibility;
-  /** Map area (already validated by parseSearchFilters). Homes with no
-   *  coordinates never match when this is set. */
+  /** Map area (already validated by parseSearchFilters). Homes with no own
+   *  coordinates match by their neighbourhood's centre. */
   bounds?: Bounds;
   /** Only listings published AFTER this moment (exclusive). Used by alerts. */
   publishedAfter?: Date;
@@ -142,11 +142,28 @@ export async function searchListings(
         ...(filters.neighborhoodSlug
           ? { neighborhood: { slug: filters.neighborhoodSlug } }
           : {}),
-        // A range on lat/lng also leaves out homes with no coordinates.
+        // Map area: a home counts if its own spot is inside the box, or — when
+        // it has no spot of its own — its neighbourhood's centre is (shown as
+        // "approximate"; see lib/approxLocation.ts). Neither = never matches.
         ...(filters.bounds
           ? {
-              lat: { gte: filters.bounds.s, lte: filters.bounds.n },
-              lng: { gte: filters.bounds.w, lte: filters.bounds.e },
+              OR: [
+                {
+                  lat: { gte: filters.bounds.s, lte: filters.bounds.n },
+                  lng: { gte: filters.bounds.w, lte: filters.bounds.e },
+                },
+                {
+                  AND: [
+                    { OR: [{ lat: null }, { lng: null }] },
+                    {
+                      neighborhood: {
+                        lat: { gte: filters.bounds.s, lte: filters.bounds.n },
+                        lng: { gte: filters.bounds.w, lte: filters.bounds.e },
+                      },
+                    },
+                  ],
+                },
+              ],
             }
           : {}),
       },

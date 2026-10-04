@@ -5,6 +5,7 @@ import { isCaptchaConfigured } from "@/lib/captcha";
 import { getSignupMode } from "@/lib/signupMode";
 import { isSmsConfigured } from "@/lib/sms/send";
 import { emailMode } from "@/lib/email/send";
+import { isCronSecretValid } from "@/lib/alerts/live";
 
 // Health endpoint for uptime checks (ops-watchdog / Railway).
 //
@@ -28,8 +29,7 @@ export async function GET() {
         // Alert emails: "configured" (Resend), "outbox" (local test files) or
         // "dormant"; alertJob = CRON_SECRET set (the secret itself is never shown).
         email: emailMode() === "live" ? "configured" : emailMode() === "outbox" ? "outbox" : "dormant",
-        alertJob:
-          (process.env.CRON_SECRET?.length ?? 0) >= 16 ? "configured" : "dormant",
+        alertJob: isCronSecretValid(process.env.CRON_SECRET) ? "configured" : "dormant",
         // "open" | "invite" | "closed" — see src/lib/signupMode.ts. Admin-only
         // like the rest: the codes themselves are never shown anywhere.
         signups: getSignupMode(),

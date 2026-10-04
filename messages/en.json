@@ -914,7 +914,8 @@
     "frequencyLabel": "Tell me about new matches",
     "frequency": {
       "instant": "As soon as they appear",
-      "daily": "Once a day"
+      "daily": "Once a day",
+      "off": "Alerts are off"
     },
     "emailNotLive": "We save the search now. Email alerts start working once the site's email service is connected.",
     "emailLive": "We email you when new listings match a saved search — as soon as they appear, or once a day, as you chose.",
@@ -1349,7 +1350,8 @@
     "loading": "Loading map…",
     "mapFailed": "The map could not load. The figures are listed below.",
     "gestureTouch": "Use two fingers to move the map",
-    "gestureScroll": "Use Ctrl + scroll to zoom the map"
+    "gestureScroll": "Use Ctrl + scroll to zoom the map",
+    "popupIsSample": "Sample data"
   },
   "searchMap": {
     "searchThisArea": "Search this area",
@@ -1359,13 +1361,16 @@
     "inArea": "{count} listings in this map area",
     "noneInArea": "No listings in this map area.",
     "noneInAreaHint": "Zoom out or move the map, then press “Search this area” again.",
-    "noLocationNote": "Listings without a map location are not included when you search a map area.",
+    "noLocationNote": "Listings with no exact map spot are placed at the centre of their area and marked as approximate.",
     "capNote": "Showing the newest 60. Zoom in to narrow down.",
     "mapLabel": "Map of listings. Drag or zoom, then press “Search this area”.",
     "savedIncludesArea": "This search includes the current map area.",
     "mapFailed": "The map could not load. The listings are shown below.",
     "gestureTouch": "Use two fingers to move the map",
-    "gestureScroll": "Use Ctrl + scroll to zoom the map"
+    "gestureScroll": "Use Ctrl + scroll to zoom the map",
+    "approximate": "Approximate location (area centre)",
+    "areaChipIn": "Map area: {places}",
+    "areaChipCoords": "Map area near {lat}, {lng}"
   },
   "alertEmail": {
     "subject": "New listings for “{name}”",
@@ -1383,6 +1388,17 @@
     "whyYouGotThis": "You are receiving this because you saved this search on {appName}.",
     "manage": "Stop or change this alert: {url}",
     "manageLink": "Manage your saved searches",
-    "disclaimer": "Prices are asking prices set by the advertiser, not valuations."
+    "disclaimer": "Prices are asking prices set by the advertiser, not valuations.",
+    "unsubscribe": "Turn off alerts for this search: {url}",
+    "unsubscribeLink": "Turn off alerts for this search"
+  },
+  "alertUnsubscribe": {
+    "doneTitle": "Alerts turned off",
+    "doneBody": "You will not get any more emails for this saved search. Your other saved searches are not affected.",
+    "invalidTitle": "This link does not work",
+    "invalidBody": "The link is incomplete or has been changed. You can turn alerts off from your account instead.",
+    "errorTitle": "Something went wrong",
+    "errorBody": "We could not turn off these alerts just now. Please try the link again in a few minutes, or use your account.",
+    "manage": "Open my saved searches"
   }
 }

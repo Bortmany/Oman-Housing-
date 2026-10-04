@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Vendored third-party files (map text plugin), not our code.
     "public/map/**",
+    // Local uploads, test outbox and throwaway test scripts (DATA_DIR) — not app code.
+    ".data/**",
   ]),
 ]);
 

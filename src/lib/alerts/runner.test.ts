@@ -155,7 +155,7 @@ async function main() {
       expectEqual("log says failed with a short reason", (await logsFor(s.id)).map((l) => [l.status, l.reason]), [["failed", "http_500"]]);
       const retry = await run(at(HOUR));
       expectEqual("next run retries once and succeeds", [retry.sent, sent.length], [1, 1]);
-      expectEqual("failed tries do not use up the daily cap", (await logsFor(s.id)).map((l) => l.status), ["failed", "sent"]);
+      expectEqual("a failed try is logged, then the retry is sent", (await logsFor(s.id)).map((l) => l.status), ["failed", "sent"]);
 
       // One search throwing never stops the others.
       await resetSearches();
@@ -169,6 +169,53 @@ async function main() {
       });
       expectEqual("one search failing does not stop the rest", [picky.sent, picky.failed], [1, 1]);
       void good; void bad;
+      await resetSearches();
+    }
+
+    // ---------------- 2b. permanent failures stop; failed sends count; unsubscribe ----------------
+    {
+      const hood = await newHood("f");
+      const u = await newUser("perm", "en");
+      await newListing(hood.id, { published: at(-HOUR) });
+      const s = await newSearch(u.id, hood.slug, "Never works");
+      let attempts = 0;
+      const alwaysFail = async (): Promise<SendResult> => {
+        attempts++;
+        return { status: "failed", reason: "http_422" };
+      };
+      for (const h of [0, 1, 2]) await run(at(h * HOUR), { send: alwaysFail });
+      expectEqual("three failed tries so far", attempts, 3);
+      const fourth = await run(at(3 * HOUR), { send: alwaysFail });
+      expectEqual("after 3 failures in 24 h it stops trying", [attempts, fourth.failed, fourth.deferred], [3, 0, 1]);
+      const later = await run(at(25 * HOUR), { send: alwaysFail });
+      expectEqual("a day on it may try again", [attempts, later.failed], [4, 1]);
+      expectEqual("failures are logged", (await logsFor(s.id)).filter((l) => l.status === "failed").length, 4);
+      await resetSearches();
+
+      // Failed sends use up the per-user daily cap.
+      const u2 = await newUser("failcap", "en");
+      await newSearch(u2.id, hood.slug, "Cap by failure");
+      let tries = 0;
+      const failing = async (): Promise<SendResult> => {
+        tries++;
+        return { status: "failed", reason: "network" };
+      };
+      await run(at(4 * HOUR), { send: failing, maxPerUser: 1 });
+      const capped = await run(at(5 * HOUR), { send: failing, maxPerUser: 1 });
+      expectEqual("a failed try counts toward the daily cap", [tries, capped.deferred], [1, 1]);
+      await resetSearches();
+
+      // Unsubscribed (frequency "off") searches are skipped; mail carries the link + headers.
+      const u3 = await newUser("unsub", "en");
+      const off = await newSearch(u3.id, hood.slug, "Switched off", "off");
+      const on = await newSearch(u3.id, hood.slug, "Still on", "instant", "&minPrice=1");
+      const seen: EmailMessage[] = [];
+      const r = await run(at(6 * HOUR), { send: async (m) => (seen.push(m), { status: "sent", id: "x" }) });
+      expectEqual("only the search that is still on is mailed", [r.sent, seen.length, seen[0]?.subject.includes("Still on")], [1, 1, true]);
+      expectEqual("unsubscribed search untouched", (await get(off.id)).lastAlertedAt, null);
+      expectEqual("mail has one-click headers and a signed link",
+        [seen[0].headers?.["List-Unsubscribe-Post"], (seen[0].headers?.["List-Unsubscribe"] ?? "").includes(`s=${on.id}`), seen[0].text.includes("/api/alerts/unsubscribe?s=" + on.id)],
+        ["List-Unsubscribe=One-Click", true, true]);
       await resetSearches();
     }
 
@@ -265,6 +312,62 @@ async function main() {
         [okRes.status, await okRes.json()], [200, { ok: true, status: "not-configured" }]);
       [process.env.RESEND_API_KEY, process.env.EMAIL_FROM, process.env.EMAIL_DEV_LOG] = savedKeys as string[];
       if (saved === undefined) delete process.env.CRON_SECRET; else process.env.CRON_SECRET = saved;
+    }
+
+    // ---------------- 8. the public unsubscribe link ----------------
+    {
+      const hood = await newHood("g");
+      const u = await newUser("link", "ar");
+      const mine = await newSearch(u.id, hood.slug, "Mine", "instant");
+      const other = await newSearch(u.id, hood.slug, "Other", "daily", "&minPrice=1");
+      const { GET: unsubGet, POST: unsubPost } = await import("../../app/api/alerts/unsubscribe/route");
+      const { buildUnsubscribeUrl } = await import("./unsubscribe");
+      const link = buildUnsubscribeUrl("https://example.test", mine.id, "ar");
+      const freq = async (id: string) => (await get(id)).frequency;
+
+      const bad = await unsubGet(new Request(link.replace(/t=[0-9a-f]{4}/, "t=0000")));
+      expectEqual("a tampered link is refused and changes nothing", [bad.status, await freq(mine.id)], [400, "instant"]);
+      const wrongId = await unsubGet(new Request(link.replace(`s=${mine.id}`, `s=${other.id}`)));
+      expectEqual("a link for another search is refused", [wrongId.status, await freq(other.id)], [400, "daily"]);
+
+      const good = await unsubGet(new Request(link));
+      const html = await good.text();
+      expectEqual("valid link turns that search off, Arabic page", [good.status, await freq(mine.id), /dir="rtl"/.test(html)], [200, "off", true]);
+      expectEqual("the other search is untouched", await freq(other.id), "daily");
+      const twice = await unsubPost(new Request(link, { method: "POST", body: "List-Unsubscribe=One-Click" }));
+      expectEqual("one-click POST works and a repeat is harmless", [twice.status, await freq(mine.id)], [200, "off"]);
+      const gone = await unsubGet(new Request(buildUnsubscribeUrl("https://example.test", "deleted-search", "en")));
+      expectEqual("a deleted search still gets a calm 200 page", gone.status, 200);
+      await resetSearches();
+    }
+
+    // ---------------- 9. homes with no spot match by their area's centre ----------------
+    {
+      const centred = await prisma.neighborhood.create({
+        data: { slug: `${TAG}-centre`, nameEn: "Centred", nameAr: "وسط", cityId: city.id, lat: 23.6, lng: 58.4 },
+      });
+      hoods.push(centred.id);
+      const bare = await newHood("nocentre"); // no coordinates at all
+      const u = await newUser("approx", "en");
+      const homeA = await newListing(centred.id, { published: at(-HOUR), title: "Centre villa" });
+      await newListing(bare.id, { published: at(-HOUR), title: "Nowhere villa" });
+      const inside = "&n=23.7&s=23.5&e=58.5&w=58.3";
+      const outside = "&n=18&s=17&e=55&w=54";
+      const sIn = await prisma.savedSearch.create({
+        data: { userId: u.id, name: "Inside", query: `type=VILLA${inside}`, frequency: "instant", createdAt: at(-2 * HOUR) },
+      });
+      const sOut = await prisma.savedSearch.create({
+        data: { userId: u.id, name: "Outside", query: `type=VILLA${outside}`, frequency: "instant", createdAt: at(-2 * HOUR) },
+      });
+      const r = await run(at(7 * HOUR));
+      expectEqual("a home with no spot alerts for the area holding its neighbourhood centre only", [r.sent, sent.length, sent[0]?.subject.includes("Inside")], [1, 1, true]);
+      expectEqual("the area search lists it, but not the home in a neighbourhood with no centre",
+        [sent[0].text.includes("Centre villa"), sent[0].text.includes("Nowhere villa")], [true, false]);
+      expectEqual("the other area got nothing", (await get(sOut.id)).lastAlertedAt, null);
+      void sIn;
+      const prop = await prisma.property.findUniqueOrThrow({ where: { id: homeA.propertyId } });
+      expectEqual("the centre is never written onto the home", [prop.lat, prop.lng], [null, null]);
+      await resetSearches();
     }
   } finally {
     await prisma.alertLog.deleteMany({ where: { userId: { in: users } } });

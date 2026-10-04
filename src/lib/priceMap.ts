@@ -140,6 +140,8 @@ export type PriceMapPoint = {
   price: number | null;
   sampleSize: number | null;
   periodStart: string | null;
+  /** True when this area's figure is sample data (popup says so). */
+  isSample: boolean;
   /** Step index, or null for a "No data" circle. */
   step: number | null;
   color: string | null;
@@ -170,9 +172,11 @@ export function buildPriceMap(rows: PriceMapInput[]): PriceMapModel {
   const coloured = rows.filter((r) => placed(r) && hasFigure(r));
   const unplaced = rows.filter((r) => !placed(r) && hasFigure(r)).length;
 
-  const breaks = buildBreaks(coloured.map((r) => r.price as number));
+  // Steps are whole OMR (the legend and popups show whole numbers), so two
+  // neighbouring legend ranges can never overlap or leave a gap.
+  const breaks = buildBreaks(coloured.map((r) => Math.round(r.price as number)));
   const colors = scaleColors(breaks.length);
-  const max = Math.max(...coloured.map((r) => r.price as number));
+  const max = Math.max(...coloured.map((r) => Math.round(r.price as number)));
 
   const points: PriceMapPoint[] = [];
   for (const r of rows) {
@@ -185,9 +189,10 @@ export function buildPriceMap(rows: PriceMapInput[]): PriceMapModel {
       price: r.price,
       sampleSize: r.sampleSize,
       periodStart: r.periodStart ? r.periodStart.toISOString() : null,
+      isSample: hasFigure(r) ? r.isSample : false,
     };
     if (hasFigure(r)) {
-      const step = bucketFor(r.price as number, breaks);
+      const step = bucketFor(Math.round(r.price as number), breaks);
       points.push({
         ...base,
         step,
@@ -202,7 +207,8 @@ export function buildPriceMap(rows: PriceMapInput[]): PriceMapModel {
   const steps: PriceMapLegendStep[] = breaks.map((from, i) => ({
     color: colors[i],
     from,
-    to: i + 1 < breaks.length ? breaks[i + 1] : max,
+    // Each range ends one below the next one starts (OMR 311–426, 427–585, …).
+    to: i + 1 < breaks.length ? Math.max(breaks[i + 1] - 1, from) : max,
   }));
 
   const sources: SourceInput[] = coloured

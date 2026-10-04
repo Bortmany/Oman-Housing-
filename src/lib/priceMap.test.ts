@@ -156,6 +156,34 @@ const row = (over: Partial<PriceMapInput>): PriceMapInput => ({
   expectEqual("nothing coloured -> no legend steps", m.steps, []);
 }
 
+{
+  // Legend ranges never overlap: each ends one below where the next starts.
+  const m = buildPriceMap([310.4, 427.2, 585.9, 709.6, 857.4, 1104.8].map((price, i) => row({ slug: `s${i}`, price })));
+  const ok = m.steps.every((s, i) => i === 0 || s.from === m.steps[i - 1].to + 1);
+  expectEqual("legend ranges do not overlap or leave holes", ok, true);
+  expectEqual("first step starts at the lowest whole price", m.steps[0].from, 310);
+  expectEqual("last step ends at the highest whole price", m.steps[m.steps.length - 1].to, 1105);
+  // A circle's step always matches the whole-OMR price shown for it.
+  const consistent = m.points.every((p) => {
+    const price = Math.round(p.price as number);
+    const s = m.steps[p.step as number];
+    return price >= s.from && price <= s.to;
+  });
+  expectEqual("each circle sits inside its own legend range", consistent, true);
+}
+{
+  const m = buildPriceMap([
+    row({ slug: "real", price: 900 }),
+    row({ slug: "fake", price: 1200, isSample: true }),
+    row({ slug: "none", price: null, provenance: null, isSample: true }),
+  ]);
+  expectEqual(
+    "points carry isSample (popup says Sample data)",
+    m.points.map((p) => [p.slug, p.isSample]),
+    [["real", false], ["fake", true], ["none", false]],
+  );
+}
+
 if (failures > 0) {
   console.error(`\n${failures} price map test(s) failed`);
   process.exit(1);

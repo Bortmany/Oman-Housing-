@@ -13,6 +13,8 @@ export type MapPin = {
   href?: string;
   /** Optional price, already formatted for the page language. */
   price?: string;
+  /** Optional extra line in the popup, e.g. "Approximate location" (already translated). */
+  note?: string;
 };
 
 type MapLibre = typeof import("maplibre-gl");
@@ -184,8 +186,11 @@ export function PropertyMap({
       const price = pin.price
         ? `<div style="margin-top:2px">${escapeHtml(pin.price)}</div>`
         : "";
+      const note = pin.note
+        ? `<div style="margin-top:2px;font-size:12px;color:#57534e">${escapeHtml(pin.note)}</div>`
+        : "";
       // The map box is forced LTR; the popup text follows the page language.
-      popup.setHTML(`<div dir="${dir}">${title}${price}</div>`);
+      popup.setHTML(`<div dir="${dir}">${title}${price}${note}</div>`);
       return new maplibregl.Marker({ color: "#0d9488" })
         .setLngLat([pin.lng, pin.lat])
         .setPopup(popup)

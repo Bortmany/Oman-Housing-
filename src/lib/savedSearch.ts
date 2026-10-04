@@ -28,6 +28,9 @@ export const FREQUENCIES = ["instant", "daily"] as const;
 export type Frequency = (typeof FREQUENCIES)[number];
 export const DEFAULT_FREQUENCY: Frequency = "daily";
 
+/** Stored when someone uses an email's unsubscribe link: the search stays saved, alerts stop. */
+export const FREQUENCY_OFF = "off";
+
 /** One person can keep this many searches — a sane ceiling, not a paid limit. */
 export const MAX_SAVED_SEARCHES = 25;
 

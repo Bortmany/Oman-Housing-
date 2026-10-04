@@ -11,6 +11,7 @@ import {
   parseSearchFilters,
 } from "@/lib/searchFilters";
 import { decimalToNumber, formatOMRWhole } from "@/lib/money";
+import { effectiveLocation } from "@/lib/approxLocation";
 import { localName } from "@/lib/i18nData";
 import { getPathname } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
@@ -77,11 +78,16 @@ export default async function PropertiesPage({
 
   // Map pins for the results that have coordinates; no coordinates anywhere
   // means no map at all rather than an empty grey box.
-  const pins: MapPin[] = listings
-    .filter((l) => l.property.lat != null && l.property.lng != null)
-    .map((l) => ({
-      lat: l.property.lat as number,
-      lng: l.property.lng as number,
+  // A home with no spot of its own is drawn at its neighbourhood's centre and
+  // marked approximate (never saved onto the home; see lib/approxLocation.ts).
+  const pins: MapPin[] = listings.flatMap((l) => {
+    const loc = effectiveLocation(l.property, l.property.neighborhood);
+    return loc ? [{ l, loc }] : [];
+  })
+    .map(({ l, loc }) => ({
+      lat: loc.lat,
+      lng: loc.lng,
+      note: loc.approximate ? tm("approximate") : undefined,
       label: localName(locale, l.property.titleEn, l.property.titleAr),
       price: formatOMRWhole(decimalToNumber(l.price)!, locale),
       href: getPathname({
@@ -202,6 +208,7 @@ export default async function PropertiesPage({
                 favorited={favoritedSet.has(l.id)}
                 signedIn={!!session}
                 redirectTo={here}
+                showLocationNote
               />
             ))}
           </div>

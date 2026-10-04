@@ -159,7 +159,16 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
     `0 * * * *` running `curl -X POST -H "Authorization: Bearer $CRON_SECRET"
     "$AUTH_URL/api/jobs/saved-search-alerts"`. Code: `src/lib/alerts/`
     (runner = at-most-once claim, caps 10/user/24 h, 100/run, 5 listings per
-    email; template = pure, EN + AR RTL, plain text always).
+    email; template = pure, EN + AR RTL, plain text always). Failed sends
+    count toward the daily cap and a search is left alone after 3 failures in
+    24 h. Every alert carries a signed one-click unsubscribe link (HMAC with
+    `AUTH_SECRET`; public route `/api/alerts/unsubscribe`, sets the search's
+    frequency to `off`) plus `List-Unsubscribe` / `List-Unsubscribe-Post`
+    headers. The "alerts are live" notes need email on AND a valid
+    `CRON_SECRET` (`src/lib/alerts/live.ts`).
+    Map-area search: a home with no coordinates of its own matches by its
+    neighbourhood's centre and is marked "approximate" — the centre is never
+    stored on the home (`src/lib/approxLocation.ts`).
   - `RESEND_API_KEY` + `EMAIL_FROM` — email provider; dormant until BOTH are
     set (the alert job then reports "not configured" and changes nothing).
   - `EMAIL_DEV_LOG` — `true` writes emails as `.eml` files to

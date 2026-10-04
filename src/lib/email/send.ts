@@ -29,6 +29,8 @@ export type EmailMessage = {
   html?: string;
   /** Generated id used in the outbox file name (never an address). */
   outboxName?: string;
+  /** Extra mail headers, e.g. List-Unsubscribe. */
+  headers?: Record<string, string>;
 };
 
 export type SendResult =
@@ -83,6 +85,7 @@ export async function sendEmail(message: EmailMessage): Promise<SendResult> {
         subject: message.subject,
         text: message.text,
         ...(message.html ? { html: message.html } : {}),
+        ...(message.headers ? { headers: message.headers } : {}),
       }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });

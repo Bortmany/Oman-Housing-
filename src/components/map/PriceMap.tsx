@@ -140,6 +140,9 @@ export function PriceMap({ model }: { model: PriceMapModel }) {
               lines.push(
                 `<div>${escapeHtml(t("popupPrice", { value: formatOMRWhole(p.price, locale) }))}</div>`,
               );
+              if (p.isSample) {
+                lines.push(`<div style="font-weight:600">${escapeHtml(t("popupIsSample"))}</div>`);
+              }
               if (p.sampleSize != null) {
                 lines.push(
                   `<div>${escapeHtml(t("popupSample", { count: String(p.sampleSize) }))}</div>`,
@@ -218,7 +221,9 @@ export function PriceMap({ model }: { model: PriceMapModel }) {
                     style={{ backgroundColor: s.color }}
                   />
                   <span className="whitespace-nowrap">
-                    {formatOMRWhole(s.from, locale)} – {formatOMRWhole(s.to, locale)}
+                    {s.to > s.from
+                      ? `${formatOMRWhole(s.from, locale)} – ${formatOMRWhole(s.to, locale)}`
+                      : formatOMRWhole(s.from, locale)}
                   </span>
                 </li>
               ))}

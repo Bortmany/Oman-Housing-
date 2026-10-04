@@ -13,6 +13,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { prisma } from "@/lib/prisma";
 import { isPhoneVerified, maskPhone } from "@/lib/phoneVerify";
 import { emailMode } from "@/lib/email/send";
+import { alertsAreLive } from "@/lib/alerts/live";
 
 export default async function AccountPage() {
   const [t, te, ts, locale, session] = await Promise.all([
@@ -105,7 +106,7 @@ export default async function AccountPage() {
         {ts("title")}
       </h2>
       <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
-        {emailMode() === "off" ? ts("emailNotLive") : ts("emailLive")}
+        {alertsAreLive(emailMode(), process.env.CRON_SECRET) ? ts("emailLive") : ts("emailNotLive")}
       </p>
       {savedSearches.length === 0 ? (
         <Card className="mt-3 text-sm text-stone-500 dark:text-stone-400">

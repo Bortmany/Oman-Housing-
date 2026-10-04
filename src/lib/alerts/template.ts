@@ -42,10 +42,14 @@ export type AlertEmailInput = {
   listings: AlertListing[];
   /** Total new matches (may be more than listings.length). */
   totalNew: number;
+  /** True when the match search stopped at its fetch limit: show "200+", not "200". */
+  totalCapped?: boolean;
   /** e.g. https://example.com — no trailing slash needed. */
   baseUrl: string;
   /** The saved query string, e.g. "hood=al-mouj&type=VILLA". */
   query: string;
+  /** Signed one-click unsubscribe link for this search (see unsubscribe.ts). */
+  unsubscribeUrl?: string;
 };
 
 export type AlertEmail = { subject: string; text: string; html: string };
@@ -86,13 +90,15 @@ export function buildAlertEmail(input: AlertEmailInput): AlertEmail {
   const shown = real.slice(0, MAX_LISTINGS_PER_EMAIL);
   const total = Math.max(input.totalNew, real.length);
   const extra = Math.max(total - shown.length, 0);
+  // At the fetch limit the true number is unknown: say "200+", never "200".
+  const plus = input.totalCapped ? "+" : "";
 
   const subject = t("subject", { name: input.name }).replace(/[\r\n]+/g, " ");
   const greeting = input.userName?.trim()
     ? t("greeting", { name: input.userName.trim() })
     : t("greetingNoName");
   const intro = t("intro", { name: input.name });
-  const countLine = t("countLine", { count: String(total) });
+  const countLine = t("countLine", { count: `${total}${plus}` });
 
   const items = shown.map((l) => {
     const title = localName(locale, l.titleEn, l.titleAr);
@@ -116,13 +122,14 @@ export function buildAlertEmail(input: AlertEmailInput): AlertEmail {
   for (const it of items) {
     textParts.push(it.title, it.meta, it.asking, it.source, `${t("viewListing")}: ${it.url}`, "");
   }
-  if (extra > 0) textParts.push(t("more", { count: String(extra) }), `${t("seeAll")}: ${seeAllUrl}`, "");
+  if (extra > 0) textParts.push(t("more", { count: `${extra}${plus}` }), `${t("seeAll")}: ${seeAllUrl}`, "");
   textParts.push(
     t("disclaimer"),
     "",
     t("whyYouGotThis", { appName }),
     t("manage", { url: manageUrl }),
   );
+  if (input.unsubscribeUrl) textParts.push(t("unsubscribe", { url: input.unsubscribeUrl }));
   const text = textParts.join("\n");
 
   // ---- HTML ----
@@ -151,12 +158,15 @@ export function buildAlertEmail(input: AlertEmailInput): AlertEmail {
     `<p style="margin:0 0 16px 0;font-weight:bold;">${escapeHtml(countLine)}</p>` +
     items.map(card).join("") +
     (extra > 0
-      ? `<p style="margin:0 0 16px 0;">${escapeHtml(t("more", { count: String(extra) }))} ` +
+      ? `<p style="margin:0 0 16px 0;">${escapeHtml(t("more", { count: `${extra}${plus}` }))} ` +
         `<a href="${escapeHtml(seeAllUrl)}" style="color:#0f766e;font-weight:bold;">${escapeHtml(t("seeAll"))}</a></p>`
       : "") +
     `<p style="margin:16px 0 0 0;font-size:13px;color:#57534e;">${escapeHtml(t("disclaimer"))}</p>` +
     `<p style="margin:8px 0 0 0;font-size:13px;color:#57534e;">${escapeHtml(t("whyYouGotThis", { appName }))} ` +
     `<a href="${escapeHtml(manageUrl)}" style="color:#0f766e;">${escapeHtml(t("manageLink"))}</a></p>` +
+    (input.unsubscribeUrl
+      ? `<p style="margin:8px 0 0 0;font-size:13px;color:#57534e;"><a href="${escapeHtml(input.unsubscribeUrl)}" style="color:#0f766e;">${escapeHtml(t("unsubscribeLink"))}</a></p>`
+      : "") +
     `</td></tr></table></td></tr></table></body></html>`;
 
   return { subject, text, html };
