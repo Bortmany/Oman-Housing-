@@ -1347,5 +1347,21 @@
     "mapFailed": "The map could not load. The figures are listed below.",
     "gestureTouch": "Use two fingers to move the map",
     "gestureScroll": "Use Ctrl + scroll to zoom the map"
+  },
+  "searchMap": {
+    "searchThisArea": "Search this area",
+    "movedHint": "You moved the map. Press the button to see listings in this area.",
+    "areaChip": "Map area",
+    "removeArea": "Remove map area",
+    "inArea": "{count} listings in this map area",
+    "noneInArea": "No listings in this map area.",
+    "noneInAreaHint": "Zoom out or move the map, then press “Search this area” again.",
+    "noLocationNote": "Listings without a map location are not included when you search a map area.",
+    "capNote": "Showing the newest 60. Zoom in to narrow down.",
+    "mapLabel": "Map of listings. Drag or zoom, then press “Search this area”.",
+    "savedIncludesArea": "This search includes the current map area.",
+    "mapFailed": "The map could not load. The listings are shown below.",
+    "gestureTouch": "Use two fingers to move the map",
+    "gestureScroll": "Use Ctrl + scroll to zoom the map"
   }
 }

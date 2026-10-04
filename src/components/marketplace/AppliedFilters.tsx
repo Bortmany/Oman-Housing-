@@ -17,10 +17,12 @@ export function AppliedFilters({
   const locale = useLocale();
   const t = useTranslations("properties");
   const te = useTranslations("enums");
+  const tm = useTranslations("searchMap");
 
   const hood = neighborhoods.find((n) => n.slug === values.hood);
 
-  const chips: Array<{ key: keyof FilterValues; label: string }> = [];
+  // "area" is the four map-box values together; the others are one filter each.
+  const chips: Array<{ key: keyof FilterValues | "area"; label: string; aria?: string }> = [];
   if (hood) {
     chips.push({
       key: "hood",
@@ -62,13 +64,20 @@ export function AppliedFilters({
     chips.push({ key: "ownership", label: te(`ownership.${values.ownership}`) });
   }
 
+  if (values.n && values.s && values.e && values.w) {
+    chips.push({ key: "area", label: tm("areaChip"), aria: tm("removeArea") });
+  }
+
   if (chips.length === 0) return null;
 
-  // The query string for "everything except this one filter".
-  function without(key: keyof FilterValues): Record<string, string> {
+  // The query string for "everything except this one filter" (the map area
+  // chip removes all four box values together and keeps the other filters).
+  function without(key: keyof FilterValues | "area"): Record<string, string> {
     const query: Record<string, string> = {};
     for (const [name, value] of Object.entries(values)) {
-      if (name !== key && value) query[name] = String(value);
+      if (!value) continue;
+      if (key === "area" ? ["n", "s", "e", "w"].includes(name) : name === key) continue;
+      query[name] = String(value);
     }
     return query;
   }
@@ -82,7 +91,7 @@ export function AppliedFilters({
         <Link
           key={chip.key}
           href={{ pathname: "/properties", query: without(chip.key) }}
-          aria-label={t("removeFilter", { name: chip.label })}
+          aria-label={chip.aria ?? t("removeFilter", { name: chip.label })}
           className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-teal-50 px-3 py-1 text-sm font-medium text-teal-800 ring-1 ring-inset ring-teal-600/20 hover:bg-teal-100 dark:bg-teal-950 dark:text-teal-200 dark:ring-teal-400/30 dark:hover:bg-teal-900"
         >
           {chip.label}

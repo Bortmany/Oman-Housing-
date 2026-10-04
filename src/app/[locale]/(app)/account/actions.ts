@@ -44,9 +44,10 @@ const MAX_NAME_LENGTH = 120;
  */
 async function describeSearch(query: string, locale: string): Promise<string> {
   const params = searchQueryToObject(query);
-  const [t, te] = await Promise.all([
+  const [t, te, tm] = await Promise.all([
     getTranslations({ locale, namespace: "properties" }),
     getTranslations({ locale, namespace: "enums" }),
+    getTranslations({ locale, namespace: "searchMap" }),
   ]);
 
   const parts: string[] = [];
@@ -79,6 +80,9 @@ async function describeSearch(query: string, locale: string): Promise<string> {
 
   const ownership = OWNERSHIP.safeParse(params.ownership);
   if (ownership.success) parts.push(te(`ownership.${ownership.data}`));
+
+  // searchQueryToObject only returns the four box values when all are valid.
+  if (params.n && params.s && params.e && params.w) parts.push(tm("areaChip"));
 
   const name = parts.length > 0 ? parts.join(" · ") : t("savedSearchAll");
   return name.slice(0, MAX_NAME_LENGTH);

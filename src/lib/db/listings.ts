@@ -15,6 +15,7 @@ import {
 import { publicStatWhere } from "../statVisibility";
 import { publicPropertyWhere } from "../listings/rules";
 import { verifiedPhoneOf } from "../phoneVerify";
+import { DEFAULT_SEARCH_LIMIT, type Bounds } from "../searchFilters";
 
 // Sample data (seeded demonstration homes and listings) follows the one rule
 // in ./sampleData.ts: a sample listing or property is hidden from PUBLIC
@@ -91,6 +92,15 @@ export type SearchFilters = {
   maxPrice?: number;
   minBedrooms?: number;
   ownership?: OwnershipEligibility;
+  /** Map area (already validated by parseSearchFilters). Homes with no
+   *  coordinates never match when this is set. */
+  bounds?: Bounds;
+  /** Only listings published AFTER this moment (exclusive). Used by alerts. */
+  publishedAfter?: Date;
+  /** Only listings published up to and including this moment. */
+  publishedUntil?: Date;
+  /** Most rows to return, newest first. Default 60; capped at 200. */
+  limit?: number;
 };
 
 /**
@@ -107,6 +117,14 @@ export async function searchListings(
       status: "ACTIVE",
       ...notHiddenSampleWhere(realKeys),
       ...(filters.listingType ? { listingType: filters.listingType } : {}),
+      ...(filters.publishedAfter || filters.publishedUntil
+        ? {
+            publishedAt: {
+              ...(filters.publishedAfter ? { gt: filters.publishedAfter } : {}),
+              ...(filters.publishedUntil ? { lte: filters.publishedUntil } : {}),
+            },
+          }
+        : {}),
       ...(filters.minPrice != null || filters.maxPrice != null
         ? {
             price: {
@@ -124,11 +142,21 @@ export async function searchListings(
         ...(filters.neighborhoodSlug
           ? { neighborhood: { slug: filters.neighborhoodSlug } }
           : {}),
+        // A range on lat/lng also leaves out homes with no coordinates.
+        ...(filters.bounds
+          ? {
+              lat: { gte: filters.bounds.s, lte: filters.bounds.n },
+              lng: { gte: filters.bounds.w, lte: filters.bounds.e },
+            }
+          : {}),
       },
     },
     include: listingInclude,
     orderBy: { publishedAt: "desc" },
-    take: 60,
+    take: Math.min(
+      Math.max(Math.floor(filters.limit ?? DEFAULT_SEARCH_LIMIT), 1),
+      200,
+    ),
   });
   // The where-clause already did it; the pure rule runs again as a guard.
   return hideSupersededSampleListings(rows, realKeys).map(withSampleFlag);
