@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/lib/seo";
 import { getLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -26,7 +27,7 @@ import { DirectionalLink } from "@/components/ui/DirectionalLink";
 
 export async function generateMetadata() {
   const t = await getTranslations("properties");
-  return { title: t("title") };
+  return pageMetadata({ path: "/properties", title: t("title") });
 }
 
 export default async function PropertiesPage({

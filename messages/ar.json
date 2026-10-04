@@ -1400,5 +1400,12 @@
     "errorTitle": "حدث خطأ ما",
     "errorBody": "تعذّر إيقاف هذه التنبيهات الآن. حاول فتح الرابط مرة أخرى بعد دقائق، أو استخدم حسابك.",
     "manage": "افتح عمليات البحث المحفوظة"
+  },
+  "seo": {
+    "neighborhoodDescription": "اتجاهات سوق العقارات ومتوسط الأسعار والإيجارات في {area}، {city} — كل رقم مصنّف بمصدره.",
+    "propertyDescriptionSale": "{type} في {area}، {city}. السعر المطلوب {price}.",
+    "propertyDescriptionRent": "{type} في {area}، {city}. الإيجار المطلوب {price} {period}.",
+    "propertyDescriptionNoPrice": "{type} في {area}، {city}.",
+    "defaultShareAlt": "Oman Property Intelligence — منازل على البحر في مسقط"
   }
 }

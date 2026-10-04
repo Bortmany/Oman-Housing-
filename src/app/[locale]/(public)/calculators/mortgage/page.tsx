@@ -1,10 +1,11 @@
+import { pageMetadata } from "@/lib/seo";
 import { getTranslations } from "next-intl/server";
 import { CalculatorShell } from "@/components/calculators/CalculatorShell";
 import { MortgageForm } from "./MortgageForm";
 
 export async function generateMetadata() {
   const t = await getTranslations("calculators.mortgage");
-  return { title: t("title") };
+  return pageMetadata({ path: "/calculators/mortgage", title: t("title"), description: t("description") });
 }
 
 export default async function MortgagePage() {

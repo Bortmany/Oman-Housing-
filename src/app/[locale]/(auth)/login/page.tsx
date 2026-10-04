@@ -4,7 +4,7 @@ import { LoginForm } from "./LoginForm";
 
 export async function generateMetadata() {
   const t = await getTranslations("auth");
-  return { title: t("signInTitle") };
+  return { title: t("signInTitle"), robots: { index: false, follow: false } };
 }
 
 export default async function LoginPage() {

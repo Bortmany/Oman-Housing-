@@ -1,9 +1,10 @@
+import { pageMetadata } from "@/lib/seo";
 import { getTranslations } from "next-intl/server";
 import LegalContact from "@/components/legal/LegalContact";
 
 export async function generateMetadata() {
   const t = await getTranslations("legal.privacy");
-  return { title: t("title") };
+  return pageMetadata({ path: "/privacy", title: t("title") });
 }
 
 // Plain-language privacy policy. The wording is a template for the owner to

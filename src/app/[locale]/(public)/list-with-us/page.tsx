@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/lib/seo";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { redirect } from "@/i18n/navigation";
@@ -13,7 +14,7 @@ import { ButtonLink } from "@/components/ui/Button";
 
 export async function generateMetadata() {
   const t = await getTranslations("agency");
-  return { title: t("signup.title") };
+  return pageMetadata({ path: "/list-with-us", title: t("signup.title") });
 }
 
 export default async function ListWithUsPage() {

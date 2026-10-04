@@ -19,6 +19,31 @@ import { PropertyMap } from "@/components/map/PropertyMap";
 import { DirectionalLink } from "@/components/ui/DirectionalLink";
 import { Link } from "@/i18n/navigation";
 import { searchListings, type ListingWithProperty } from "@/lib/db/listings";
+import { pageMetadata } from "@/lib/seo";
+import { shortDescription } from "@/lib/seoCore";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ neighborhood: string }>;
+}) {
+  const { neighborhood: slug } = await params;
+  const hood = await neighborhoodBySlug(slug);
+  if (!hood) return {}; // the page itself shows not-found
+  const [locale, ts] = await Promise.all([getLocale(), getTranslations("seo")]);
+  const name = localName(locale, hood.nameEn, hood.nameAr);
+  const own = shortDescription(localName(locale, hood.descriptionEn ?? "", hood.descriptionAr));
+  return pageMetadata({
+    path: `/market/${encodeURIComponent(slug)}`,
+    title: name,
+    description:
+      own ||
+      ts("neighborhoodDescription", {
+        area: name,
+        city: localName(locale, hood.city.nameEn, hood.city.nameAr),
+      }),
+  });
+}
 
 export default async function NeighborhoodPage({
   params,

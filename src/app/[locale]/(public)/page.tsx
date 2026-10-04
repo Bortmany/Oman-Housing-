@@ -1,3 +1,5 @@
+import { getTranslations } from "next-intl/server";
+import { pageMetadata } from "@/lib/seo";
 import { Hero } from "@/components/marketing/Hero";
 import { HomeSearch } from "@/components/marketing/HomeSearch";
 import { NeighborhoodShortcuts } from "@/components/marketing/NeighborhoodShortcuts";
@@ -6,6 +8,12 @@ import { HonestData } from "@/components/marketing/HonestData";
 import { CalculatorsGrid } from "@/components/marketing/CalculatorsGrid";
 import { CtaBand } from "@/components/marketing/CtaBand";
 import { Reveal } from "@/components/marketing/Reveal";
+
+export async function generateMetadata() {
+  const t = await getTranslations("footer");
+  // Site name as the title; the home page is shared as the site itself.
+  return pageMetadata({ path: "/", description: t("tagline") });
+}
 
 // The landing page: one home page combining the hero, mortgage slider, trend
 // cards and "where every number comes from" section with the property search

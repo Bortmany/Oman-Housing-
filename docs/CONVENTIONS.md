@@ -140,7 +140,7 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
   `engines` in `package.json`).
 - Volume mounted at `/data`, env `DATA_DIR=/data`
 - Env vars:
-  - `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` (public app URL), `DATA_DIR`
+  - `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` (public app URL; the only base for sitemap, robots, canonical, language and share links: `src/lib/siteUrl.ts`), `DATA_DIR`
   - `SEED_ADMIN_PASSWORD` — password given to the seeded `admin@example.com`
     and `agency@example.com` logins by `npm run db:seed`; set a strong one
     before seeding, then remove/rotate those demo accounts before launch.

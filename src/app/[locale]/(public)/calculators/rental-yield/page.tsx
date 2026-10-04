@@ -1,10 +1,11 @@
+import { pageMetadata } from "@/lib/seo";
 import { getTranslations } from "next-intl/server";
 import { CalculatorShell } from "@/components/calculators/CalculatorShell";
 import { RentalYieldForm } from "./RentalYieldForm";
 
 export async function generateMetadata() {
   const t = await getTranslations("calculators.rentalYield");
-  return { title: t("title") };
+  return pageMetadata({ path: "/calculators/rental-yield", title: t("title"), description: t("description") });
 }
 
 export default async function RentalYieldPage() {

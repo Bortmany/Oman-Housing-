@@ -23,6 +23,76 @@ import { ContactButtons } from "@/components/marketplace/ContactButtons";
 import { FavoriteButton } from "@/components/marketplace/FavoriteButton";
 import { PropertyMap } from "@/components/map/PropertyMap";
 import { DirectionalLink } from "@/components/ui/DirectionalLink";
+import { pageMetadata } from "@/lib/seo";
+import { getSiteUrl } from "@/lib/siteUrl";
+import {
+  absoluteUrl,
+  buildPropertyShareText,
+  isPropertyIndexable,
+  pickCoverImage,
+} from "@/lib/seoCore";
+
+// Share tags: title, cover photo and (only when a live listing exists) the
+// ASKING price. No estimate, yield or fair value ever goes in here. A sample
+// record, or a property with no live listing, stays reachable by link but is
+// kept out of search results.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const property = await prisma.property.findFirst({
+    where: { id, ...publicPropertyWhere },
+    include: {
+      neighborhood: { include: { city: true } },
+      images: { orderBy: { sortOrder: "asc" } },
+      listings: {
+        where: { status: "ACTIVE" },
+        orderBy: { publishedAt: "desc" },
+        select: { status: true, listingType: true, price: true, rentPeriod: true, isSample: true },
+      },
+    },
+  });
+  if (!property) return {}; // the page itself shows not-found
+  const [locale, ts, te] = await Promise.all([
+    getLocale(),
+    getTranslations("seo"),
+    getTranslations("enums"),
+  ]);
+  const title = localName(locale, property.titleEn, property.titleAr);
+  const description = buildPropertyShareText({
+    locale,
+    templates: {
+      sale: ts.raw("propertyDescriptionSale"),
+      rent: ts.raw("propertyDescriptionRent"),
+      noPrice: ts.raw("propertyDescriptionNoPrice"),
+    },
+    periodLabels: { MONTHLY: te("rentPeriod.MONTHLY"), ANNUAL: te("rentPeriod.ANNUAL") },
+    type: te(`propertyType.${property.type}`),
+    area: localName(locale, property.neighborhood.nameEn, property.neighborhood.nameAr),
+    city: localName(locale, property.neighborhood.city.nameEn, property.neighborhood.city.nameAr),
+    propertyIsSample: property.isSample,
+    listings: property.listings.map((l) => ({ ...l, price: decimalToNumber(l.price) ?? 0 })),
+  });
+  const base = getSiteUrl();
+  const cover = pickCoverImage(property.images);
+  const image =
+    base && cover
+      ? {
+          url: absoluteUrl(base, `/api/images/${cover.storagePath}`),
+          alt: localName(locale, cover.altEn ?? title, cover.altAr),
+        }
+      : undefined; // no photo: pageMetadata falls back to the default share image
+  return pageMetadata({
+    path: `/properties/${property.id}`,
+    title,
+    description,
+    image,
+    noindex: !isPropertyIndexable(property),
+    follow: true,
+  });
+}
 
 export default async function PropertyDetailPage({
   params,

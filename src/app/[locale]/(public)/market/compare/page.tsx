@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/lib/seo";
 import { getLocale, getTranslations } from "next-intl/server";
 import type { PropertyType } from "@prisma/client";
 import {
@@ -16,7 +17,7 @@ import { Button } from "@/components/ui/Button";
 
 export async function generateMetadata() {
   const t = await getTranslations("market");
-  return { title: t("compare") };
+  return pageMetadata({ path: "/market/compare", title: t("compare"), noindex: true });
 }
 
 export default async function ComparePage({

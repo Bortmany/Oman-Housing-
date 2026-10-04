@@ -1,10 +1,11 @@
+import { pageMetadata } from "@/lib/seo";
 import { getTranslations } from "next-intl/server";
 import { Card } from "@/components/ui/Card";
 import { Link } from "@/i18n/navigation";
 
 export async function generateMetadata() {
   const t = await getTranslations("calculators");
-  return { title: t("title") };
+  return pageMetadata({ path: "/calculators", title: t("title") });
 }
 
 export default async function CalculatorsPage() {

@@ -1400,5 +1400,12 @@
     "errorTitle": "Something went wrong",
     "errorBody": "We could not turn off these alerts just now. Please try the link again in a few minutes, or use your account.",
     "manage": "Open my saved searches"
+  },
+  "seo": {
+    "neighborhoodDescription": "Property market trends, average prices and rents in {area}, {city} — every figure labelled by its source.",
+    "propertyDescriptionSale": "{type} in {area}, {city}. Asking price {price}.",
+    "propertyDescriptionRent": "{type} in {area}, {city}. Asking rent {price} {period}.",
+    "propertyDescriptionNoPrice": "{type} in {area}, {city}.",
+    "defaultShareAlt": "Oman Property Intelligence — homes by the sea in Muscat"
   }
 }
