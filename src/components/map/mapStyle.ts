@@ -13,7 +13,7 @@ import type { StyleSpecification } from "maplibre-gl";
 import { Protocol } from "pmtiles";
 import { layers, namedFlavor } from "@protomaps/basemaps";
 
-type MapLibre = typeof import("maplibre-gl").default;
+type MapLibre = typeof import("maplibre-gl");
 
 export const PMTILES_URL = process.env.NEXT_PUBLIC_MAP_PMTILES_URL || "";
 

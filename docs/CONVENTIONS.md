@@ -179,12 +179,20 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
     its own code and prints it to the server console. Unset in production:
     phone verification, and so owner listing, is closed (fail closed).
     Provider code: `src/lib/sms/send.ts`.
-  - optional `NEXT_PUBLIC_MAP_TILE_URL`, `REDIS_URL`
+  - `NEXT_PUBLIC_MAP_PMTILES_URL` — full address of the Protomaps `.pmtiles`
+    file (Cloudflare R2). Build-time. When set it wins over
+    `NEXT_PUBLIC_MAP_TILE_URL`; when unset the map uses that raster URL
+    (default OpenStreetMap). The map style, tile source and attribution are
+    decided in one place, `src/components/map/mapStyle.ts`; fonts, icons and
+    the Arabic text plugin are served from `public/map`. The CSP derives its
+    `connect-src` origin from this variable (`next.config.ts`).
+  - optional `NEXT_PUBLIC_MAP_TILE_URL`, `NEXT_PUBLIC_MAP_ATTRIBUTION`
+    (attribution for the raster path), `REDIS_URL`
 - Health endpoint: `/api/health` (a signed-in admin also sees which of the
   optional integrations — Sentry, AI analyst, CAPTCHA — are configured, plus
   `signups: open | invite | closed`, `sms: configured | dormant`)
-- The default OSM tile server is fine for low traffic only; swap
-  `NEXT_PUBLIC_MAP_TILE_URL` to Carto/Protomaps before real traffic.
+- The default OSM tile server is fine for low traffic only; set
+  `NEXT_PUBLIC_MAP_PMTILES_URL` (Protomaps on R2) before real traffic.
 
 ## Roadmap (already designed, schema already in place)
 

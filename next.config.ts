@@ -28,6 +28,17 @@ const mapTileOrigin = tileOrigin(
   process.env.NEXT_PUBLIC_MAP_TILE_URL ?? DEFAULT_TILE_URL,
 );
 
+// Protomaps: when NEXT_PUBLIC_MAP_PMTILES_URL is set the map reads one
+// .pmtiles file straight from that host (range requests), so that origin goes
+// into connect-src. Unset = nothing added. Fonts and icons are our own
+// /public/map files, so nothing else changes. The Arabic text-shaping plugin
+// is a small WebAssembly file, which needs 'wasm-unsafe-eval' (WebAssembly
+// only — not general eval); added only while PMTiles is on.
+const pmtilesUrl = process.env.NEXT_PUBLIC_MAP_PMTILES_URL ?? "";
+const pmtilesOrigin = pmtilesUrl ? tileOrigin(pmtilesUrl) : "";
+const pmtilesConnect = pmtilesUrl ? ` ${pmtilesOrigin}` : "";
+const wasmSource = pmtilesUrl ? " 'wasm-unsafe-eval'" : "";
+
 // Cloudflare Turnstile (dormant CAPTCHA) loads a script and an iframe from
 // challenges.cloudflare.com — allowed ONLY when its public site key is set,
 // so the policy stays as tight as before while the CAPTCHA is switched off.
@@ -39,11 +50,11 @@ const contentSecurityPolicy = [
   "default-src 'self'",
   // Next.js needs inline scripts; the dev server additionally needs eval
   // and a WebSocket for fast refresh (dev only — never in production).
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}${turnstileOrigin}`,
+  `script-src 'self' 'unsafe-inline'${wasmSource}${isDev ? " 'unsafe-eval'" : ""}${turnstileOrigin}`,
   ...(turnstileOrigin ? [`frame-src 'self'${turnstileOrigin}`] : []),
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${mapTileOrigin}`,
-  `connect-src 'self' ${mapTileOrigin}${isDev ? " ws:" : ""}`,
+  `connect-src 'self' ${mapTileOrigin}${pmtilesConnect}${isDev ? " ws:" : ""}`,
   // MapLibre GL runs its workers from blob: URLs (child-src is the fallback
   // directive older browsers use for workers).
   "worker-src 'self' blob:",

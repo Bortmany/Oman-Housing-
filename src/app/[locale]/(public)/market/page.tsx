@@ -14,6 +14,8 @@ import { SampleCaption } from "@/components/provenance/SampleCaption";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { ChartSampleNote } from "@/components/provenance/ChartSampleNote";
 import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
+import { PriceMap } from "@/components/map/PriceMap";
+import { priceMapFor } from "@/lib/db/price-map";
 import { Link } from "@/i18n/navigation";
 import { DirectionalLink } from "@/components/ui/DirectionalLink";
 
@@ -30,15 +32,20 @@ export default async function MarketPage({
   const { type } = await searchParams;
   const propertyType: PropertyType = type === "villa" ? "VILLA" : "APARTMENT";
 
-  const [t, tc, ta, locale, stats, areaRows] = await Promise.all([
+  const [t, tc, ta, tp, locale, stats, areaRows, priceMap] = await Promise.all([
     getTranslations("market"),
     getTranslations("common"),
     getTranslations("areaFigure"),
+    getTranslations("priceMap"),
     getLocale(),
     latestStatsByNeighborhood(type === "villa" ? "VILLA" : "APARTMENT"),
     // Official whole-governorate figures; a context section only, so a failed
     // read just leaves it out.
     latestAreaFiguresFor("all").catch(() => []),
+    // The map is a nice-to-have on top of the cards: a failed read leaves it out.
+    getLocale()
+      .then((l) => priceMapFor(propertyType, l))
+      .catch(() => null),
   ]);
 
   // One card per governorate that has an official row for the selected type.
@@ -152,6 +159,18 @@ export default async function MarketPage({
         </Card>
       ) : (
         <>
+          {priceMap && (priceMap.points.length > 0 || priceMap.unplaced > 0) && (
+            <Card className="mt-8">
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
+                {tp("title")}
+              </h2>
+              <p className="mt-1 mb-4 max-w-2xl text-sm text-stone-600 dark:text-stone-300">
+                {tp("subtitle")}
+              </p>
+              <PriceMap model={priceMap} />
+            </Card>
+          )}
+
           {trendData.length > 0 && (
             <Card className="mt-8">
               <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">

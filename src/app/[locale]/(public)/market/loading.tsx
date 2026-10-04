@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/Skeleton";
 
 // Shown instantly while the market dashboard fetches its figures.
-// Mirrors the real page: heading, type tabs, trend chart, neighborhood cards.
+// Mirrors the real page: heading, type tabs, price map, trend chart, neighborhood cards.
 export default function MarketLoading() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -13,6 +13,9 @@ export default function MarketLoading() {
         <Skeleton className="h-8 w-28 rounded-full" />
         <Skeleton className="h-8 w-24 rounded-full" />
       </div>
+
+      {/* Price map card placeholder (same height as the real map) */}
+      <Skeleton className="mt-8 h-96 w-full rounded-xl sm:h-[36rem]" />
 
       {/* Trend chart placeholder */}
       <Skeleton className="mt-8 h-80 w-full rounded-xl" />
