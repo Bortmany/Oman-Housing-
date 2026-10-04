@@ -12,6 +12,7 @@ import { Link } from "@/i18n/navigation";
 import { ButtonLink } from "@/components/ui/Button";
 import { prisma } from "@/lib/prisma";
 import { isPhoneVerified, maskPhone } from "@/lib/phoneVerify";
+import { emailMode } from "@/lib/email/send";
 
 export default async function AccountPage() {
   const [t, te, ts, locale, session] = await Promise.all([
@@ -104,7 +105,7 @@ export default async function AccountPage() {
         {ts("title")}
       </h2>
       <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
-        {ts("emailNotLive")}
+        {emailMode() === "off" ? ts("emailNotLive") : ts("emailLive")}
       </p>
       {savedSearches.length === 0 ? (
         <Card className="mt-3 text-sm text-stone-500 dark:text-stone-400">
@@ -127,6 +128,10 @@ export default async function AccountPage() {
                   </Link>
                   <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
                     {ts("frequencyLabel")}: {ts(`frequency.${search.frequency}`)}
+                    {" · "}
+                    {search.lastAlertedAt
+                      ? ts("lastAlert", { date: dateFmt.format(search.lastAlertedAt) })
+                      : ts("noAlertYet")}
                   </p>
                 </div>
                 <form action={deleteSavedSearchAction}>

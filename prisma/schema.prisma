@@ -125,6 +125,7 @@ model User {
   sessions           Session[]
   favorites          Favorite[]
   savedSearches      SavedSearch[]
+  alertLogs          AlertLog[]
   inquiries          Inquiry[]
   listings           Listing[]           @relation("ListingCreator")
   aiAnalyses         AiAnalysis[]
@@ -458,10 +459,38 @@ model SavedSearch {
   query     String
   frequency String   @default("daily")
 
+  // Alert emails. lastAlertedAt = when the last alert was claimed/sent (null =
+  // never; alerts then start from createdAt). lastMatchedListingId = newest
+  // listing in that alert — plain text, no relation, so deleting a listing
+  // never blocks anything.
+  lastAlertedAt        DateTime?
+  lastMatchedListingId String?
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
+  @@index([userId, createdAt])
+}
+
+// One row per alert email attempt: who, which search, how many listings, and
+// what happened. Never the address or the email text. status is validated in
+// code: claimed | sent | failed | not-configured. savedSearchId is plain text
+// so the log survives a deleted search. Rows older than 90 days are deleted by
+// the alert job.
+model AlertLog {
+  id            String   @id @default(cuid())
+  userId        String
+  savedSearchId String
+  frequency     String
+  matchedCount  Int
+  status        String
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([savedSearchId, createdAt])
   @@index([userId, createdAt])
 }
 

@@ -47,10 +47,20 @@ Plain-English list of what to set up before launch. Full context: `Agents/docs/g
 - **Thawani / PayTabs checkout is deferred (not built).** For now you grant Premium/Business tiers by hand from `/admin/agencies`. Stripe is not an option (it doesn't serve Oman merchants).
 
 ## Email
-- **The wiring now exists, switched off.** `src/lib/email/send.ts` sends through [Resend](https://resend.com)'s API with no extra software installed. It stays completely inert — nothing sent, nothing broken — until BOTH of these are set:
+- **The wiring exists, switched off.** `src/lib/email/send.ts` sends through [Resend](https://resend.com)'s API with no extra software installed. It stays completely inert — nothing sent, nothing broken — until BOTH of these are set:
   - `RESEND_API_KEY` — the API key from your Resend account.
   - `EMAIL_FROM` — the "from" address, e.g. `"Oman Property Intelligence <alerts@yourdomain.com>"`. The domain has to be verified in Resend first.
-- **What wakes up when you set them:** nothing automatically. Saved searches (visitors can already save a search from `/properties` and manage it on their account page) say plainly, in both languages, that email alerts start once the email service is connected. Actually sending those alerts needs a scheduled job, which is deliberately not built yet — as does the agency enquiry notification (`TODO(Phase 5 email)`). Core browsing and admin work without any of it.
+- **What wakes up when you set them:** saved-search alert emails (see "Alert job" below). Until then the account page and the "Save this search" button say plainly, in both languages, that alerts start once the email service is connected. The agency enquiry notification is still not built (`TODO(Phase 5 email)`). Core browsing and admin work without any of it.
+- A signed-in admin sees `email: configured | outbox | dormant` and `alertJob: configured | dormant` at `/api/health`.
+
+## Alert job
+Sends each person an email when new listings match a saved search ("as soon as they appear" or "once a day", as they chose). Built in `src/lib/alerts/`; the address is `POST /api/jobs/saved-search-alerts`.
+- [ ] **Set `CRON_SECRET`** on Railway — a long random value, e.g. `openssl rand -base64 32` (at least 16 characters). Unset or too short = the job address refuses everyone (503), so it can never run open.
+- [ ] **Set `RESEND_API_KEY` and `EMAIL_FROM`** (domain verified in Resend). Without them the job reports "not configured", writes a note per search at most once a day, and does NOT mark anything as alerted — so nothing is lost; alerts start flowing once the keys arrive. Check your Resend plan's daily send limit; the job itself sends at most 100 emails per run and 10 per person per 24 hours.
+- [ ] **Add an hourly Railway cron** that runs: `curl -X POST -H "Authorization: Bearer $CRON_SECRET" "$AUTH_URL/api/jobs/saved-search-alerts"` (schedule `0 * * * *`). Make sure `AUTH_URL` is the real public address — it is also used for the links inside the emails.
+- Safe to run twice at once: each alert is claimed once, so nobody gets a duplicate. If a send fails, the next hourly run retries it. If the server crashes at the worst moment, at most one email can be lost — it is never sent twice.
+- `EMAIL_DEV_LOG=true` is for LOCAL testing only: emails are written as `.eml` files in `DATA_DIR/outbox/` instead of being sent, and it is ignored in production. Those files are throw-away test output and need no backup.
+- `AlertLog` (who / which search / how many / result — never the email text) lives in the database, so it is covered by the normal database backup. The job deletes rows older than 90 days.
 
 ## Security note
 No committed secrets; role checks are enforced in every admin action; uploads and image serving are path-traversal guarded. Just be sure to replace both `change-me` values before deploy.

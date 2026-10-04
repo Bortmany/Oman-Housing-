@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { isCaptchaConfigured } from "@/lib/captcha";
 import { getSignupMode } from "@/lib/signupMode";
 import { isSmsConfigured } from "@/lib/sms/send";
+import { emailMode } from "@/lib/email/send";
 
 // Health endpoint for uptime checks (ops-watchdog / Railway).
 //
@@ -24,6 +25,11 @@ export async function GET() {
         captcha: isCaptchaConfigured() ? "configured" : "dormant",
         // Twilio Verify (phone codes for private owners) — src/lib/sms/send.ts.
         sms: isSmsConfigured() ? "configured" : "dormant",
+        // Alert emails: "configured" (Resend), "outbox" (local test files) or
+        // "dormant"; alertJob = CRON_SECRET set (the secret itself is never shown).
+        email: emailMode() === "live" ? "configured" : emailMode() === "outbox" ? "outbox" : "dormant",
+        alertJob:
+          (process.env.CRON_SECRET?.length ?? 0) >= 16 ? "configured" : "dormant",
         // "open" | "invite" | "closed" — see src/lib/signupMode.ts. Admin-only
         // like the rest: the codes themselves are never shown anywhere.
         signups: getSignupMode(),

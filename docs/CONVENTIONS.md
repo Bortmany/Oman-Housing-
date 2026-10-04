@@ -154,6 +154,17 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
     Unset or shorter = the job address refuses everyone (503). Railway: run
     the job daily; schedule `0 23 * * *` = 03:00 Oman time. The admin
     "Recompute now" button works without it.
+  - `CRON_SECRET` also guards the hourly alert job
+    `POST /api/jobs/saved-search-alerts` (saved-search emails). Railway cron:
+    `0 * * * *` running `curl -X POST -H "Authorization: Bearer $CRON_SECRET"
+    "$AUTH_URL/api/jobs/saved-search-alerts"`. Code: `src/lib/alerts/`
+    (runner = at-most-once claim, caps 10/user/24 h, 100/run, 5 listings per
+    email; template = pure, EN + AR RTL, plain text always).
+  - `RESEND_API_KEY` + `EMAIL_FROM` — email provider; dormant until BOTH are
+    set (the alert job then reports "not configured" and changes nothing).
+  - `EMAIL_DEV_LOG` — `true` writes emails as `.eml` files to
+    `DATA_DIR/outbox/` instead of sending. Development only; ignored when
+    `NODE_ENV=production`. Never needs a backup.
   - `SENTRY_DSN` — error tracking; empty = off, nothing is sent.
   - `TURNSTILE_SECRET_KEY` + `NEXT_PUBLIC_TURNSTILE_SITE_KEY` — Cloudflare
     Turnstile (free CAPTCHA) on the login, register and list-with-us forms.
