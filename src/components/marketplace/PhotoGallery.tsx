@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 type Photo = { src: string; alt: string };
 
@@ -131,19 +132,19 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
             go((dx < 0) !== rtl ? 1 : -1);
           }}
         >
-          <button ref={closeRef} type="button" aria-label={t("close")} title={t("close")} onClick={(e) => { e.stopPropagation(); close(); }} className={`${chip} absolute start-3 top-3`}>
+          <span className="absolute start-3 top-3"><Tooltip label={t("close")} side="bottom"><button ref={closeRef} type="button" aria-label={t("close")} onClick={(e) => { e.stopPropagation(); close(); }} className={chip}>
             <span aria-hidden="true">✕</span>
-          </button>
+          </button></Tooltip></span>
           <p className="absolute inset-x-0 top-5 text-center text-sm font-medium text-white" dir="ltr">{current + 1} / {count}</p>
 
           {count > 1 && (
             <>
-              <button type="button" aria-label={t("previous")} title={t("previous")} onClick={(e) => { e.stopPropagation(); go(-1); }} className={`${chip} absolute start-3 top-1/2 -translate-y-1/2`}>
+              <span className="absolute start-3 top-1/2 -translate-y-1/2"><Tooltip label={t("previous")} side="bottom"><button type="button" aria-label={t("previous")} onClick={(e) => { e.stopPropagation(); go(-1); }} className={chip}>
                 {arrow("previous")}
-              </button>
-              <button type="button" aria-label={t("next")} title={t("next")} onClick={(e) => { e.stopPropagation(); go(1); }} className={`${chip} absolute end-3 top-1/2 -translate-y-1/2`}>
+              </button></Tooltip></span>
+              <span className="absolute end-3 top-1/2 -translate-y-1/2"><Tooltip label={t("next")} side="bottom"><button type="button" aria-label={t("next")} onClick={(e) => { e.stopPropagation(); go(1); }} className={chip}>
                 {arrow("next")}
-              </button>
+              </button></Tooltip></span>
             </>
           )}
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { escapeHtml } from "@/lib/escape-html";
 import { clampBounds, sameArea, type Bounds } from "@/lib/searchFilters";
 
@@ -230,6 +231,12 @@ export function PropertyMap({
   return (
     <div className="relative">
       <div ref={containerRef} dir="ltr" className={className} />
+      {!ready && !failed && (
+        <div role="status" aria-busy="true" className="absolute inset-0">
+          <Skeleton className="size-full rounded-xl" />
+          <span className="sr-only">{t("loading")}</span>
+        </div>
+      )}
       {failed && interactive && (
         <div
           role="status"

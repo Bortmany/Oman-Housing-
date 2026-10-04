@@ -1,5 +1,6 @@
 "use client";
 
+import { Tooltip } from "@/components/ui/Tooltip";
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
@@ -182,6 +183,7 @@ export function PhotoBox({
                       {p.file?.name ?? ""}
                     </span>
                   )}
+                  <Tooltip label={t("photoMenu")} side="top">
                   <button
                     type="button"
                     aria-label={t("photoMenu")}
@@ -193,6 +195,7 @@ export function PhotoBox({
                   >
                     <Icon d={DOTS} />
                   </button>
+                  </Tooltip>
                   {menu === p.key && (
                     <ul
                       role="menu"

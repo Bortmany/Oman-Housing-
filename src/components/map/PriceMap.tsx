@@ -199,7 +199,8 @@ export function PriceMap({ model }: { model: PriceMapModel }) {
             {status === "loading" && (
               <div
                 role="status"
-                className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl bg-stone-100 text-sm text-stone-600 dark:bg-stone-800 dark:text-stone-300"
+                aria-busy="true"
+                className="pointer-events-none absolute inset-0 flex animate-pulse items-center justify-center rounded-xl bg-stone-200 text-sm text-stone-600 motion-reduce:animate-none dark:bg-stone-800 dark:text-stone-300"
               >
                 {t("loading")}
               </div>

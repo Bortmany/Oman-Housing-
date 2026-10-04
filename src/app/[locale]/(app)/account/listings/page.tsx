@@ -9,6 +9,7 @@ import { localName } from "@/lib/i18nData";
 import { Link } from "@/i18n/navigation";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { OwnStatusPill } from "@/components/listing-form/OwnStatusPill";
 import { DismissibleNotice } from "@/components/listing-form/DismissibleNotice";
 
@@ -78,9 +79,11 @@ export default async function OwnerListingsPage({
         )}
 
         <div>
-          <p className="text-xs text-stone-500 dark:text-stone-400" title={t("list.capHint")}>
-            {t("list.capLine", { used, limit: OWNER_LISTING_CAP })}
-          </p>
+          <Tooltip label={t("list.capHint")} side="bottom">
+            <p tabIndex={0} className="text-xs text-stone-500 dark:text-stone-400">
+              {t("list.capLine", { used, limit: OWNER_LISTING_CAP })}
+            </p>
+          </Tooltip>
           <div aria-hidden="true" className="mt-1 flex w-32 gap-1">
             {Array.from({ length: OWNER_LISTING_CAP }, (_, i) => (
               <span key={i} className={`h-1.5 flex-1 rounded-full ${i < used ? "bg-teal-700" : "bg-stone-200 dark:bg-stone-700"}`} />

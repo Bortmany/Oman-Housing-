@@ -2,6 +2,17 @@
 
 Plain-English list of what to set up before launch. Full context: `Agents/docs/go-live-and-security-audit.md`.
 
+## Do these in this order (every new owner step)
+1. Database, `AUTH_SECRET`, `AUTH_URL`, `TRUST_PROXY_HEADERS` (Must do list below).
+2. Attach the `/data` volume and set `DATA_DIR=/data` — before anyone uploads a photo.
+3. Twilio (phone codes) — private owners cannot list until this is set.
+4. Resend (`RESEND_API_KEY` + `EMAIL_FROM`) — alert emails.
+5. `CRON_SECRET`, then the two Railway crons (hourly alerts, daily averages).
+6. Protomaps map on Cloudflare R2 (`NEXT_PUBLIC_MAP_PMTILES_URL`) before real traffic.
+7. Plausible visitor stats (optional) — the privacy page updates itself.
+8. `REDIS_URL` — not needed until the shared limit store is built (see note under Twilio).
+9. Take a first backup of the database AND the `/data/properties` folder, and practise restoring both.
+
 ## Host
 - **Railway** (described in `docs/CONVENTIONS.md`). Pre-deploy runs `npx prisma migrate deploy` (applies the committed database migration files); health endpoint is `/api/health`. Node is pinned to version 22.
 
@@ -43,7 +54,7 @@ Plain-English list of what to set up before launch. Full context: `Agents/docs/g
   5. Check Twilio is allowed to text Oman numbers (messaging geo-permissions in the console) and test with your own mobile from the Account page. A signed-in admin sees `sms: configured` at `/api/health`.
 - The privacy page and terms already say the number goes to an SMS provider (Twilio) and is shown on the owner's own listings.
 
-- [ ] **Set `REDIS_URL` in production** so the text-sending limits (3 an hour per person, 10 an hour per network address) hold across several server copies. Until the shared store is switched on, each copy counts on its own.
+- **About `REDIS_URL` (be aware):** the shared limit store is NOT wired up yet — setting `REDIS_URL` today only makes the app log a warning. Until it is built, every limit (including the text-sending ones: 3 an hour per person, 10 an hour per network address) is counted separately by each server copy. That is fine while you run ONE copy on Railway; do not add a second copy until the shared store is built.
 
 ## Payments
 - **Thawani / PayTabs checkout is deferred (not built).** For now you grant Premium/Business tiers by hand from `/admin/agencies`. Stripe is not an option (it doesn't serve Oman merchants).
@@ -63,6 +74,17 @@ Sends each person an email when new listings match a saved search ("as soon as t
 - Safe to run twice at once: each alert is claimed once, so nobody gets a duplicate. If a send fails, the next hourly run retries it. If the server crashes at the worst moment, at most one email can be lost — it is never sent twice.
 - `EMAIL_DEV_LOG=true` is for LOCAL testing only: emails are written as `.eml` files in `DATA_DIR/outbox/` instead of being sent, and it is ignored in production. Those files are throw-away test output and need no backup.
 - `AlertLog` (who / which search / how many / result — never the email text) lives in the database, so it is covered by the normal database backup. The job deletes rows older than 90 days.
+
+## Daily averages job
+Works out average prices from live listings. Address: `POST /api/jobs/listing-averages`.
+- [ ] **Add a daily Railway cron** that runs: `curl -X POST -H "Authorization: Bearer $CRON_SECRET" "$AUTH_URL/api/jobs/listing-averages"` (schedule `0 23 * * *` = 03:00 Oman time). It uses the same `CRON_SECRET` as the alert job. The admin "Recompute now" button on the market-stats page does the same thing by hand and needs no secret.
+- It only writes figures into the database (covered by the normal database backup); nothing else to copy out.
+
+## Backups and restoring (plain English)
+- **Database:** in the Railway dashboard open the Postgres service, switch automatic backups ON and look at the list to confirm a backup really exists (do not assume). To restore: create a scratch database, load the backup into it, then check the tables for users, listings, market figures and saved searches look right. Never practise on the live database. Repeat the practice every 90 days.
+- **Photos (`/data/properties`):** the only copy of every owner and agency photo. It is NOT in the database backup. Copy the folder out regularly (see the volume step above) and keep it next to the database backup. To restore, put the folder back at `/data/properties`.
+- **Alert log (`AlertLog`):** in the database, so the database backup covers it; rows older than 90 days are deleted on purpose.
+- **Outbox (`/data/outbox`):** test emails from local development only. Throw-away — never back it up, never restore it.
 
 ## Security note
 No committed secrets; role checks are enforced in every admin action; uploads and image serving are path-traversal guarded. Just be sure to replace both `change-me` values before deploy.

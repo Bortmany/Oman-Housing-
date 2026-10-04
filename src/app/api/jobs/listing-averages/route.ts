@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { checkCronAuth } from "@/lib/cronAuth";
-import { checkRateLimit } from "@/lib/rate-limit";
+import * as Sentry from "@sentry/nextjs";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 import { MARKET_DATA_CACHE_TAG } from "@/lib/db/market-stats";
 import { runListingAveragesJob } from "@/lib/listingAveragesJob";
 
@@ -13,6 +15,7 @@ import { runListingAveragesJob } from "@/lib/listingAveragesJob";
 export const dynamic = "force-dynamic";
 
 const RUN_LIMIT = { limit: 6, windowMs: 60 * 60 * 1000 };
+const FAILED_AUTH_LIMIT = { limit: 20, windowMs: 60 * 1000 };
 
 export async function POST(request: Request) {
   const auth = checkCronAuth(
@@ -23,6 +26,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "unavailable" }, { status: 503 });
   }
   if (auth === "unauthorized") {
+    // Wrong guesses are rate limited per IP before any database work.
+    const guess = checkRateLimit(`job-auth:${getClientIp(request.headers)}`, FAILED_AUTH_LIMIT);
+    if (!guess.allowed) {
+      return NextResponse.json(
+        { ok: false, error: "rate_limited" },
+        { status: 429, headers: { "Retry-After": String(guess.retryAfter) } },
+      );
+    }
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
@@ -41,7 +52,8 @@ export async function POST(request: Request) {
     revalidatePath("/", "layout");
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
-    console.error("[listing-averages] job failed", err);
+    logger.error("listing-averages.job.failed", err);
+    Sentry.captureException(err, { tags: { job: "listing-averages" } });
     return NextResponse.json({ ok: false, error: "failed" }, { status: 500 });
   }
 }

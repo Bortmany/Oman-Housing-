@@ -9,6 +9,7 @@ import { Link } from "@/i18n/navigation";
 import { OwnStatusPill } from "@/components/listing-form/OwnStatusPill";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 function Chevron() {
   return (
@@ -64,12 +65,14 @@ export default async function AgencyListingsPage({
           <ButtonLink href="/agency/listings/new" className="w-full sm:w-auto">{t("listings.newListing")}</ButtonLink>
         ) : (
           <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
+            <Tooltip label={tw("limitTip")} side="bottom">
             <span
-              title={tw("limitTip")}
+              tabIndex={0}
               className="rounded-lg bg-stone-100 px-4 py-2 text-sm text-stone-500 dark:bg-stone-800 dark:text-stone-400"
             >
               {t("listings.atLimit")}
             </span>
+            </Tooltip>
             <Link href="/list-with-us" className="inline-flex min-h-11 items-center text-sm font-semibold text-teal-800 underline underline-offset-2 dark:text-teal-300">
               {tw("upgrade")}
             </Link>

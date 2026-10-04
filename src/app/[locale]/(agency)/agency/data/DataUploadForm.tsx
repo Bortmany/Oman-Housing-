@@ -14,6 +14,7 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Hint, Label } from "@/components/ui/Field";
 import { Skeleton, SkeletonTableRows } from "@/components/ui/Skeleton";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { formatOMR, formatPercent } from "@/lib/money";
 import { formatMonth, localName } from "@/lib/i18nData";
@@ -545,12 +546,14 @@ function PreviewTable({ groups, locale }: { groups: PreviewGroup[]; locale: stri
               <td className="px-3 py-2">
                 {g.existing ? (
                   <div className="space-y-1">
+                    <Tooltip label={t("skippedHint")} side="bottom">
                     <span
-                      title={t("skippedHint")}
+                      tabIndex={0}
                       className="inline-block rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-900 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-950 dark:text-amber-200"
                     >
                       {t("status.skipped")}
                     </span>
+                    </Tooltip>
                     {g.existing.shown && (
                       <div>
                         {g.existing.isSample ? (

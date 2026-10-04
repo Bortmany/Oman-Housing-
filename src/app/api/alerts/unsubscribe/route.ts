@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import * as Sentry from "@sentry/nextjs";
 import { logger } from "@/lib/logger";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { verifyUnsubscribe } from "@/lib/alerts/unsubscribe";
 import { FREQUENCY_OFF } from "@/lib/savedSearch";
 import { escapeHtml } from "@/lib/escape-html";
@@ -21,6 +23,19 @@ async function handle(request: Request, wantsPage: boolean) {
   const id = (url.searchParams.get("s") ?? "").slice(0, 64);
   const sig = url.searchParams.get("t") ?? "";
   const locale = toAlertLocale(url.searchParams.get("lang"));
+
+  // Public and unauthenticated: count every call per visitor address so it
+  // cannot be used to hammer the database or guess signatures.
+  const limit = checkRateLimit(`unsubscribe:ip:${getClientIp(request.headers)}`, {
+    limit: 120, // mail providers share addresses; stay generous
+    windowMs: 10 * 60 * 1000,
+  });
+  if (!limit.allowed) {
+    const res = reply(locale, "error", 429, wantsPage);
+    res.headers.set("Retry-After", String(limit.retryAfter));
+    return res;
+  }
+
   const ok = verifyUnsubscribe(id, sig);
 
   if (ok) {
@@ -32,6 +47,7 @@ async function handle(request: Request, wantsPage: boolean) {
       });
     } catch (err) {
       logger.error("alerts.unsubscribe.failed", err, { savedSearchId: id });
+      Sentry.captureException(err, { tags: { route: "alerts-unsubscribe" }, extra: { savedSearchId: id } });
       return reply(locale, "error", 500, wantsPage);
     }
   }

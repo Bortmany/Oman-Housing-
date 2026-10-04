@@ -213,7 +213,7 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
     the Arabic text plugin are served from `public/map`. The CSP derives its
     `connect-src` origin from this variable (`next.config.ts`).
   - optional `NEXT_PUBLIC_MAP_TILE_URL`, `NEXT_PUBLIC_MAP_ATTRIBUTION`
-    (attribution for the raster path), `REDIS_URL`
+    (attribution for the raster path), `REDIS_URL` (reserved: the shared limit store is not built yet, so limits are per server copy; run one copy until it is)
 - Health endpoint: `/api/health` (a signed-in admin also sees which of the
   optional integrations — Sentry, AI analyst, CAPTCHA — are configured, plus
   `signups: open | invite | closed`, `sms: configured | dormant`)

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 /** A green outcome notice that can be closed, and that removes ?submitted=1 from the address so a refresh doesn't repeat it. */
 export function DismissibleNotice({ children }: { children: React.ReactNode }) {
@@ -18,6 +19,7 @@ export function DismissibleNotice({ children }: { children: React.ReactNode }) {
   return (
     <div role="status" className="flex items-start justify-between gap-3 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-900 ring-1 ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-100">
       <p>{children}</p>
+      <Tooltip label={t("dismiss")} side="bottom" className="shrink-0">
       <button
         type="button"
         aria-label={t("dismiss")}
@@ -26,6 +28,7 @@ export function DismissibleNotice({ children }: { children: React.ReactNode }) {
       >
         <span aria-hidden="true">✕</span>
       </button>
+      </Tooltip>
     </div>
   );
 }
