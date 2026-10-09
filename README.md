@@ -56,7 +56,9 @@ confidence score. Estimates are never dressed up as facts.
 
 **Featured listings:** owners and agencies can pay to feature a live listing
 (Thawani Pay card checkout, dormant until its keys are set; the admin can also
-feature by hand for bank-transfer deals). **Deferred until external accounts
+feature by hand for bank-transfer deals). Direct-sold ads (always labelled,
+no ad network, no tracking) are managed in `/admin/ads`; neither featuring nor
+ads ever change a figure or its source badge. **Deferred until external accounts
 exist:** enquiry-notification emails, and a checkout that grants agency plan
 tiers automatically (Stripe does not serve Oman merchants). Details in
 `GO-LIVE.md`.

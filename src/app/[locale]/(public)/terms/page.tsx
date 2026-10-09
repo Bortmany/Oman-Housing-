@@ -20,6 +20,7 @@ export default async function TermsPage() {
     ["aiTitle", "aiBody"],
     ["accountsTitle", "accountsBody"],
     ["listingsTitle", "listingsBody"],
+    ["adsTitle", "adsBody"],
     ["liabilityTitle", "liabilityBody"],
     ["lawTitle", "lawBody"],
     ["changesTitle", "changesBody"],

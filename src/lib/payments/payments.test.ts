@@ -129,16 +129,9 @@ const listingWrites = [...writers.matchAll(/listing\.update(?:Many)?\(\{[\s\S]*?
 expectEqual("listing writes in payments/core.ts touch featuredUntil only", listingWrites.every((w) => /featuredUntil/.test(w) && !/provenance|confidence|status:|price:/.test(w.replace(/where:\s*\{[^}]*\}/, ""))), true);
 
 // ----- both languages carry every new string -----
-function keysOf(obj: unknown, prefix = ""): string[] {
-  if (obj === null || typeof obj !== "object") return [prefix];
-  return Object.entries(obj as Record<string, unknown>).flatMap(([k, v]) => keysOf(v, prefix ? `${prefix}.${k}` : k));
-}
 const en = JSON.parse(readFileSync(path.resolve(root, "..", "..", "messages", "en.json"), "utf8"));
 const ar = JSON.parse(readFileSync(path.resolve(root, "..", "..", "messages", "ar.json"), "utf8"));
-for (const block of ["featured", "adminPayments", "adminPrices"]) {
-  expectEqual(`messages: ${block} exists in both languages with the same keys`, keysOf(ar[block]).sort(), keysOf(en[block]).sort());
-  expectEqual(`messages: ${block} has no empty strings`, [...keysOf(en[block]), ...keysOf(ar[block])].length > 0, true);
-}
+// (Key-set parity of the whole files lives in src/lib/messagesParity.test.ts.)
 expectEqual("messages: the Featured tag reads the same in both languages", [en.featured.label, ar.featured.label], ["Featured · مميز", "Featured · مميز"]);
 
 if (failures > 0) {

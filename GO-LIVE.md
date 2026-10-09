@@ -4,14 +4,16 @@ Plain-English list of what to set up before launch. Full context: `Agents/docs/g
 
 ## Do these in this order (every new owner step)
 1. Database, `AUTH_SECRET`, `AUTH_URL`, `TRUST_PROXY_HEADERS` (Must do list below).
-2. Attach the `/data` volume and set `DATA_DIR=/data` — before anyone uploads a photo.
+2. Attach the `/data` volume and set `DATA_DIR=/data` — before anyone uploads a photo or an ad picture (photos in `/data/properties`, ads in `/data/ads`).
 3. Twilio (phone codes) — private owners cannot list until this is set.
 4. Resend (`RESEND_API_KEY` + `EMAIL_FROM`) — alert emails.
 5. `CRON_SECRET`, then the two Railway crons (hourly alerts, daily averages).
 6. Protomaps map on Cloudflare R2 (`NEXT_PUBLIC_MAP_PMTILES_URL`) before real traffic.
 7. Plausible visitor stats (optional) — the privacy page updates itself.
-8. `REDIS_URL` — not needed until the shared limit store is built (see note under Twilio).
-9. Take a first backup of the database AND the `/data/properties` folder, and practise restoring both.
+8. Thawani Pay (card payments for featured listings) — sandbox keys first, one test payment, then live keys and one real payment yourself (see **Payments**). Until then feature by hand; the site and its pages stay honest either way.
+9. `REDIS_URL` — not needed until the shared limit store is built (see note under Twilio).
+10. Take a first backup of the database AND the `/data/properties` and `/data/ads` folders, and practise restoring them.
+11. Have a lawyer review `/privacy` and `/terms` — they now describe payments, ads and refunds, so this matters more than before.
 
 ## Host
 - **Railway** (described in `docs/CONVENTIONS.md`). Pre-deploy runs `npx prisma migrate deploy` (applies the committed database migration files); health endpoint is `/api/health`. Node is pinned to version 22.
@@ -66,9 +68,10 @@ Plain-English list of what to set up before launch. Full context: `Agents/docs/g
   2. Register at `merchant.thawani.om`.
   3. Put the **sandbox** keys on Railway: `THAWANI_API_KEY` (the secret key), `THAWANI_PUBLISHABLE_KEY` and `THAWANI_ENV=sandbox`. Dormant until BOTH keys are set. A signed-in admin sees `payments: configured` at `/api/health`.
   4. As a test owner, feature a live listing with Thawani's test card. Check `/admin/payments` shows **Paid** with a reference, the result page shows the end date, and the listing shows "Featured · مميز" at the top of `/properties`. Also cancel once on Thawani's page: the result must say "not completed" and the listing must NOT be featured.
-  5. Ask the developer to confirm, from that first sandbox payment, that Thawani's answer carries the amount and the payment id (the site refuses to feature anything it cannot cross-check, and logs "Could not be verified" in the Security log if a field is missing).
+  5. **Lookup-field caveat:** Thawani confirms a payment by a server-to-server lookup, and nobody has yet seen the real answer. Ask the developer to confirm, from that first sandbox payment, that Thawani's answer carries the amount and the payment id (the site refuses to feature anything it cannot cross-check, and logs "Could not be verified" in the Security log if a field is missing).
   6. Only then set the **live** keys with `THAWANI_ENV=production`, make **one real 3.000 payment yourself** end to end, and check the money in Thawani's dashboard before telling anyone cards are on.
 - **`AUTH_URL` must be the live https address** (Thawani sends customers back to it; with it missing in production no payment session is created).
+- **What the public pages promise (keep it true):** `/privacy` says card details never reach us, that we keep a record of each payment (listing, amount, status, Thawani reference, Thawani's answer with card/email/phone-like details removed, the payer's account) for as long as accounting and the law require, and that ads are sold directly with no ad network, no outside ad scripts and no ad cookies (only anonymous daily view/click totals). `/terms` says featured listings cost the price shown at checkout, last 30 days, promise no ranking beyond the top-3 rotation, are not refunded if the listing is removed for breaking the rules, and are fixed or refunded in full if you were charged but featuring never started. Honour that last promise: if it happens, fix it from `/admin/payments` or refund through Thawani.
 - **Prices** are at `/admin/settings/prices` (launch values above; the ad rate card is there for reference). Changes apply to future payments only; each payment keeps the price it was charged.
 - **Backups:** the payments records are money records. Confirm on the Railway dashboard that database backups are on, and include the `Payment` table in your first restore practice.
 - **The Security log** at `/admin/payments` lists refused or odd payment confirmations (amount that didn't match, unknown payment ids, repeated confirmations). Glance at it after going live.

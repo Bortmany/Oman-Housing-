@@ -26,6 +26,8 @@ export default async function PrivacyPage() {
     "collectAi",
     "collectFavorites",
     "collectSavedSearches",
+    "collectAds",
+    "collectPayments",
     "collectTechnical",
     // Only claimed while the visitor-stats counter is actually switched on.
     ...(isStatsConfigured() ? (["collectStats"] as const) : []),
