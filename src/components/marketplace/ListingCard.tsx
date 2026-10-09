@@ -7,6 +7,7 @@ import { effectiveLocation } from "@/lib/approxLocation";
 import { Card } from "@/components/ui/Card";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { FavoriteButton } from "./FavoriteButton";
+import { FeaturedLabel } from "./FeaturedLabel";
 
 export function ListingCard({
   listing,
@@ -14,6 +15,7 @@ export function ListingCard({
   signedIn,
   redirectTo,
   showLocationNote,
+  featured,
 }: {
   listing: ListingWithProperty;
   favorited?: boolean; // undefined = hide the favorite control
@@ -21,6 +23,8 @@ export function ListingCard({
   redirectTo?: string;
   /** Say so when the home has no spot of its own and the map shows its area centre. */
   showLocationNote?: boolean;
+  /** A paid featured spot on the results page: shows the visible "Featured" tag. Nothing else changes. */
+  featured?: boolean;
 }) {
   const locale = useLocale();
   const t = useTranslations("properties");
@@ -31,8 +35,11 @@ export function ListingCard({
   const image = p.images.find((i) => i.isPrimary) ?? p.images[0];
 
   return (
-    <Card className="flex h-full flex-col !p-0 text-sm">
-      <Link href={`/properties/${p.id}`} className="block">
+    <Card
+      className={`flex h-full flex-col !p-0 text-sm ${featured ? "!ring-2 !ring-amber-500 dark:!ring-amber-400" : ""}`}
+    >
+      <Link href={`/properties/${p.id}`} className="relative block">
+        {featured && <FeaturedLabel className="absolute start-2 top-2" />}
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

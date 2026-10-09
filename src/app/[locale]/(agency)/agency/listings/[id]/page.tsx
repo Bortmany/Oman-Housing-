@@ -16,6 +16,7 @@ import { DirectionalLink } from "@/components/ui/DirectionalLink";
 import { ListingForm } from "@/components/listing-form/ListingForm";
 import { ListingActionsPanel } from "@/components/listing-form/ListingActionsPanel";
 import { OwnStatusPill } from "@/components/listing-form/OwnStatusPill";
+import { FeatureCallout } from "@/components/featured/FeatureCallout";
 import { agencyFormActions, agencyPanelActions } from "../formActions";
 
 export default async function AgencyListingPage({
@@ -104,6 +105,12 @@ export default async function AgencyListingPage({
         actions={agencyPanelActions}
         listHref="/agency/listings"
         capMessage={capMessage}
+      />
+      <FeatureCallout
+        listingId={listing.id}
+        status={listing.status}
+        agencyId={listing.agencyId}
+        featuredUntil={listing.featuredUntil}
       />
       <Link
         href="/agency/enquiries"

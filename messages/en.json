@@ -221,6 +221,150 @@
     "areaAverageNote": "These are averages for the whole neighbourhood, from the recorded market figures. They are not the rent or yield of any one property.",
     "recordedNoListing": "No active listing"
   },
+  "featured": {
+    "label": "Featured · مميز",
+    "days": "{count, plural, one {# day} other {# days}}",
+    "callout": {
+      "button": "Feature this listing — {price} for {period}",
+      "activeUntil": "Featured until {date}."
+    },
+    "checkout": {
+      "title": "Feature this listing",
+      "lede": "A featured listing is shown above other listings in matching searches, marked \"Featured\", for {period}.",
+      "forListing": "Listing: {title}",
+      "total": "Total",
+      "bullet1": "Shown first in matching searches. At most 3 featured listings appear on one results page.",
+      "bullet2": "Marked \"Featured\" so buyers know it is a paid placement.",
+      "bullet3": "It doesn't change how your listing is reviewed, or the labels on its figures.",
+      "alreadyFeatured": "This listing is already featured until {date}. Paying adds {period} after that.",
+      "pay": "Pay {price} by card",
+      "working": "Opening the payment page…",
+      "redirectNote": "You'll be taken to Thawani's secure payment page. We never see your card details.",
+      "notSwitchedOn": "Online payments aren't switched on yet — contact us to feature your listing.",
+      "contact": "Email {email} with the name of your listing and we'll arrange it by bank transfer.",
+      "notLive": "Only live listings can be featured. Once this listing is approved, come back here.",
+      "button": "Feature this listing"
+    },
+    "result": {
+      "title": "Payment status",
+      "paid": "Payment received. Your listing is featured until {date}.",
+      "pending": "We haven't received confirmation of your payment yet. This can take a minute.",
+      "checkAgain": "Check again",
+      "checking": "Checking…",
+      "failed": "The payment wasn't completed. If money left your account, contact us and quote reference {ref}.",
+      "reference": "Reference {ref}",
+      "back": "Back to my listing"
+    },
+    "errors": {
+      "rateLimited": "Too many attempts. Please wait a while and try again.",
+      "startFailed": "We couldn't start the payment. Nothing was charged. Please try again.",
+      "wrongState": "This listing can't be featured right now. Refresh the page and try again."
+    }
+  },
+  "adminPayments": {
+    "title": "Payments and featuring",
+    "dashHint": "Card payments, hand-featuring, and the security log.",
+    "flaggedBadge": "{count, plural, one {# flagged event in the last 7 days} other {# flagged events in the last 7 days}}",
+    "method": {
+      "THAWANI": "Card (Thawani)",
+      "MANUAL": "Bank transfer, by hand"
+    },
+    "status": {
+      "PENDING": "Waiting",
+      "PAID": "Paid",
+      "FAILED": "Not completed"
+    },
+    "recheck": "Re-check with gateway",
+    "featureByHand": "Feature by hand",
+    "featureByHandHelp": "Use this after you have received a bank transfer. It works exactly like a paid card payment.",
+    "amountReceived": "Amount received (OMR)",
+    "days": "Days",
+    "invoiceNote": "Invoice or transfer reference",
+    "chooseListing": "Choose a live listing",
+    "confirm": "Feature it",
+    "stopFeaturing": "Stop featuring",
+    "stopReason": "Reason (kept in the log)",
+    "currentlyFeatured": "Currently featured",
+    "featuredUntil": "Until {date}",
+    "noneFeatured": "No listing is featured right now.",
+    "securityLog": "Security log",
+    "securityLogHelp": "Refused or unusual payment confirmations, such as a repeated confirmation or an amount that didn't match.",
+    "noEvents": "Nothing flagged.",
+    "gatewayOff": "Card payments are switched off (no gateway keys). Hand-featuring still works.",
+    "gatewayOn": "Card payments are switched on ({env}).",
+    "pricesLink": "Edit prices",
+    "payments": "Payments",
+    "noPayments": "No payments yet.",
+    "filterAll": "All",
+    "col": {
+      "date": "Date",
+      "listing": "Listing",
+      "payer": "Payer",
+      "method": "How",
+      "amount": "Amount",
+      "status": "Status",
+      "reference": "Reference",
+      "time": "Time",
+      "what": "What",
+      "detail": "Detail"
+    },
+    "deletedListing": "(listing deleted)",
+    "perDays": "{count, plural, one {# day} other {# days}}",
+    "done": {
+      "hand": "Done. The listing is featured.",
+      "stopped": "Featuring stopped.",
+      "rechecked": "Checked with the gateway."
+    },
+    "errors": {
+      "invalidDays": "Days must be a whole number from 1 to 365.",
+      "invalidAmount": "Enter the amount with up to 3 decimals. 0.000 is allowed.",
+      "notFound": "That listing wasn't found.",
+      "wrongState": "Only live, real (not sample) listings can be featured.",
+      "tooMany": "Too many changes. Try again in a minute.",
+      "failed": "That didn't work. Please try again."
+    },
+    "event": {
+      "CHECKOUT_STARTED": "Checkout started",
+      "SESSION_CREATE_FAILED": "Gateway session failed",
+      "CONFIRMED": "Payment confirmed",
+      "ALREADY_CONFIRMED": "Repeated confirmation",
+      "NOT_PAID": "Gateway says not paid",
+      "AMOUNT_MISMATCH": "Amount did not match",
+      "REFERENCE_MISMATCH": "Reference did not match",
+      "UNVERIFIABLE": "Could not be verified",
+      "UNKNOWN_PAYMENT": "Unknown payment id",
+      "LOOKUP_FAILED": "Gateway lookup failed",
+      "RATE_LIMITED": "Too many attempts",
+      "MANUAL_FEATURE": "Featured by hand",
+      "MANUAL_UNFEATURE": "Featuring stopped by hand",
+      "PRICE_CHANGED": "Price changed"
+    }
+  },
+  "adminPrices": {
+    "title": "Prices",
+    "help": "Changes apply to future payments only. Payments already made keep the price they were charged.",
+    "sectionFeatured": "Featured listings",
+    "sectionAds": "Ad rate card (for reference; each ad campaign is priced by hand)",
+    "featuredOwner": "Featured listing — private owner (OMR)",
+    "featuredAgency": "Featured listing — agency, per listing (OMR)",
+    "featuredDays": "Days a featured listing lasts",
+    "adHomeBand": "Ad rate card — home band, per month (OMR)",
+    "adMarketSidebar": "Ad rate card — market sidebar, per month (OMR)",
+    "adPropertyBelow": "Ad rate card — below a property's figures, per month per area (OMR)",
+    "adNeighborhoodSponsor": "Ad rate card — neighbourhood sponsor, per month (OMR)",
+    "builtIn": "Built-in value: {value}",
+    "lastChanged": "Last changed {date}",
+    "neverChanged": "Never changed — using the built-in value.",
+    "save": "Save",
+    "saved": "Saved.",
+    "back": "Payments and featuring",
+    "errors": {
+      "invalid": "Enter an amount with up to 3 decimals, above zero.",
+      "invalidDays": "Enter a whole number of days from 1 to 365.",
+      "tooMany": "Too many changes. Try again in a minute.",
+      "failed": "Couldn't save. Please try again."
+    }
+  },
   "calculators": {
     "title": "Investment calculators",
     "subtitle": "Plan your purchase in OMR. Results are projections based on your inputs — not financial advice.",

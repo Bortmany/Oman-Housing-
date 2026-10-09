@@ -16,6 +16,7 @@ import { publicStatWhere } from "../statVisibility";
 import { publicPropertyWhere } from "../listings/rules";
 import { verifiedPhoneOf } from "../phoneVerify";
 import { DEFAULT_SEARCH_LIMIT, type Bounds } from "../searchFilters";
+import { MAX_FEATURED_PER_PAGE, hourStamp, pickFeatured } from "../featured";
 
 // Sample data (seeded demonstration homes and listings) follows the one rule
 // in ./sampleData.ts: a sample listing or property is hidden from PUBLIC
@@ -103,80 +104,147 @@ export type SearchFilters = {
   limit?: number;
 };
 
+/** The one "what matches this search" filter (ACTIVE only; superseded samples left out). */
+function searchWhere(
+  filters: SearchFilters,
+  realKeys: Set<string>,
+): Prisma.ListingWhereInput {
+  return {
+    status: "ACTIVE",
+    ...notHiddenSampleWhere(realKeys),
+    ...(filters.listingType ? { listingType: filters.listingType } : {}),
+    ...(filters.publishedAfter || filters.publishedUntil
+      ? {
+          publishedAt: {
+            ...(filters.publishedAfter ? { gt: filters.publishedAfter } : {}),
+            ...(filters.publishedUntil ? { lte: filters.publishedUntil } : {}),
+          },
+        }
+      : {}),
+    ...(filters.minPrice != null || filters.maxPrice != null
+      ? {
+          price: {
+            ...(filters.minPrice != null ? { gte: filters.minPrice } : {}),
+            ...(filters.maxPrice != null ? { lte: filters.maxPrice } : {}),
+          },
+        }
+      : {}),
+    property: {
+      ...(filters.type ? { type: filters.type } : {}),
+      ...(filters.ownership ? { ownership: filters.ownership } : {}),
+      ...(filters.minBedrooms != null
+        ? { bedrooms: { gte: filters.minBedrooms } }
+        : {}),
+      ...(filters.neighborhoodSlug
+        ? { neighborhood: { slug: filters.neighborhoodSlug } }
+        : {}),
+      // Map area: a home counts if its own spot is inside the box, or — when
+      // it has no spot of its own — its neighbourhood's centre is (shown as
+      // "approximate"; see lib/approxLocation.ts). Neither = never matches.
+      ...(filters.bounds
+        ? {
+            OR: [
+              {
+                lat: { gte: filters.bounds.s, lte: filters.bounds.n },
+                lng: { gte: filters.bounds.w, lte: filters.bounds.e },
+              },
+              {
+                AND: [
+                  { OR: [{ lat: null }, { lng: null }] },
+                  {
+                    neighborhood: {
+                      lat: { gte: filters.bounds.s, lte: filters.bounds.n },
+                      lng: { gte: filters.bounds.w, lte: filters.bounds.e },
+                    },
+                  },
+                ],
+              },
+            ],
+          }
+        : {}),
+    },
+  };
+}
+
+function clampLimit(limit: number | undefined): number {
+  return Math.min(Math.max(Math.floor(limit ?? DEFAULT_SEARCH_LIMIT), 1), 200);
+}
+
 /**
  * Public search — ACTIVE listings only, ever. Sample listings superseded by a
  * real live listing (same neighbourhood + type) are left out. Each row's
  * `isSample` is resolved (true for a listing on a sample home).
+ * Newest first, always: saved-search alerts rely on that order. The results
+ * page that shows paid "Featured" placement uses searchListingsFeaturedFirst.
  */
 export async function searchListings(
   filters: SearchFilters,
 ): Promise<ListingWithProperty[]> {
   const realKeys = await realActiveListingKeysFor();
   const rows = await prisma.listing.findMany({
-    where: {
-      status: "ACTIVE",
-      ...notHiddenSampleWhere(realKeys),
-      ...(filters.listingType ? { listingType: filters.listingType } : {}),
-      ...(filters.publishedAfter || filters.publishedUntil
-        ? {
-            publishedAt: {
-              ...(filters.publishedAfter ? { gt: filters.publishedAfter } : {}),
-              ...(filters.publishedUntil ? { lte: filters.publishedUntil } : {}),
-            },
-          }
-        : {}),
-      ...(filters.minPrice != null || filters.maxPrice != null
-        ? {
-            price: {
-              ...(filters.minPrice != null ? { gte: filters.minPrice } : {}),
-              ...(filters.maxPrice != null ? { lte: filters.maxPrice } : {}),
-            },
-          }
-        : {}),
-      property: {
-        ...(filters.type ? { type: filters.type } : {}),
-        ...(filters.ownership ? { ownership: filters.ownership } : {}),
-        ...(filters.minBedrooms != null
-          ? { bedrooms: { gte: filters.minBedrooms } }
-          : {}),
-        ...(filters.neighborhoodSlug
-          ? { neighborhood: { slug: filters.neighborhoodSlug } }
-          : {}),
-        // Map area: a home counts if its own spot is inside the box, or — when
-        // it has no spot of its own — its neighbourhood's centre is (shown as
-        // "approximate"; see lib/approxLocation.ts). Neither = never matches.
-        ...(filters.bounds
-          ? {
-              OR: [
-                {
-                  lat: { gte: filters.bounds.s, lte: filters.bounds.n },
-                  lng: { gte: filters.bounds.w, lte: filters.bounds.e },
-                },
-                {
-                  AND: [
-                    { OR: [{ lat: null }, { lng: null }] },
-                    {
-                      neighborhood: {
-                        lat: { gte: filters.bounds.s, lte: filters.bounds.n },
-                        lng: { gte: filters.bounds.w, lte: filters.bounds.e },
-                      },
-                    },
-                  ],
-                },
-              ],
-            }
-          : {}),
-      },
-    },
+    where: searchWhere(filters, realKeys),
     include: listingInclude,
     orderBy: { publishedAt: "desc" },
-    take: Math.min(
-      Math.max(Math.floor(filters.limit ?? DEFAULT_SEARCH_LIMIT), 1),
-      200,
-    ),
+    take: clampLimit(filters.limit),
   });
   // The where-clause already did it; the pure rule runs again as a guard.
   return hideSupersededSampleListings(rows, realKeys).map(withSampleFlag);
+}
+
+/**
+ * The /properties results: up to MAX_FEATURED_PER_PAGE paid-featured listings
+ * first (only live ones matching the same filters, never a sample record,
+ * rotating fairly each hour; see lib/featured.ts), then everything else in the
+ * normal order. A listing never appears twice. `featuredIds` is exactly the
+ * set that gets the "Featured" label: no more than the cap.
+ * Featuring reorders only; it changes no row and no label on any figure.
+ */
+export async function searchListingsFeaturedFirst(
+  filters: SearchFilters,
+  now: Date = new Date(),
+): Promise<{ listings: ListingWithProperty[]; featuredIds: Set<string> }> {
+  const realKeys = await realActiveListingKeysFor();
+  const base = searchWhere(filters, realKeys);
+  const limit = clampLimit(filters.limit);
+
+  const candidates = await prisma.listing.findMany({
+    where: {
+      AND: [
+        base,
+        { featuredUntil: { gt: now } },
+        { isSample: false, property: { isSample: false } },
+      ],
+    },
+    include: listingInclude,
+    orderBy: { id: "asc" },
+    take: 200,
+  });
+  const featured = pickFeatured(
+    hideSupersededSampleListings(candidates, realKeys),
+    hourStamp(now),
+    Math.min(MAX_FEATURED_PER_PAGE, limit),
+    now,
+  );
+  const featuredIds = new Set(featured.map((f) => f.id));
+
+  const rest =
+    limit - featured.length > 0
+      ? await prisma.listing.findMany({
+          where:
+            featuredIds.size > 0
+              ? { AND: [base, { id: { notIn: [...featuredIds] } }] }
+              : base,
+          include: listingInclude,
+          orderBy: { publishedAt: "desc" },
+          take: limit - featured.length,
+        })
+      : [];
+
+  const listings = [
+    ...featured,
+    ...hideSupersededSampleListings(rest, realKeys),
+  ].map(withSampleFlag);
+  return { listings, featuredIds };
 }
 
 /**

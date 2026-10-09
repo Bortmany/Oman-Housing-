@@ -7,6 +7,7 @@ import { getSignupMode } from "@/lib/signupMode";
 import { isSmsConfigured } from "@/lib/sms/send";
 import { emailMode } from "@/lib/email/send";
 import { isCronSecretValid } from "@/lib/alerts/live";
+import { isThawaniEnabled } from "@/lib/payments/thawani";
 
 // Health endpoint for uptime checks (ops-watchdog / Railway).
 //
@@ -37,6 +38,9 @@ export async function GET() {
         // "open" | "invite" | "closed" — see src/lib/signupMode.ts. Admin-only
         // like the rest: the codes themselves are never shown anywhere.
         signups: getSignupMode(),
+        // Thawani card payments for featured listings — src/lib/payments/thawani.ts.
+        // Only whether both keys are set; the keys are never shown.
+        payments: isThawaniEnabled() ? "configured" : "dormant",
       }
     : undefined;
 

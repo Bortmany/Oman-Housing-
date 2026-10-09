@@ -57,7 +57,20 @@ Plain-English list of what to set up before launch. Full context: `Agents/docs/g
 - **About `REDIS_URL` (be aware):** the shared limit store is NOT wired up yet — setting `REDIS_URL` today only makes the app log a warning. Until it is built, every limit (including the text-sending ones: 3 an hour per person, 10 an hour per network address) is counted separately by each server copy. That is fine while you run ONE copy on Railway; do not add a second copy until the shared store is built.
 
 ## Payments
-- **Thawani / PayTabs checkout is deferred (not built).** For now you grant Premium/Business tiers by hand from `/admin/agencies`. Stripe is not an option (it doesn't serve Oman merchants).
+- **Plan-tier checkout is still deferred (not built).** You grant Premium/Business tiers by hand from `/admin/agencies`. Stripe is not an option (it doesn't serve Oman merchants).
+- **Featured-listing checkout (Thawani Pay) IS built, but dormant until you add keys.** Until then, owners and agencies who open "Feature this listing" see "Online payments aren't switched on yet — contact us" with your contact address (`PRIVACY_CONTACT_EMAIL`, today your personal Hotmail). Launch prices: 3.000 OMR for a private owner, 6.000 OMR for an agency, for 30 days. At most 3 featured listings appear on one results page, rotating each hour, always marked "Featured · مميز".
+- **Before Thawani exists (feature by hand):** the seller emails you, you invoice them, and after the bank transfer arrives open `/admin/payments`, pick their live listing and press **Feature by hand** (days, amount received, invoice note). It works exactly like a card payment and appears in the payments list as "Bank transfer, by hand". **Stop featuring** is on the same page.
+- **Switching Thawani on (do these in order):**
+  1. Email `merchant@thawani.om` for the rate card, the settlement schedule, and whether a sole-trader registration is accepted (they may ask for a commercial registration).
+  2. Register at `merchant.thawani.om`.
+  3. Put the **sandbox** keys on Railway: `THAWANI_API_KEY` (the secret key), `THAWANI_PUBLISHABLE_KEY` and `THAWANI_ENV=sandbox`. Dormant until BOTH keys are set. A signed-in admin sees `payments: configured` at `/api/health`.
+  4. As a test owner, feature a live listing with Thawani's test card. Check `/admin/payments` shows **Paid** with a reference, the result page shows the end date, and the listing shows "Featured · مميز" at the top of `/properties`. Also cancel once on Thawani's page: the result must say "not completed" and the listing must NOT be featured.
+  5. Ask the developer to confirm, from that first sandbox payment, that Thawani's answer carries the amount and the payment id (the site refuses to feature anything it cannot cross-check, and logs "Could not be verified" in the Security log if a field is missing).
+  6. Only then set the **live** keys with `THAWANI_ENV=production`, make **one real 3.000 payment yourself** end to end, and check the money in Thawani's dashboard before telling anyone cards are on.
+- **`AUTH_URL` must be the live https address** (Thawani sends customers back to it; with it missing in production no payment session is created).
+- **Prices** are at `/admin/settings/prices` (launch values above; the ad rate card is there for reference). Changes apply to future payments only; each payment keeps the price it was charged.
+- **Backups:** the payments records are money records. Confirm on the Railway dashboard that database backups are on, and include the `Payment` table in your first restore practice.
+- **The Security log** at `/admin/payments` lists refused or odd payment confirmations (amount that didn't match, unknown payment ids, repeated confirmations). Glance at it after going live.
 
 ## Email
 - **The wiring exists, switched off.** `src/lib/email/send.ts` sends through [Resend](https://resend.com)'s API with no extra software installed. It stays completely inert — nothing sent, nothing broken — until BOTH of these are set:

@@ -205,6 +205,19 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
     its own code and prints it to the server console. Unset in production:
     phone verification, and so owner listing, is closed (fail closed).
     Provider code: `src/lib/sms/send.ts`.
+  - `THAWANI_API_KEY` (secret) + `THAWANI_PUBLISHABLE_KEY` (+ `THAWANI_ENV` =
+    `sandbox` default | `production`) — Thawani Pay card checkout for featured
+    listings. Dormant until BOTH keys are set: no checkout button, no gateway
+    call, "online payments aren't switched on yet — contact us" instead. Code:
+    `src/lib/payments/` (`thawani.ts` the only file that talks to Thawani;
+    `core.ts` the once-only confirm logic; `priceCore.ts` prices in
+    `SiteSetting`). Rules: the browser sends only a listing id; price and days
+    are read on the server and frozen on the `Payment`; only a gateway lookup
+    answering exactly `paid` with a matching amount counts; the "mark paid and
+    extend `featuredUntil`" step is one conditional update, so replays do
+    nothing; featuring changes only `Listing.featuredUntil`, never provenance,
+    confidence, status or price, and `src/lib/db/valuations.ts` / `src/lib/ai/**`
+    never mention payments (scan test in `payments/payments.test.ts`).
   - `NEXT_PUBLIC_MAP_PMTILES_URL` — full address of the Protomaps `.pmtiles`
     file (Cloudflare R2). Build-time. When set it wins over
     `NEXT_PUBLIC_MAP_TILE_URL`; when unset the map uses that raster URL
@@ -216,7 +229,7 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
     (attribution for the raster path), `REDIS_URL` (reserved: the shared limit store is not built yet, so limits are per server copy; run one copy until it is)
 - Health endpoint: `/api/health` (a signed-in admin also sees which of the
   optional integrations — Sentry, AI analyst, CAPTCHA — are configured, plus
-  `signups: open | invite | closed`, `sms: configured | dormant`)
+  `signups: open | invite | closed`, `sms: configured | dormant`, `payments: configured | dormant`)
 - The default OSM tile server is fine for low traffic only; set
   `NEXT_PUBLIC_MAP_PMTILES_URL` (Protomaps on R2) before real traffic.
 

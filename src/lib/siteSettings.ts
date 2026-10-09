@@ -2,6 +2,7 @@ import "server-only";
 import { unstable_cache, updateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { parseBoolSetting } from "@/lib/siteSettingsCore";
+import { PRICE_KEYS } from "@/lib/payments/priceCore";
 
 // ---------------------------------------------------------------------------
 // Owner-flipped site switches, stored in the small SiteSetting table
@@ -18,6 +19,9 @@ export const SETTINGS_CACHE_TAG = "site-settings";
 /** Every key the app knows about. */
 export const SETTING_KEYS = {
   freeLaunch: "free_launch",
+  // Featured-listing prices and the ad rate card (typed getters live in
+  // src/lib/payments/prices.ts; defaults and checks in payments/priceCore.ts).
+  ...PRICE_KEYS,
 } as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];
@@ -45,6 +49,11 @@ export async function getSetting(key: SettingKey): Promise<string | null> {
 /** A yes/no setting; `fallback` when the row is missing or unreadable. */
 export async function getBoolSetting(key: SettingKey, fallback: boolean): Promise<boolean> {
   return parseBoolSetting(await getSetting(key), fallback);
+}
+
+/** When a setting row was last written (null = never). */
+export async function getSettingUpdatedAt(key: SettingKey): Promise<string | null> {
+  return (await cachedSnapshot())[key]?.updatedAt ?? null;
 }
 
 /** Write a setting and refresh the cached snapshot straight away. */

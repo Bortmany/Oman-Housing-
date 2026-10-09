@@ -2,7 +2,7 @@ import { pageMetadata } from "@/lib/seo";
 import { getLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { searchListings } from "@/lib/db/listings";
+import { searchListingsFeaturedFirst } from "@/lib/db/listings";
 import { isFavoritedSet } from "@/lib/db/favorites";
 import { findSavedSearchByQuery } from "@/lib/db/saved-searches";
 import { normalizeSearchQuery } from "@/lib/savedSearch";
@@ -39,7 +39,7 @@ export default async function PropertiesPage({
   const filters = parseSearchFilters(sp);
   const area = filters.bounds;
 
-  const [t, tm, locale, session, neighborhoods, listings] = await Promise.all([
+  const [t, tm, locale, session, neighborhoods, searched] = await Promise.all([
     getTranslations("properties"),
     getTranslations("searchMap"),
     getLocale(),
@@ -48,8 +48,10 @@ export default async function PropertiesPage({
       orderBy: { nameEn: "asc" },
       select: { slug: true, nameEn: true, nameAr: true },
     }),
-    searchListings(filters),
+    searchListingsFeaturedFirst(filters),
   ]);
+  // Up to 3 paid "Featured" spots lead (hourly fair rotation), then the usual order.
+  const { listings, featuredIds } = searched;
 
   // Only the filters that survived validation go into the chips, the saved
   // search, and the "remove this one" links — never the raw URL.
@@ -210,6 +212,7 @@ export default async function PropertiesPage({
                 signedIn={!!session}
                 redirectTo={here}
                 showLocationNote
+                featured={featuredIds.has(l.id)}
               />
             ))}
           </div>

@@ -15,6 +15,7 @@ import { InquiryStatusPill } from "@/components/marketplace/InquiryStatusPill";
 import { ListingForm } from "@/components/listing-form/ListingForm";
 import { ListingActionsPanel } from "@/components/listing-form/ListingActionsPanel";
 import { OwnStatusPill } from "@/components/listing-form/OwnStatusPill";
+import { FeatureCallout } from "@/components/featured/FeatureCallout";
 import { ownerFormActions, ownerPanelActions } from "../formActions";
 
 export default async function OwnerListingPage({
@@ -99,6 +100,12 @@ export default async function OwnerListingPage({
         actions={ownerPanelActions}
         listHref="/account/listings"
         capMessage={capMessage}
+      />
+      <FeatureCallout
+        listingId={listing.id}
+        status={listing.status}
+        agencyId={listing.agencyId}
+        featuredUntil={listing.featuredUntil}
       />
       <Card className="max-h-[32rem] space-y-3 overflow-y-auto">
         <div className="flex items-center justify-between gap-2">
