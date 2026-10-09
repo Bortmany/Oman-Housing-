@@ -19,6 +19,8 @@ import { PriceMap } from "@/components/map/PriceMap";
 import { priceMapFor } from "@/lib/db/price-map";
 import { Link } from "@/i18n/navigation";
 import { DirectionalLink } from "@/components/ui/DirectionalLink";
+import { AdCard } from "@/components/ads/AdCard";
+import { loadAd } from "@/lib/ads/serve";
 
 export async function generateMetadata() {
   const t = await getTranslations("market");
@@ -113,6 +115,9 @@ export default async function MarketPage({
     name: localName(locale, s.neighborhood!.nameEn, s.neighborhood!.nameAr),
   }));
 
+  // Paid sidebar (labelled "Ad"). null = no campaign = the page is exactly as before.
+  const sidebarAd = await loadAd("MARKET_SIDEBAR");
+
   const typeTabs = [
     { value: "apartment", label: t("apartments"), active: propertyType === "APARTMENT" },
     { value: "villa", label: t("villas"), active: propertyType === "VILLA" },
@@ -159,7 +164,8 @@ export default async function MarketPage({
           <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t("noDataHint")}</p>
         </Card>
       ) : (
-        <>
+        <div className={sidebarAd ? "lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-x-8" : undefined}>
+          <div className="min-w-0">
           {priceMap && (priceMap.points.length > 0 || priceMap.unplaced > 0) && (
             <Card className="mt-8">
               <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
@@ -186,6 +192,15 @@ export default async function MarketPage({
             </Card>
           )}
 
+          </div>
+
+          {sidebarAd && (
+            <div className="mt-8 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+              <AdCard ad={sidebarAd} className="lg:sticky lg:top-24" />
+            </div>
+          )}
+
+          <div className="min-w-0">
           {areaSection}
 
           <h2 className="mt-10 text-lg font-semibold text-stone-900 dark:text-stone-100">
@@ -278,7 +293,8 @@ export default async function MarketPage({
               );
             })}
           </div>
-        </>
+          </div>
+        </div>
       )}
 
       {/* No neighbourhood figures yet: the official area cards still show. */}

@@ -778,6 +778,90 @@
       "unavailable": "Photo unavailable"
     }
   },
+  "ads": {
+    "label": "Ad · إعلان",
+    "by": "By {name}",
+    "imageAltFallback": "{name} — advertisement",
+    "linkHint": "Advertisement from {name}. Opens the advertiser's website in a new tab."
+  },
+  "adminAds": {
+    "title": "Ads",
+    "dashHint": "Direct-sold banners: create, pause, and report.",
+    "new": "New campaign",
+    "newTitle": "New ad campaign",
+    "editTitle": "Ad campaign",
+    "backToList": "Back to all campaigns",
+    "openCampaign": "Open, edit and report",
+    "empty": "No campaigns yet. Create one when you have agreed a deal with an advertiser; nothing shows on the site until then.",
+    "period": "Dates (Oman time)",
+    "status": {
+      "scheduled": "Scheduled",
+      "live": "Live",
+      "ended": "Ended",
+      "paused": "Paused"
+    },
+    "slot": {
+      "HOME_BAND": "Home page band",
+      "MARKET_SIDEBAR": "Market page sidebar",
+      "PROPERTY_BELOW_FINANCIALS": "Below a property's money figures (per area)",
+      "NEIGHBORHOOD_SPONSOR": "Neighbourhood sponsor (per area)"
+    },
+    "size": "Recommended artwork: {size} pixels",
+    "views": "Views",
+    "clicks": "Clicks",
+    "clickRate": "Click rate",
+    "pause": "Pause",
+    "resume": "Resume",
+    "save": "Save campaign",
+    "preview": "Preview",
+    "previewNote": "This is how visitors see it. The \"{label}\" label is always added and cannot be removed.",
+    "done": {
+      "saved": "Campaign saved.",
+      "paused": "Campaign paused. It no longer shows on the site.",
+      "resumed": "Campaign resumed."
+    },
+    "form": {
+      "advertiser": "Advertiser name",
+      "slot": "Where it appears",
+      "neighborhood": "Neighbourhood",
+      "chooseNeighborhood": "Choose a neighbourhood",
+      "link": "Link address",
+      "linkHelp": "Where visitors go when they click. Must start with https://",
+      "altEn": "Picture description (English)",
+      "altAr": "Picture description (Arabic, optional)",
+      "imageEn": "Image (English)",
+      "imageAr": "Image (Arabic, optional)",
+      "imageArHelp": "Shown on the Arabic pages instead of the English image.",
+      "imageKeep": "Leave empty to keep the current image.",
+      "imageHelp": "JPEG, PNG or WebP, 2 MB or less. The file is checked, not just its name.",
+      "startsAt": "Starts",
+      "endsAt": "Ends",
+      "timeNote": "Times are Oman time. A slot belongs to one advertiser at a time.",
+      "agreedPrice": "Agreed price (OMR, optional)",
+      "agreedPriceHelp": "For your own records and the monthly report. Visitors never see it.",
+      "cancel": "Cancel"
+    },
+    "report": {
+      "title": "Report",
+      "note": "Views are counted when the page loads; they are approximate.",
+      "copy": "Copy report",
+      "copied": "Copied.",
+      "month": "Month",
+      "empty": "No views or clicks yet.",
+      "text": "Advertiser: {advertiser}\nPlacement: {slot}\nPeriod: {period}\nViews: {views}\nClicks: {clicks}\nClick rate: {rate}\n\n{note}"
+    },
+    "errors": {
+      "overlap": "Another campaign already has this slot for these dates. A slot belongs to one advertiser at a time.",
+      "dates": "The end must be after the start.",
+      "link": "The link must start with https:// .",
+      "image": "The image must be a real JPEG, PNG or WebP file of 2 MB or less.",
+      "neighborhood": "Choose the neighbourhood this slot is for.",
+      "rateLimited": "Too many changes. Try again in a minute.",
+      "required": "Fill in the advertiser name, the English picture description and the placement.",
+      "price": "The price must be a number with up to 3 decimals, for example 60.000.",
+      "failed": "That did not work. Nothing was changed; please try again."
+    }
+  },
   "favorites": {
     "title": "Your favorites",
     "empty": "No favorites yet.",

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import { pageMetadata } from "@/lib/seo";
 import { Hero } from "@/components/marketing/Hero";
@@ -8,6 +9,7 @@ import { HonestData } from "@/components/marketing/HonestData";
 import { CalculatorsGrid } from "@/components/marketing/CalculatorsGrid";
 import { CtaBand } from "@/components/marketing/CtaBand";
 import { Reveal } from "@/components/marketing/Reveal";
+import { AdSlot } from "@/components/ads/AdSlot";
 
 export async function generateMetadata() {
   const t = await getTranslations("footer");
@@ -24,6 +26,10 @@ export default function HomePage() {
     <div>
       <Hero search={<HomeSearch />} />
       <NeighborhoodShortcuts />
+      {/* Paid band (always labelled "Ad"); renders nothing when no campaign is live. */}
+      <Suspense fallback={null}>
+        <AdSlot slot="HOME_BAND" className="mx-auto my-8 max-w-6xl" />
+      </Suspense>
       <Reveal>
         <TrendsShowcase />
       </Reveal>

@@ -20,6 +20,7 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { FinancialAnalysisCard } from "@/components/marketplace/FinancialAnalysisCard";
 import { AiAnalystCard } from "@/components/marketplace/AiAnalystCard";
+import { AdSlot } from "@/components/ads/AdSlot";
 import { EnquiryCard } from "@/components/marketplace/EnquiryCard";
 import { ContactButtons } from "@/components/marketplace/ContactButtons";
 import { FavoriteButton } from "@/components/marketplace/FavoriteButton";
@@ -290,6 +291,9 @@ async function PropertyDetailBody({ id }: { id: string }) {
 
         <div className="space-y-6">
           <FinancialAnalysisCard financials={financials} />
+
+          {/* Paid, labelled "Ad", its own card, never part of the figures above. */}
+          <AdSlot slot="PROPERTY_BELOW_FINANCIALS" neighborhoodId={property.neighborhoodId} className="my-8" />
 
           <AiAnalystCard
             propertyId={property.id}

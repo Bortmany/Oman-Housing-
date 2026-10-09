@@ -214,6 +214,7 @@ model Neighborhood {
   properties  Property[]
   marketStats MarketStat[]
   aiAnalyses  AiAnalysis[]
+  adCampaigns AdCampaign[]
 }
 
 // ---------- Property & marketplace ----------
@@ -600,4 +601,53 @@ model PaymentEvent {
 
   @@index([kind, createdAt])
   @@index([paymentId])
+}
+
+// ---------- Ads (sold directly; no ad network, no third-party script) ----------
+
+enum AdSlotKey {
+  HOME_BAND
+  MARKET_SIDEBAR
+  PROPERTY_BELOW_FINANCIALS
+  NEIGHBORHOOD_SPONSOR
+}
+
+// One paid banner. Images live under DATA_DIR/ads/<id>/ (see src/lib/storage.ts).
+// The per-area slots (PROPERTY_BELOW_FINANCIALS, NEIGHBORHOOD_SPONSOR) carry a
+// neighborhoodId; the other two never do. Overlap rule lives in src/lib/ads.
+model AdCampaign {
+  id             String    @id @default(cuid())
+  advertiser     String
+  slot           AdSlotKey
+  neighborhoodId String?
+  linkUrl        String // https only; the click route redirects ONLY here
+  altEn          String
+  altAr          String?
+  imageEnPath    String
+  imageArPath    String?
+  startsAt       DateTime
+  endsAt         DateTime
+  isActive       Boolean   @default(true)
+  agreedPrice    Decimal?  @db.Decimal(12, 3) // the owner's own record of the deal
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  neighborhood Neighborhood? @relation(fields: [neighborhoodId], references: [id], onDelete: Restrict)
+  stats        AdDailyStat[]
+
+  @@index([slot, isActive, startsAt, endsAt])
+  @@index([neighborhoodId])
+}
+
+// Anonymous totals per campaign per Oman day. No person, address or device.
+model AdDailyStat {
+  id         String   @id @default(cuid())
+  campaignId String
+  day        DateTime @db.Date // the Oman calendar day (UTC+4)
+  views      Int      @default(0)
+  clicks     Int      @default(0)
+
+  campaign AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, day])
 }

@@ -18,6 +18,7 @@ import { ChartSampleNote } from "@/components/provenance/ChartSampleNote";
 import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
 import { PropertyMap } from "@/components/map/PropertyMap";
 import { DirectionalLink } from "@/components/ui/DirectionalLink";
+import { AdSlot } from "@/components/ads/AdSlot";
 import { Link } from "@/i18n/navigation";
 import { searchListings, type ListingWithProperty } from "@/lib/db/listings";
 import { pageMetadata } from "@/lib/seo";
@@ -195,6 +196,9 @@ export default async function NeighborhoodPage({
           hood.city.governorate.nameAr,
         )}
       </p>
+
+      {/* One paid sponsor strip for this area, labelled "Ad"; nothing when none is live. */}
+      <AdSlot slot="NEIGHBORHOOD_SPONSOR" neighborhoodId={hood.id} className="mt-4" />
 
       {latest.length === 0 ? (
         <Card className="mt-8 text-center">
