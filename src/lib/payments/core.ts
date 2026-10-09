@@ -7,9 +7,10 @@
 //    when the checkout starts and frozen on the Payment.
 //  - Only the exact gateway status "paid" counts, and only after WE asked the
 //    gateway about the session stored on OUR payment row.
-//  - The amount (and reference/currency, when the gateway gives them) must
-//    match what we stored. If the gateway does not say the amount, we do not
-//    guess: nothing is featured and an UNVERIFIABLE event is written.
+//  - The amount, the currency (OMR) AND our reference must ALL be present in
+//    the gateway's answer and match what we stored. If any of the three is
+//    missing we do not guess: nothing is featured, the payment stays pending
+//    and an UNVERIFIABLE event is written (fail closed).
 //  - "Mark paid and extend featuredUntil" is one conditional update inside one
 //    transaction: a replay, a refresh or a double click does nothing.
 //  - Featuring writes only Listing.featuredUntil. Never provenance,
@@ -65,11 +66,16 @@ export type StartError = "notFound" | "wrongState" | "notEnabled" | "startFailed
 export type StartResult = { ok: true; url: string; paymentId: string; reused: boolean } | { ok: false; error: StartError };
 
 const REUSE_WINDOW_MS = 10 * 60 * 1000;
+/** A pending row with no session yet is "mid-call to the gateway" for this long. */
+const INFLIGHT_MS = 30_000;
+const WAIT_MAX_MS = 25_000;
+const WAIT_POLL_MS = 100;
 
 /**
  * Begin paying to feature a listing the actor OWNS. The browser sends only the
  * listing id. Same person + same listing within 10 minutes reuses the open
- * session; a database lock makes two simultaneous presses create one session.
+ * session; a short locked step makes two simultaneous presses create one
+ * session (the slow gateway call itself runs outside any transaction).
  */
 export async function startFeaturedCheckout(
   actor: Actor,
@@ -100,64 +106,92 @@ export async function startFeaturedCheckout(
   const price = await getPrice(listing.agencyId);
 
   try {
-    return await prisma.$transaction(
-      async (tx) => {
-        // One press at a time per person+listing: the second waits here, then
-        // finds the first one's session and reuses it.
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`feature:${actor.userId}:${listing.id}`}))`;
-
-        const open = await tx.payment.findFirst({
-          where: {
-            listingId: listing.id,
-            userId: actor.userId,
-            method: "THAWANI",
-            status: "PENDING",
-            gatewaySessionId: { not: null },
-            createdAt: { gt: new Date(now.getTime() - REUSE_WINDOW_MS) },
-          },
-          orderBy: { createdAt: "desc" },
-        });
-        if (open?.gatewaySessionId) {
-          const url = gateway.payUrl(open.gatewaySessionId);
-          if (url) return { ok: true as const, url, paymentId: open.id, reused: true };
-        }
-
-        const payment = await tx.payment.create({
-          data: {
-            listingId: listing.id,
-            listingTitle: listing.property.titleEn.slice(0, 200),
-            userId: actor.userId,
-            method: "THAWANI",
-            status: "PENDING",
-            amount: new Prisma.Decimal(price.amount),
-            currency: "OMR",
-            days: price.days,
-          },
-        });
-
-        const session = await gateway.createSession({
-          paymentId: payment.id,
-          amountBaisa: price.baisa,
-          productName: `Featured listing (${price.days} days)`,
-          listingId: listing.id,
-        });
-        const url = session ? gateway.payUrl(session.sessionId) : null;
-        if (!session || !url) {
-          await tx.payment.update({ where: { id: payment.id }, data: { status: "FAILED" } });
-          await tx.paymentEvent.create({
-            data: { kind: "SESSION_CREATE_FAILED", paymentId: payment.id, listingId: listing.id, detail: "The gateway did not give a payment session." },
+    // Step 1 (short transaction, holds the lock): reuse an open session, wait
+    // for a press that is mid-call to the gateway, or create our pending row.
+    // The slow gateway call below runs OUTSIDE any transaction.
+    const deadline = Date.now() + WAIT_MAX_MS;
+    let payment: { id: string } | null = null;
+    while (!payment) {
+      const step = await prisma.$transaction(
+        async (tx) => {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`feature:${actor.userId}:${listing.id}`}))`;
+          const open = await tx.payment.findFirst({
+            where: {
+              listingId: listing.id,
+              userId: actor.userId,
+              method: "THAWANI",
+              status: "PENDING",
+              createdAt: { gt: new Date(now.getTime() - REUSE_WINDOW_MS) },
+            },
+            orderBy: { createdAt: "desc" },
           });
-          return { ok: false as const, error: "startFailed" as const };
-        }
+          if (open?.gatewaySessionId) {
+            const url = gateway.payUrl(open.gatewaySessionId);
+            if (url) return { kind: "reuse" as const, url, paymentId: open.id };
+          } else if (open && Date.now() - open.createdAt.getTime() < INFLIGHT_MS) {
+            return { kind: "wait" as const }; // another press is talking to the gateway right now
+          } else if (open) {
+            // Abandoned attempt (no session after a long time): close it, start fresh.
+            await tx.payment.updateMany({ where: { id: open.id, status: "PENDING", gatewaySessionId: null }, data: { status: "FAILED" } });
+          }
+          const created = await tx.payment.create({
+            data: {
+              listingId: listing.id,
+              listingTitle: listing.property.titleEn.slice(0, 200),
+              userId: actor.userId,
+              method: "THAWANI",
+              status: "PENDING",
+              amount: new Prisma.Decimal(price.amount),
+              currency: "OMR",
+              days: price.days,
+            },
+          });
+          return { kind: "mine" as const, id: created.id };
+        },
+        { timeout: 10_000, maxWait: 10_000 },
+      );
+      if (step.kind === "reuse") return { ok: true, url: step.url, paymentId: step.paymentId, reused: true };
+      if (step.kind === "mine") {
+        payment = { id: step.id };
+        break;
+      }
+      if (Date.now() > deadline) return { ok: false, error: "startFailed" };
+      await new Promise((r) => setTimeout(r, WAIT_POLL_MS));
+    }
 
-        await tx.payment.update({ where: { id: payment.id }, data: { gatewaySessionId: session.sessionId } });
-        await tx.paymentEvent.create({
-          data: { kind: "CHECKOUT_STARTED", paymentId: payment.id, listingId: listing.id, detail: `${price.amount} OMR for ${price.days} days (${price.audience} price)` },
-        });
-        return { ok: true as const, url, paymentId: payment.id, reused: false };
-      },
-      { timeout: 30_000, maxWait: 10_000 },
-    );
+    // Step 2 (no transaction): ask the gateway for a session.
+    let session: { sessionId: string } | null = null;
+    try {
+      session = await gateway.createSession({
+        paymentId: payment.id,
+        amountBaisa: price.baisa,
+        productName: `Featured listing (${price.days} days)`,
+        listingId: listing.id,
+      });
+    } catch (err) {
+      logger.error("payments.start.gateway_failed", err, { listingId: listing.id });
+    }
+    const url = session ? gateway.payUrl(session.sessionId) : null;
+    if (!session || !url) {
+      await prisma.payment.updateMany({ where: { id: payment.id, status: "PENDING", gatewaySessionId: null }, data: { status: "FAILED" } });
+      await recordEvent("SESSION_CREATE_FAILED", "The gateway did not give a payment session.", { paymentId: payment.id, listingId: listing.id });
+      return { ok: false, error: "startFailed" };
+    }
+
+    // Step 3: attach the session only if nobody attached one first.
+    const attached = await prisma.payment.updateMany({
+      where: { id: payment.id, status: "PENDING", gatewaySessionId: null },
+      data: { gatewaySessionId: session.sessionId },
+    });
+    if (attached.count === 1) {
+      await recordEvent("CHECKOUT_STARTED", `${price.amount} OMR for ${price.days} days (${price.audience} price)`, { paymentId: payment.id, listingId: listing.id });
+      return { ok: true, url, paymentId: payment.id, reused: false };
+    }
+    // A concurrent press already attached a session: use that one. Ours is never handed out.
+    const winner = await prisma.payment.findUnique({ where: { id: payment.id }, select: { gatewaySessionId: true, status: true } });
+    const winnerUrl = winner?.status === "PENDING" && winner.gatewaySessionId ? gateway.payUrl(winner.gatewaySessionId) : null;
+    if (winnerUrl) return { ok: true, url: winnerUrl, paymentId: payment.id, reused: true };
+    return { ok: false, error: "startFailed" };
   } catch (err) {
     logger.error("payments.start.failed", err, { listingId: listing.id });
     return { ok: false, error: "startFailed" };
@@ -225,21 +259,27 @@ export async function confirmPayment(
     return { outcome: cancelled || payment.status === "FAILED" ? "failed" : "pending" };
   }
 
-  // Cross-checks on the gateway's own answer. Any doubt = not paid.
+  // Cross-checks on the gateway's own answer. Any doubt = not paid. Amount,
+  // currency and our reference must ALL be present (fail closed), then match.
   const expectedBaisa = toBaisa(payment.amount.toString());
-  if (answer.amountBaisa == null) {
-    await recordEvent("UNVERIFIABLE", "The gateway said paid but gave no amount, so it was not accepted.", ids);
+  if (answer.amountBaisa == null || answer.currency == null || answer.reference == null) {
+    const missing = [
+      answer.amountBaisa == null ? "amount" : null,
+      answer.currency == null ? "currency" : null,
+      answer.reference == null ? "reference" : null,
+    ].filter(Boolean).join(", ");
+    await recordEvent("UNVERIFIABLE", `The gateway said paid but did not give: ${missing}. Not accepted.`, ids);
     return { outcome: "pending" };
   }
   if (expectedBaisa == null || answer.amountBaisa !== expectedBaisa) {
     await recordEvent("AMOUNT_MISMATCH", `Gateway amount ${answer.amountBaisa} baisa, expected ${expectedBaisa ?? "?"}.`, ids);
     return { outcome: "pending" };
   }
-  if (answer.currency != null && answer.currency !== payment.currency) {
+  if (answer.currency !== payment.currency) {
     await recordEvent("AMOUNT_MISMATCH", `Gateway currency ${answer.currency.slice(0, 8)}, expected ${payment.currency}.`, ids);
     return { outcome: "pending" };
   }
-  if (answer.reference != null && answer.reference !== payment.id) {
+  if (answer.reference !== payment.id) {
     await recordEvent("REFERENCE_MISMATCH", "The gateway's reference is not this payment's.", ids);
     return { outcome: "pending" };
   }
@@ -251,6 +291,7 @@ export async function confirmPayment(
       data: { status: "PAID", paidAt: now, gatewayPayload: answer.payload as Prisma.InputJsonValue },
     });
     if (claimed.count !== 1) return { firstTime: false, end: null as Date | null };
+    // Deliberate: even if the listing was paused after checkout started, a confirmed payment still extends featuredUntil (the buyer paid).
     const end = payment.listingId ? await extendListing(tx, payment.listingId, payment.days, now) : null;
     return { firstTime: true, end };
   });
@@ -331,6 +372,24 @@ export async function featureByHand(
   if (listing.status !== "ACTIVE" || listing.isSample || listing.property.isSample) return { ok: false, error: "wrongState" };
 
   const out = await prisma.$transaction(async (tx) => {
+    // An identical repeat (same listing, days, amount, admin) within 10 seconds
+    // is a double submit: return the earlier result, change nothing.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`manual:${adminId}:${listing.id}`}))`;
+    const repeat = await tx.payment.findFirst({
+      where: {
+        listingId: listing.id,
+        method: "MANUAL",
+        recordedById: adminId,
+        days: input.days,
+        amount: new Prisma.Decimal(baisaToAmount(baisa)),
+        createdAt: { gt: new Date(now.getTime() - 10_000) },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    if (repeat) {
+      const l = await tx.listing.findUnique({ where: { id: listing.id }, select: { featuredUntil: true } });
+      return { paymentId: repeat.id, end: l?.featuredUntil ?? null };
+    }
     const payment = await tx.payment.create({
       data: {
         listingId: listing.id,

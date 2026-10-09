@@ -150,9 +150,11 @@ async function main() {
   expectEqual("unknown id -> 404", await resolveClick("nope", deps(null)), { status: 404 });
   counts = 0;
   r = await resolveClick("abc", deps({ ...stored, isActive: false }));
-  expectEqual("paused campaign still redirects, not counted", [r.status, counts], [302, 0]);
+  expectEqual("paused campaign -> 404, not counted", [r.status, counts], [404, 0]);
   r = await resolveClick("abc", deps({ ...stored, endsAt: new Date(now.getTime() - 1) }));
-  expectEqual("ended campaign still redirects, not counted", [r.status, counts], [302, 0]);
+  expectEqual("ended campaign -> 404, not counted", [r.status, counts], [404, 0]);
+  r = await resolveClick("abc", deps({ ...stored, startsAt: new Date(now.getTime() + H) }));
+  expectEqual("not-yet-started campaign -> 404, not counted", [r.status, counts], [404, 0]);
   r = await resolveClick("abc", deps(stored, false));
   expectEqual("over the limit still redirects, not counted", [r.status, counts], [302, 0]);
   r = await resolveClick("abc", deps({ ...stored, linkUrl: "http://advertiser.example.com" }));

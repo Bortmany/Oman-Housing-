@@ -27,12 +27,14 @@ export async function resolveClick(id: string, deps: ClickDeps): Promise<ClickRe
   if (!ID_SHAPE.test(id)) return { status: 404 };
   const campaign = await deps.find(id);
   if (!campaign) return { status: 404 };
+  // Paused, ended or not-yet-started campaigns are not served at all.
+  if (!isCampaignLive(campaign, deps.now)) return { status: 404 };
   const location = parseAdLink(campaign.linkUrl);
   if (!location) return { status: 404 };
 
-  // Always redirect. Count only a live campaign, and only within the limit.
+  // Redirect a live campaign; count it only within the rate limit.
   let counted = false;
-  if (isCampaignLive(campaign, deps.now) && deps.allowCount()) {
+  if (deps.allowCount()) {
     try {
       await deps.count(id);
       counted = true;

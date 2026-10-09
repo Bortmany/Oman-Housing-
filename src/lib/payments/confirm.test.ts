@@ -152,6 +152,44 @@ async function main() {
     const d3 = await core.startFeaturedCheckout(A, lDbl.id, gwDbl, prices);
     expectEqual("a press within 10 minutes reuses the open session", [gwDbl.created, d3.ok && d3.reused], [1, true]);
 
+    // The gateway call runs OUTSIDE any transaction: our pending row is already
+    // committed (visible to another connection) while the gateway is still thinking.
+    const lOut = await mkListing(ownerA.id, null);
+    let visibleDuringCall: boolean | null = null;
+    const watching = {
+      ...startGateway(),
+      async createSession(input: { paymentId: string }) {
+        visibleDuringCall = (await prisma.payment.findUnique({ where: { id: input.paymentId } })) != null;
+        return { sessionId: `${run}-cs-${++sessionCounter}` };
+      },
+    };
+    await core.startFeaturedCheckout(A, lOut.id, watching, prices);
+    expectEqual("pending row is committed before the gateway is called", visibleDuringCall, true);
+
+    // A concurrent press attached a session while ours was being made: reuse it, never two live sessions.
+    const lRace2 = await mkListing(ownerA.id, null);
+    const racing = {
+      ...startGateway(),
+      async createSession(input: { paymentId: string }) {
+        await prisma.payment.update({ where: { id: input.paymentId }, data: { gatewaySessionId: `${run}-winner` } });
+        return { sessionId: `${run}-loser` };
+      },
+    };
+    const raceStart = await core.startFeaturedCheckout(A, lRace2.id, racing, prices);
+    const racePay = await prisma.payment.findFirstOrThrow({ where: { listingId: lRace2.id } });
+    expectEqual("attach race: the earlier session wins and is reused", [raceStart.ok && raceStart.url.includes(`${run}-winner`), raceStart.ok && raceStart.reused, racePay.gatewaySessionId], [true, true, `${run}-winner`]);
+
+    // A slow gateway: a second press waits for the first and does not make a second session.
+    const lSlow = await mkListing(ownerA.id, null);
+    const slow = startGateway();
+    const slowCreate = slow.createSession;
+    slow.createSession = async () => { await new Promise((r) => setTimeout(r, 600)); return slowCreate.call(slow); };
+    const [sl1, sl2] = await Promise.all([
+      core.startFeaturedCheckout(A, lSlow.id, slow, prices),
+      (async () => { await new Promise((r) => setTimeout(r, 150)); return core.startFeaturedCheckout(A, lSlow.id, slow, prices); })(),
+    ]);
+    expectEqual("slow gateway: second press waits, one session, same address", [slow.created, sl1.ok && sl2.ok && sl1.url === sl2.url], [1, true]);
+
     // A price change affects the NEXT payment only.
     const lNew = await mkListing(ownerA.id, null);
     const dearer = (agencyId: string | null) => Promise.resolve(featuredPriceFor(agencyId, { "price.featured.owner": "4.500", "featured.days": "45" }));
@@ -180,6 +218,8 @@ async function main() {
       ["wrong currency", { currency: "USD" }, "AMOUNT_MISMATCH"],
       ["wrong reference", { reference: "someone-elses-payment" }, "REFERENCE_MISMATCH"],
       ["missing amount", { amountBaisa: null }, "UNVERIFIABLE"],
+      ["missing currency", { currency: null }, "UNVERIFIABLE"],
+      ["missing reference", { reference: null }, "UNVERIFIABLE"],
     ];
     for (const [label, over, kind] of tamper) {
       const before = await events(kind, pay1.id);
@@ -213,7 +253,7 @@ async function main() {
 
     // A payment without a gateway session cannot be confirmed by card.
     const noSession = await prisma.payment.create({
-      data: { listingId: lA.id, listingTitle: "x", userId: ownerA.id, method: "THAWANI", amount: "3.000", days: 30 },
+      data: { listingId: lA.id, listingTitle: "x", userId: ownerA.id, method: "THAWANI", amount: "3.000", days: 30, createdAt: new Date(Date.now() - 3600_000) }, // old, so it is not mistaken for a press in progress
     });
     const noSessionGw = lookupGateway(answerFor(noSession));
     expectEqual("missing session id: refused, no lookup", [(await core.confirmPayment(noSession.id, noSessionGw)).outcome, noSessionGw.lookups], ["pending", 0]);
@@ -318,6 +358,18 @@ async function main() {
     expectEqual("hand-feature records a paid MANUAL payment with note and admin", [done.ok, manual.method, manual.status, manual.amount.toString(), manual.note, manual.recordedById, manual.gatewaySessionId], [true, "MANUAL", "PAID", "6", "INV-1", admin.id, null]);
     expectEqual("hand-feature extends like a card payment", Math.abs((await reload(lM.id)).featuredUntil!.getTime() - (tM + 30 * DAY)) < 60_000, true);
     expectEqual("hand-feature is logged", await events("MANUAL_FEATURE", manual.id), 1);
+    const endAfterFirst = (await reload(lM.id)).featuredUntil!.getTime();
+    const repeatHand = await core.featureByHand(admin.id, { listingId: lM.id, days: 30, amount: "6.000", note: "INV-1" });
+    expectEqual("identical repeat within 10s: earlier result returned", repeatHand.ok && repeatHand.paymentId === manual.id && repeatHand.featuredUntil?.getTime() === endAfterFirst, true);
+    expectEqual("identical repeat: no second payment, end date unmoved", [await prisma.payment.count({ where: { listingId: lM.id } }), (await reload(lM.id)).featuredUntil!.getTime()], [1, endAfterFirst]);
+    const differentHand = await core.featureByHand(admin.id, { listingId: lM.id, days: 31, amount: "6.000", note: "" });
+    expectEqual("a different request (days) is not treated as a repeat", differentHand.ok && differentHand.paymentId !== manual.id, true);
+    await prisma.payment.deleteMany({ where: { listingId: lM.id, id: { not: manual.id } } });
+    await prisma.listing.update({ where: { id: lM.id }, data: { featuredUntil: new Date(endAfterFirst) } });
+    const laterHand = await core.featureByHand(admin.id, { listingId: lM.id, days: 30, amount: "6.000", note: "" }, new Date(Date.now() + 11_000));
+    expectEqual("the same request 10+ seconds later goes through", laterHand.ok && laterHand.paymentId !== manual.id, true);
+    await prisma.payment.deleteMany({ where: { listingId: lM.id, id: { not: manual.id } } });
+    await prisma.listing.update({ where: { id: lM.id }, data: { featuredUntil: new Date(endAfterFirst) } });
     const stopped = await core.stopFeaturing(admin.id, lM.id, "paid by mistake");
     expectEqual("stop featuring ends it now", [stopped.ok, (await reload(lM.id)).featuredUntil!.getTime() <= Date.now()], [true, true]);
     expectEqual("stop featuring is logged with the reason", (await prisma.paymentEvent.findFirst({ where: { kind: "MANUAL_UNFEATURE", listingId: lM.id } }))?.detail.includes("paid by mistake"), true);
