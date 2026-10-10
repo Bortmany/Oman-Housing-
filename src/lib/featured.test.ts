@@ -1,5 +1,5 @@
 // Featured-listing rules (pure). Run with: npm test
-import { MAX_FEATURED_PER_PAGE, extendFeaturedUntil, hourStamp, isFeaturedNow, pickFeatured } from "./featured";
+import { MAX_FEATURED_PER_PAGE, extendFeaturedUntil, hourStamp, hasFeaturedListing, isFeaturedNow, pickFeatured } from "./featured";
 
 let failures = 0;
 function expectEqual<T>(label: string, actual: T, expected: T) {
@@ -24,6 +24,8 @@ expectEqual("cap is 3", MAX_FEATURED_PER_PAGE, 3);
 // ----- featured right now? -----
 expectEqual("future date is featured", isFeaturedNow(future, now), true);
 expectEqual("past date is not featured", isFeaturedNow(past, now), false);
+expectEqual("detail: one featured listing shows the label", hasFeaturedListing([{ featuredUntil: past }, { featuredUntil: future }], now), true);
+expectEqual("detail: none featured, no label", hasFeaturedListing([{ featuredUntil: past }, { featuredUntil: null }], now), false);
 expectEqual("exactly now is not featured", isFeaturedNow(now, now), false);
 expectEqual("no date is not featured", isFeaturedNow(null, now), false);
 

@@ -26,6 +26,14 @@ export function isFeaturedNow(featuredUntil: Date | null | undefined, now: Date)
   return featuredUntil != null && featuredUntil.getTime() > now.getTime();
 }
 
+/** Is any of these (already live) listings featured right now? Detail page label. */
+export function hasFeaturedListing(
+  listings: ReadonlyArray<{ featuredUntil?: Date | null }>,
+  now: Date,
+): boolean {
+  return listings.some((l) => isFeaturedNow(l.featuredUntil, now));
+}
+
 /**
  * The new end date after buying `days` days: the days are added after the
  * later of "now" and the current end date, so paying again never loses time.

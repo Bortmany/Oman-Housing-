@@ -28,7 +28,7 @@ export default function HomePage() {
       <NeighborhoodShortcuts />
       {/* Paid band (always labelled "Ad"); renders nothing when no campaign is live. */}
       <Suspense fallback={null}>
-        <AdSlot slot="HOME_BAND" className="mx-auto my-8 max-w-6xl" />
+        <AdSlot slot="HOME_BAND" className="mx-4 my-8 max-w-6xl min-[1216px]:mx-auto" />
       </Suspense>
       <Reveal>
         <TrendsShowcase />

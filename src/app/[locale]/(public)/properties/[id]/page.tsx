@@ -20,6 +20,8 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { FinancialAnalysisCard } from "@/components/marketplace/FinancialAnalysisCard";
 import { AiAnalystCard } from "@/components/marketplace/AiAnalystCard";
+import { FeaturedLabel } from "@/components/marketplace/FeaturedLabel";
+import { hasFeaturedListing } from "@/lib/featured";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { EnquiryCard } from "@/components/marketplace/EnquiryCard";
 import { ContactButtons } from "@/components/marketplace/ContactButtons";
@@ -189,6 +191,7 @@ async function PropertyDetailBody({ id }: { id: string }) {
         <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-100">
           {title}
         </h1>
+        {hasFeaturedListing(listings, new Date()) && <FeaturedLabel />}
         {isEnglishFallback(locale, property.titleAr) && (
           <span className="text-xs text-stone-400 dark:text-stone-500">
             ({tc("englishOnly")})

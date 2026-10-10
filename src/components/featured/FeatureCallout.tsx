@@ -29,6 +29,7 @@ export async function FeatureCallout({
   if (status !== "ACTIVE") return null;
 
   const [t, locale] = await Promise.all([getTranslations("featured"), getLocale()]);
+  const price = await getFeaturedPrice(agencyId);
   const activeUntil = isFeaturedNow(featuredUntil, new Date()) ? featuredUntil : null;
 
   return (
@@ -43,6 +44,12 @@ export async function FeatureCallout({
         <FeatureButton listingId={listingId} agencyId={agencyId} locale={locale} />
       ) : (
         <div className="space-y-2 text-sm text-stone-700 dark:text-stone-300">
+          <p className="font-semibold text-stone-900 dark:text-stone-100">
+            {t("callout.button", {
+              price: formatOMR(price.amount, locale),
+              period: t("days", { count: price.days }),
+            })}
+          </p>
           <p role="note" className="rounded-lg bg-sky-50 px-3 py-2 text-sky-900 ring-1 ring-sky-600/20 dark:bg-sky-950 dark:text-sky-100">
             {t("checkout.notSwitchedOn")}
           </p>
