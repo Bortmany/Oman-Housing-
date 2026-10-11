@@ -8,6 +8,9 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { THEME_INIT_SCRIPT } from "@/components/theme/theme";
+import { StatsScript } from "@/components/analytics/StatsScript";
+import { getSiteUrl } from "@/lib/siteUrl";
+import { defaultShareImage, ogLocale } from "@/lib/seoCore";
 import "../globals.css";
 
 const inter = Inter({
@@ -27,10 +30,33 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "common" });
+  const [t, ts] = await Promise.all([
+    getTranslations({ locale, namespace: "common" }),
+    getTranslations({ locale, namespace: "seo" }),
+  ]);
+  const base = getSiteUrl();
+  // Defaults for any page that sets no share tags of its own: the site name,
+  // tagline and the default share image. Public pages override these through
+  // pageMetadata() in src/lib/seo.ts.
+  const images = base ? [defaultShareImage(base, ts("defaultShareAlt"))] : undefined;
   return {
+    ...(base ? { metadataBase: new URL(base) } : {}),
     title: { default: t("appName"), template: `%s · ${t("appName")}` },
     description: t("tagline"),
+    openGraph: {
+      type: "website",
+      siteName: t("appName"),
+      title: t("appName"),
+      description: t("tagline"),
+      ...ogLocale(locale),
+      ...(images ? { images } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("appName"),
+      description: t("tagline"),
+      ...(images ? { images } : {}),
+    },
   };
 }
 
@@ -71,6 +97,7 @@ export default async function LocaleLayout({
             <Footer />
           </ThemeProvider>
         </NextIntlClientProvider>
+        <StatsScript />
       </body>
     </html>
   );

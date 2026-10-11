@@ -64,6 +64,29 @@ export async function savePropertyImage(
   return { path: rel };
 }
 
+export const MAX_AD_IMAGE_BYTES = 2 * 1024 * 1024;
+
+/**
+ * Save one ad banner under DATA_DIR/ads/<campaignId>/. Same bytes check as
+ * photos (JPEG/PNG/WebP only, so no SVG/GIF), but a 2 MB cap. Served by the
+ * same /api/images route (ad pictures are not tied to a home, so they are
+ * public, like any banner on the page).
+ */
+export async function saveAdImage(
+  campaignId: string,
+  file: File,
+): Promise<{ path: string } | { error: SaveImageError }> {
+  if (file.size > MAX_AD_IMAGE_BYTES) return { error: "size" };
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const ext = sniffImageExt(buffer);
+  if (!ext) return { error: "type" };
+  const rel = path.posix.join("ads", campaignId, `${crypto.randomUUID()}.${ext}`);
+  const abs = path.join(DATA_DIR, rel);
+  await mkdir(path.dirname(abs), { recursive: true });
+  await writeFile(abs, buffer);
+  return { path: rel };
+}
+
 export async function deleteStoredFile(relPath: string): Promise<void> {
   try {
     await unlink(path.join(DATA_DIR, relPath));

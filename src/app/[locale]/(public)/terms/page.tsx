@@ -1,9 +1,10 @@
+import { pageMetadata } from "@/lib/seo";
 import { getTranslations } from "next-intl/server";
 import LegalContact from "@/components/legal/LegalContact";
 
 export async function generateMetadata() {
   const t = await getTranslations("legal.terms");
-  return { title: t("title") };
+  return pageMetadata({ path: "/terms", title: t("title") });
 }
 
 // Plain-language terms of use. The wording is a template for the owner to
@@ -19,6 +20,7 @@ export default async function TermsPage() {
     ["aiTitle", "aiBody"],
     ["accountsTitle", "accountsBody"],
     ["listingsTitle", "listingsBody"],
+    ["adsTitle", "adsBody"],
     ["liabilityTitle", "liabilityBody"],
     ["lawTitle", "lawBody"],
     ["changesTitle", "changesBody"],

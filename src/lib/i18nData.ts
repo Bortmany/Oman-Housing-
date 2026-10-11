@@ -22,3 +22,11 @@ export function formatMonth(locale: string, date: Date): string {
     { month: "short", year: "numeric" },
   ).format(date);
 }
+
+/** Date and time in Oman time, Latin digits (used for "last computed" notes). */
+export function formatDateTime(locale: string, date: Date): string {
+  return new Intl.DateTimeFormat(
+    locale === "ar" ? "ar-OM-u-nu-latn" : "en-OM",
+    { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Muscat" },
+  ).format(date);
+}

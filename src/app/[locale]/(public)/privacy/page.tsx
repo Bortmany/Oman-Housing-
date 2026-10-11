@@ -1,9 +1,11 @@
+import { pageMetadata } from "@/lib/seo";
 import { getTranslations } from "next-intl/server";
+import { isStatsConfigured } from "@/lib/stats";
 import LegalContact from "@/components/legal/LegalContact";
 
 export async function generateMetadata() {
   const t = await getTranslations("legal.privacy");
-  return { title: t("title") };
+  return pageMetadata({ path: "/privacy", title: t("title") });
 }
 
 // Plain-language privacy policy. The wording is a template for the owner to
@@ -18,12 +20,17 @@ export default async function PrivacyPage() {
   const collectKeys = [
     "collectAccount",
     "collectEnquiry",
+    "collectOwner",
     "collectAgency",
     "collectPhotos",
     "collectAi",
     "collectFavorites",
     "collectSavedSearches",
+    "collectAds",
+    "collectPayments",
     "collectTechnical",
+    // Only claimed while the visitor-stats counter is actually switched on.
+    ...(isStatsConfigured() ? (["collectStats"] as const) : []),
   ] as const;
 
   return (

@@ -112,6 +112,7 @@ export function MarketStatForm({ locations }: { locations: LocationOptions }) {
             <Label htmlFor="provenance">{t("provenance")}</Label>
             <Select id="provenance" name="provenance" required
               defaultValue={typedOr(typed, "provenance", "USER_SUBMITTED")}>
+              {/* No "From live listings" here: only the daily job writes that. */}
               {PROVENANCE_VALUES.map((p) => (
                 <option key={p} value={p}>
                   {tp(p)}

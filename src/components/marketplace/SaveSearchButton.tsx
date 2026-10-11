@@ -3,10 +3,12 @@ import { Link } from "@/i18n/navigation";
 import { saveSearchAction } from "@/app/[locale]/(app)/account/actions";
 import { Button } from "@/components/ui/Button";
 import { FREQUENCIES, DEFAULT_FREQUENCY } from "@/lib/savedSearch";
+import { emailMode } from "@/lib/email/send";
+import { alertsAreLive } from "@/lib/alerts/live";
 
 // "Save this search" — a plain server-action form when signed in, a link to
 // sign in when signed out (zero client JavaScript, same as the favorite
-// button). The note underneath is honest about email alerts not being live.
+// button). The note underneath is honest about whether email alerts are live.
 export function SaveSearchButton({
   query,
   signedIn,
@@ -76,7 +78,7 @@ export function SaveSearchButton({
         </select>
       </div>
       <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-        {t("emailNotLive")}
+        {alertsAreLive(emailMode(), process.env.CRON_SECRET) ? t("emailLive") : t("emailNotLive")}
       </p>
     </form>
   );

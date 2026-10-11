@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { parseStatsConfig } from "./src/lib/stats";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
@@ -28,6 +29,17 @@ const mapTileOrigin = tileOrigin(
   process.env.NEXT_PUBLIC_MAP_TILE_URL ?? DEFAULT_TILE_URL,
 );
 
+// Protomaps: when NEXT_PUBLIC_MAP_PMTILES_URL is set the map reads one
+// .pmtiles file straight from that host (range requests), so that origin goes
+// into connect-src. Unset = nothing added. Fonts and icons are our own
+// /public/map files, so nothing else changes. The Arabic text-shaping plugin
+// is a small WebAssembly file, which needs 'wasm-unsafe-eval' (WebAssembly
+// only — not general eval); added only while PMTiles is on.
+const pmtilesUrl = process.env.NEXT_PUBLIC_MAP_PMTILES_URL ?? "";
+const pmtilesOrigin = pmtilesUrl ? tileOrigin(pmtilesUrl) : "";
+const pmtilesConnect = pmtilesUrl ? ` ${pmtilesOrigin}` : "";
+const wasmSource = pmtilesUrl ? " 'wasm-unsafe-eval'" : "";
+
 // Cloudflare Turnstile (dormant CAPTCHA) loads a script and an iframe from
 // challenges.cloudflare.com — allowed ONLY when its public site key is set,
 // so the policy stays as tight as before while the CAPTCHA is switched off.
@@ -35,15 +47,22 @@ const turnstileOrigin = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
   ? " https://challenges.cloudflare.com"
   : "";
 
+// Visitor stats (dormant, privacy-friendly counter): when both settings are
+// valid the tool's host may serve the script and receive the count call.
+// Unset = both strings are empty and the policy is unchanged.
+const statsOrigins = parseStatsConfig(process.env).origins;
+const statsScript = statsOrigins.length ? ` ${statsOrigins[0]}` : "";
+const statsConnect = statsOrigins.length ? ` ${statsOrigins.join(" ")}` : "";
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   // Next.js needs inline scripts; the dev server additionally needs eval
   // and a WebSocket for fast refresh (dev only — never in production).
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}${turnstileOrigin}`,
+  `script-src 'self' 'unsafe-inline'${wasmSource}${isDev ? " 'unsafe-eval'" : ""}${turnstileOrigin}${statsScript}`,
   ...(turnstileOrigin ? [`frame-src 'self'${turnstileOrigin}`] : []),
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${mapTileOrigin}`,
-  `connect-src 'self' ${mapTileOrigin}${isDev ? " ws:" : ""}`,
+  `connect-src 'self' ${mapTileOrigin}${pmtilesConnect}${statsConnect}${isDev ? " ws:" : ""}`,
   // MapLibre GL runs its workers from blob: URLs (child-src is the fallback
   // directive older browsers use for workers).
   "worker-src 'self' blob:",
@@ -80,6 +99,14 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@prisma/client", "bcryptjs"],
+  // Server actions accept 1 MB by default, which a phone photo (2–5 MB) always
+  // exceeds. Photos go up ONE PER REQUEST (each at most 5 MB, checked again
+  // from the file's own bytes in src/lib/storage.ts), so 6 MB is the ceiling:
+  // one photo plus the form's own overhead — not a large general limit.
+  // (This also lifts the old 1 MB ceiling on the admin's multi-photo form.)
+  experimental: {
+    serverActions: { bodySizeLimit: "6mb" },
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

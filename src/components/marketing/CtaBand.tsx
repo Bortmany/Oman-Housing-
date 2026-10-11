@@ -1,13 +1,18 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { ButtonLink } from "@/components/ui/Button";
+import { siteHasOnlySampleData } from "@/lib/db/market-stats";
 import { getSignupMode } from "@/lib/signupMode";
 
 // Closing band: browse listings, and the agency invitation. The agency card's
 // wording follows the real sign-up switch (src/lib/signupMode.ts) so the home
 // page never promises a sign-up the list-with-us page would then refuse.
 export async function CtaBand() {
-  const [t, locale] = await Promise.all([getTranslations("home"), getLocale()]);
+  const [t, locale, sampleOnly] = await Promise.all([
+    getTranslations("home"),
+    getLocale(),
+    siteHasOnlySampleData(),
+  ]);
   const tight = locale === "ar" ? "" : "tracking-tight";
   const mode = getSignupMode();
 
@@ -27,10 +32,11 @@ export async function CtaBand() {
           <h2
             className={`text-start text-xl font-bold text-stone-900 sm:text-2xl dark:text-stone-100 ${tight}`}
           >
-            {t("propertiesCtaTitle")}
+            {/* While the site holds only sample figures, the promise is softened. */}
+            {t(sampleOnly ? "propertiesCtaTitleSample" : "propertiesCtaTitle")}
           </h2>
           <p className="mt-3 max-w-md text-start text-sm leading-relaxed text-stone-600 dark:text-stone-300">
-            {t("propertiesCtaBody")}
+            {t(sampleOnly ? "propertiesCtaBodySample" : "propertiesCtaBody")}
           </p>
           <div className="mt-6">
             <ButtonLink href="/properties" className="min-h-11 px-6">

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
+import { siteHasOnlySampleData } from "@/lib/db/market-stats";
 import { ButtonLink } from "@/components/ui/Button";
 import { MortgageTeaser } from "./MortgageTeaser";
 import { Reveal } from "./Reveal";
@@ -8,7 +9,11 @@ import { Reveal } from "./Reveal";
 // mortgage slider on the other. The search is passed in as `search` so this
 // component stays about layout.
 export async function Hero({ search }: { search: ReactNode }) {
-  const [t, locale] = await Promise.all([getTranslations("home"), getLocale()]);
+  const [t, locale, sampleOnly] = await Promise.all([
+    getTranslations("home"),
+    getLocale(),
+    siteHasOnlySampleData(),
+  ]);
   // tracking-tight suits large Latin headings only — tightening breaks
   // Arabic's connected letterforms, so the Arabic heading keeps normal spacing.
   const tight = locale === "ar" ? "" : "tracking-tight";
@@ -22,7 +27,8 @@ export async function Hero({ search }: { search: ReactNode }) {
               aria-hidden
               className="size-1.5 rounded-full bg-brand-700 dark:bg-brand-200"
             />
-            {t("heroBadge")}
+            {/* While the site holds only sample figures, the promise is softened. */}
+            {t(sampleOnly ? "heroBadgeSample" : "heroBadge")}
           </span>
           <h1
             className={`mt-5 max-w-xl text-4xl font-bold text-stone-900 sm:text-5xl lg:text-6xl dark:text-stone-100 ${tight}`}

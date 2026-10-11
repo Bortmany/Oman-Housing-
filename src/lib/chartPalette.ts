@@ -11,6 +11,23 @@ export const CHART_COLORS = [
   "#be123c", // rose
 ] as const;
 
+// Sequential 5-step scale for the price map on /market: light = cheaper,
+// dark = dearer (Tailwind teal 200/400/600/800/950). ONE scale for light and
+// dark UI because the map keeps its light tiles in dark mode. Adjacent steps
+// differ in lightness by a clear margin, so the order survives colour-blind
+// viewing; circles also get a white outline and a thin dark ring, and the
+// legend prints the numbers, so colour is never the only signal.
+export const PRICE_SCALE = [
+  "#99f6e4", // teal-200 (cheapest)
+  "#2dd4bf", // teal-400
+  "#0d9488", // teal-600
+  "#115e59", // teal-800
+  "#042f2e", // teal-950 (dearest)
+] as const;
+
+/** "No price per sqm" circles: stone-400 outline, faint fill. */
+export const PRICE_NO_DATA = "#a8a29e";
+
 export const CHART_GRID = "#e7e5e4"; // stone-200
 export const CHART_AXIS = "#78716c"; // stone-500
 

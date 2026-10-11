@@ -1,13 +1,19 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { formatOMRWhole } from "@/lib/money";
+import { siteHasOnlySampleData } from "@/lib/db/market-stats";
 
 // The differentiator section: every figure carries its source and a
 // confidence score. The mock stat card is clearly labeled as illustrative
-// and wears an AI_ESTIMATED badge — per house rule 1, an example figure is
-// never dressed up as VERIFIED or OFFICIAL_STAT.
+// and wears the Sample badge (it is invented by definition) — per house
+// rule 1, an example figure is never dressed up as VERIFIED or OFFICIAL_STAT.
+// While the whole site holds only sample figures, the copy says so.
 export async function HonestData() {
-  const [t, locale] = await Promise.all([getTranslations("home"), getLocale()]);
+  const [t, locale, sampleOnly] = await Promise.all([
+    getTranslations("home"),
+    getLocale(),
+    siteHasOnlySampleData(),
+  ]);
 
   const tight = locale === "ar" ? "" : "tracking-tight";
   const wide = locale === "ar" ? "" : "tracking-wide";
@@ -16,7 +22,9 @@ export async function HonestData() {
     { provenance: "VERIFIED", body: t("honestyLegendVerified") },
     { provenance: "OFFICIAL_STAT", body: t("honestyLegendOfficial") },
     { provenance: "USER_SUBMITTED", body: t("honestyLegendUser") },
+    { provenance: "LISTING_DERIVED", body: t("honestyLegendDerived") },
     { provenance: "AI_ESTIMATED", body: t("honestyLegendAi") },
+    { provenance: "SAMPLE", body: t("honestyLegendSample") },
   ] as const;
 
   return (
@@ -29,14 +37,23 @@ export async function HonestData() {
           <h2 className={`mt-2 text-2xl font-bold text-white sm:text-3xl ${tight}`}>
             {t("dataHonestyTitle")}
           </h2>
+          {sampleOnly && (
+            <p className="mt-3 max-w-xl border-s-2 border-stone-500 ps-3 text-sm leading-relaxed text-stone-300 rtl:text-base">
+              {t("sampleNotice")}
+            </p>
+          )}
           <p className="mt-4 max-w-xl leading-relaxed text-stone-300">
-            {t("dataHonestyBody")}
+            {t(sampleOnly ? "dataHonestyBodySample" : "dataHonestyBody")}
           </p>
           <ul className="mt-8 space-y-4">
             {legend.map((item) => (
               <li key={item.provenance} className="flex items-start gap-3">
                 <span className="shrink-0 pt-0.5">
-                  <ProvenanceBadge provenance={item.provenance} />
+                  {item.provenance === "SAMPLE" ? (
+                    <ProvenanceBadge isSample />
+                  ) : (
+                    <ProvenanceBadge provenance={item.provenance} />
+                  )}
                 </span>
                 <span className="text-sm leading-relaxed text-stone-300">
                   {item.body}
@@ -58,7 +75,7 @@ export async function HonestData() {
               <span className="text-3xl font-bold text-stone-900 tabular-nums dark:text-stone-100">
                 {formatOMRWhole(84_500, locale)}
               </span>
-              <ProvenanceBadge provenance="AI_ESTIMATED" confidence={0.62} />
+              <ProvenanceBadge isSample />
             </div>
             <p className="mt-3 text-xs text-stone-500 rtl:text-sm dark:text-stone-400">
               {t("honestyExampleSource")}

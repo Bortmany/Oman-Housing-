@@ -3,25 +3,29 @@ import { Link } from "@/i18n/navigation";
 import {
   latestStatsByNeighborhood,
   neighborhoodTrends,
+  siteHasOnlySampleData,
 } from "@/lib/db/market-stats";
 import { decimalToNumber } from "@/lib/money";
 import { formatMonth, localName } from "@/lib/i18nData";
-import { summarizeTrend } from "@/lib/trendSummary";
+import { formatGrowthPct, summarizeTrend } from "@/lib/trendSummary";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
+import { SampleCaption } from "@/components/provenance/SampleCaption";
 import { Sparkline } from "./Sparkline";
 
 // How many neighbourhood cards the home page shows.
 const CARD_COUNT = 4;
 
-// Real market figures only: the same stored apartment sale prices the market
+// Stored market figures only: the same apartment sale prices the market
 // dashboard uses, for the four priciest neighbourhoods. Each card shows the
 // change over the last 12 months with the badge of the weakest figure behind
-// it (src/lib/trendSummary.ts). No data = no section — nothing is invented.
+// it (src/lib/trendSummary.ts) — "Sample data" if any month used is sample.
+// No data = no section.
 export async function TrendsShowcase() {
-  const [t, locale, latest] = await Promise.all([
+  const [t, locale, latest, sampleOnly] = await Promise.all([
     getTranslations("home"),
     getLocale(),
     latestStatsByNeighborhood("APARTMENT"),
+    siteHasOnlySampleData(),
   ]);
 
   const top = latest
@@ -53,20 +57,16 @@ export async function TrendsShowcase() {
             value: decimalToNumber(r.avgSalePrice),
             provenance: r.provenance,
             confidence: r.confidence,
+            isSample: r.isSample,
+            sampleSize: r.sampleSize,
           })),
       ),
     }))
     .filter((c) => c.summary !== null);
   if (cards.length === 0) return null;
 
-  // Latin digits in both languages, matching the money formatter.
   const tight = locale === "ar" ? "" : "tracking-tight";
   const wide = locale === "ar" ? "" : "tracking-wide";
-
-  const deltaFmt = new Intl.NumberFormat(
-    locale === "ar" ? "ar-OM-u-nu-latn" : "en-OM",
-    { signDisplay: "always", maximumFractionDigits: 1 },
-  );
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
@@ -83,7 +83,7 @@ export async function TrendsShowcase() {
           href="/market"
           className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-brand-800 hover:bg-brand-50 dark:text-brand-200 dark:hover:bg-brand-950"
         >
-          {t("trendsLink")}
+          {t(sampleOnly ? "trendsLinkSample" : "trendsLink")}
         </Link>
       </div>
 
@@ -104,7 +104,7 @@ export async function TrendsShowcase() {
                   className="text-sm font-semibold text-stone-700 tabular-nums dark:text-stone-300"
                   dir="ltr"
                 >
-                  {deltaFmt.format(s.changePct)}%
+                  {formatGrowthPct(s.changePct, locale)}
                 </span>
               </div>
               <div className="mt-3">
@@ -114,18 +114,22 @@ export async function TrendsShowcase() {
                 <ProvenanceBadge
                   provenance={s.provenance}
                   confidence={s.confidence}
+                  isSample={s.isSample}
+                  sampleSize={s.sampleSize}
+                  focusable={false}
                 />
                 <span className="text-xs text-stone-500 rtl:text-sm dark:text-stone-400">
                   {formatMonth(locale, s.from)} – {formatMonth(locale, s.to)}
                 </span>
               </div>
+              {s.isSample && <SampleCaption className="mt-2" />}
             </Link>
           );
         })}
       </div>
 
       <p className="mt-4 max-w-2xl text-start text-xs text-stone-500 rtl:text-sm dark:text-stone-400">
-        {t("trendsNote")}
+        {t(sampleOnly ? "trendsNoteSample" : "trendsNote")}
       </p>
     </section>
   );

@@ -36,6 +36,7 @@ const statSchema = z.object({
   grossYieldPct: optionalNumber,
   transactionCount: optionalNumber,
   sampleSize: optionalNumber,
+  // PROVENANCE_VALUES has no LISTING_DERIVED: only the daily job may write it.
   provenance: z.enum(PROVENANCE_VALUES),
   confidence: z.preprocess((v) => Number(v), z.number().min(0).max(1)),
   sourceNote: z.string().trim().max(500).optional(),
@@ -73,6 +74,12 @@ export async function saveMarketStat(
   const session = await requireAdmin();
   if (!session) return { error: "validationFailed", values: typed };
 
+  // "From live listings" is written only by the averages job, never by hand
+  // (the dropdown leaves it out; this refuses a hand-made request too).
+  if (formData.get("provenance") === "LISTING_DERIVED") {
+    return { error: "validationFailed", values: typed };
+  }
+
   const parsed = statSchema.safeParse({
     scope: formData.get("scope"),
     propertyType: formData.get("propertyType") || null,
@@ -106,7 +113,7 @@ export async function saveMarketStat(
   }
 
   const [year, month] = d.period.split("-").map(Number);
-  const { updated } = await upsertMarketStat({
+  const { updated, replacedSample } = await upsertMarketStat({
     scope: parseScope(d.scope),
     propertyType: d.propertyType,
     periodStart: new Date(Date.UTC(year, month - 1, 1)),
@@ -122,7 +129,7 @@ export async function saveMarketStat(
   revalidatePath("/", "layout");
   const locale = await getLocale();
   redirect({
-    href: `/admin/market-stats?saved=1${updated ? "&updated=1" : ""}`,
+    href: `/admin/market-stats?saved=1${replacedSample ? "&replacedSample=1" : updated ? "&updated=1" : ""}`,
     locale,
   });
   return null;

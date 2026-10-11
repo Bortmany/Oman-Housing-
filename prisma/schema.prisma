@@ -27,6 +27,7 @@ enum DataProvenance {
   OFFICIAL_STAT
   USER_SUBMITTED
   AI_ESTIMATED
+  LISTING_DERIVED // averages worked out from live listings by the daily job; never typed in by hand
 }
 
 enum PropertyType {
@@ -110,12 +111,24 @@ model User {
   agencyId      String?
   agency        Agency?   @relation(fields: [agencyId], references: [id])
 
+  // Owner phone verification (src/lib/phoneVerify.ts). `phone` counts as
+  // verified only while phoneVerifiedAt is set; a number still being checked
+  // waits in phoneVerifyPending. Only a keyed hash of the code is kept.
+  phoneVerifiedAt       DateTime?
+  phoneVerifyPending    String?
+  phoneVerifyCodeHash   String?
+  phoneVerifyExpiresAt  DateTime?
+  phoneVerifyAttempts   Int       @default(0)
+  phoneVerifySentAt     DateTime?
+
   accounts           Account[]
   sessions           Session[]
   favorites          Favorite[]
   savedSearches      SavedSearch[]
+  alertLogs          AlertLog[]
   inquiries          Inquiry[]
   listings           Listing[]           @relation("ListingCreator")
+  payments           Payment[]           @relation("PaymentPayer")
   aiAnalyses         AiAnalysis[]
   verifiedStats      MarketStat[]        @relation("StatVerifier")
   verifiedProperties Property[]          @relation("PropertyVerifier")
@@ -201,6 +214,7 @@ model Neighborhood {
   properties  Property[]
   marketStats MarketStat[]
   aiAnalyses  AiAnalysis[]
+  adCampaigns AdCampaign[]
 }
 
 // ---------- Property & marketplace ----------
@@ -228,6 +242,10 @@ model Property {
   sourceNote   String?
   verifiedById String?
   verifiedAt   DateTime?
+  // true = invented demonstration row written by the seed. Public queries hide
+  // it once a real row exists (src/lib/db/sampleData.ts); the badge says
+  // "Sample data". Rows written through the app are never sample.
+  isSample     Boolean        @default(false)
 
   neighborhood Neighborhood        @relation(fields: [neighborhoodId], references: [id])
   verifiedBy   User?               @relation("PropertyVerifier", fields: [verifiedById], references: [id])
@@ -267,22 +285,34 @@ model Listing {
 
   provenance DataProvenance @default(USER_SUBMITTED)
   confidence Float          @default(0.5)
+  isSample   Boolean        @default(false) // see Property.isSample
 
   publishedAt DateTime?
   expiresAt   DateTime?
   viewCount   Int       @default(0)
+
+  // A short note from the admin when a listing is rejected, shown to the
+  // seller. Cleared when the listing is sent for review again.
+  reviewNote String?
+
+  // Paid (or hand-granted) "Featured" placement runs until this moment. Empty
+  // or in the past = not featured; nothing needs a job to switch it off.
+  // Featuring never touches provenance, confidence, status or price.
+  featuredUntil DateTime?
 
   property  Property   @relation(fields: [propertyId], references: [id])
   agency    Agency?    @relation(fields: [agencyId], references: [id])
   createdBy User       @relation("ListingCreator", fields: [createdById], references: [id])
   favorites Favorite[]
   inquiries Inquiry[]
+  payments  Payment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status, listingType])
   @@index([agencyId])
+  @@index([featuredUntil])
 }
 
 // ---------- Analytics time-series ----------
@@ -312,6 +342,11 @@ model MarketStat {
   sourceUrl    String?
   verifiedById String?
   verifiedAt   DateTime?
+  isSample     Boolean        @default(false) // see Property.isSample
+  // Which agency sent this figure (agency uploads only; null otherwise). Used
+  // to count an agency's own waiting queue — no relation, so deleting an
+  // agency never touches stat rows.
+  submittedByAgencyId String?
 
   governorate  Governorate?  @relation(fields: [governorateId], references: [id])
   city         City?         @relation(fields: [cityId], references: [id])
@@ -324,6 +359,7 @@ model MarketStat {
   @@unique([governorateId, cityId, neighborhoodId, propertyType, periodStart])
   @@index([neighborhoodId, propertyType, periodStart])
   @@index([periodStart])
+  @@index([submittedByAgencyId])
 }
 
 // ---------- Valuations & AI ----------
@@ -339,6 +375,7 @@ model ValuationEstimate {
   confidence  Float
   assumptions String?         @db.Text
   createdById String?
+  isSample    Boolean         @default(false) // see Property.isSample
 
   property  Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   createdBy User?    @relation("ValuationAuthor", fields: [createdById], references: [id])
@@ -431,10 +468,38 @@ model SavedSearch {
   query     String
   frequency String   @default("daily")
 
+  // Alert emails. lastAlertedAt = when the last alert was claimed/sent (null =
+  // never; alerts then start from createdAt). lastMatchedListingId = newest
+  // listing in that alert — plain text, no relation, so deleting a listing
+  // never blocks anything.
+  lastAlertedAt        DateTime?
+  lastMatchedListingId String?
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
+  @@index([userId, createdAt])
+}
+
+// One row per alert email attempt: who, which search, how many listings, and
+// what happened. Never the address or the email text. status is validated in
+// code: claimed | sent | failed | not-configured. savedSearchId is plain text
+// so the log survives a deleted search. Rows older than 90 days are deleted by
+// the alert job.
+model AlertLog {
+  id            String   @id @default(cuid())
+  userId        String
+  savedSearchId String
+  frequency     String
+  matchedCount  Int
+  status        String
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([savedSearchId, createdAt])
   @@index([userId, createdAt])
 }
 
@@ -448,4 +513,141 @@ model Favorite {
   listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
   @@unique([userId, listingId])
+}
+
+// Small key/value table for owner-flipped site switches (e.g. the free-launch
+// period). Values are text; typed getters live in src/lib/siteSettings.ts.
+// A missing row means "use the default" — no seed needed.
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- Featured-listing payments ----------
+
+enum PaymentMethod {
+  THAWANI // card, on Thawani's hosted page
+  MANUAL // bank transfer, recorded by an admin
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum PaymentEventKind {
+  CHECKOUT_STARTED
+  SESSION_CREATE_FAILED
+  CONFIRMED
+  ALREADY_CONFIRMED
+  NOT_PAID
+  AMOUNT_MISMATCH
+  REFERENCE_MISMATCH
+  UNVERIFIABLE
+  UNKNOWN_PAYMENT
+  LOOKUP_FAILED
+  RATE_LIMITED
+  MANUAL_FEATURE
+  MANUAL_UNFEATURE
+  PRICE_CHANGED
+}
+
+// One row per attempt to pay for featuring a listing. The amount and days are
+// frozen when the checkout starts (read from the server's price settings,
+// never from the browser). Card details never reach us: they are typed on
+// Thawani's page only. gatewaySessionId is UNIQUE: one gateway session can
+// never be attached to two payments.
+model Payment {
+  id               String        @id @default(cuid())
+  listingId        String? // kept (set empty) if the listing is later deleted
+  listingTitle     String // snapshot, so the record still reads after a delete
+  userId           String // the payer (for by-hand entries: the listing's owner)
+  method           PaymentMethod
+  status           PaymentStatus @default(PENDING)
+  amount           Decimal       @db.Decimal(12, 3)
+  currency         String        @default("OMR")
+  days             Int
+  gatewaySessionId String?       @unique
+  gatewayPayload   Json? // the gateway's last answer (no card data is in it)
+  paidAt           DateTime?
+  recordedById     String? // admin who recorded a by-hand payment
+  note             String? // invoice / transfer reference (by hand)
+
+  listing Listing?        @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  user    User            @relation("PaymentPayer", fields: [userId], references: [id])
+  events  PaymentEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([listingId])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+// Security / money log: refused or unusual confirmations and admin money
+// actions. Short plain detail only: never a secret or card data.
+model PaymentEvent {
+  id        String           @id @default(cuid())
+  kind      PaymentEventKind
+  paymentId String?
+  listingId String?
+  detail    String
+  createdAt DateTime         @default(now())
+
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([kind, createdAt])
+  @@index([paymentId])
+}
+
+// ---------- Ads (sold directly; no ad network, no third-party script) ----------
+
+enum AdSlotKey {
+  HOME_BAND
+  MARKET_SIDEBAR
+  PROPERTY_BELOW_FINANCIALS
+  NEIGHBORHOOD_SPONSOR
+}
+
+// One paid banner. Images live under DATA_DIR/ads/<id>/ (see src/lib/storage.ts).
+// The per-area slots (PROPERTY_BELOW_FINANCIALS, NEIGHBORHOOD_SPONSOR) carry a
+// neighborhoodId; the other two never do. Overlap rule lives in src/lib/ads.
+model AdCampaign {
+  id             String    @id @default(cuid())
+  advertiser     String
+  slot           AdSlotKey
+  neighborhoodId String?
+  linkUrl        String // https only; the click route redirects ONLY here
+  altEn          String
+  altAr          String?
+  imageEnPath    String
+  imageArPath    String?
+  startsAt       DateTime
+  endsAt         DateTime
+  isActive       Boolean   @default(true)
+  agreedPrice    Decimal?  @db.Decimal(12, 3) // the owner's own record of the deal
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  neighborhood Neighborhood? @relation(fields: [neighborhoodId], references: [id], onDelete: Restrict)
+  stats        AdDailyStat[]
+
+  @@index([slot, isActive, startsAt, endsAt])
+  @@index([neighborhoodId])
+}
+
+// Anonymous totals per campaign per Oman day. No person, address or device.
+model AdDailyStat {
+  id         String   @id @default(cuid())
+  campaignId String
+  day        DateTime @db.Date // the Oman calendar day (UTC+4)
+  views      Int      @default(0)
+  clicks     Int      @default(0)
+
+  campaign AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, day])
 }

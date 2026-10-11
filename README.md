@@ -54,9 +54,14 @@ confidence score. Estimates are never dressed up as facts.
 - **Listing tiers** — Free (3 listings), Premium (25), Business (unlimited),
   granted by hand from `/admin/agencies` until online payments arrive.
 
-**Deferred until external accounts exist:** enquiry-notification emails, and
-a Thawani/PayTabs checkout that grants tiers automatically (Stripe does not
-serve Oman merchants). Details in `GO-LIVE.md`.
+**Featured listings:** owners and agencies can pay to feature a live listing
+(Thawani Pay card checkout, dormant until its keys are set; the admin can also
+feature by hand for bank-transfer deals). Direct-sold ads (always labelled,
+no ad network, no tracking) are managed in `/admin/ads`; neither featuring nor
+ads ever change a figure or its source badge. **Deferred until external accounts
+exist:** enquiry-notification emails, and a checkout that grants agency plan
+tiers automatically (Stripe does not serve Oman merchants). Details in
+`GO-LIVE.md`.
 
 The seeded numbers are clearly-labeled sample data so the dashboards
 demonstrate themselves; real figures replace them through the admin screens.

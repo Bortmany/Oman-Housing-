@@ -16,6 +16,10 @@ export type OfferedDatum = {
   promptText: string; // English one-liner given to the model (not shown in UI)
   provenance: DataProvenance;
   confidence: number; // 0..1
+  /** true = the figure comes from (or is worked out from) invented sample data.
+   *  The prompt says "SAMPLE DATA", the saved snapshot keeps the flag, and the
+   *  card shows the Sample badge. Confidence still caps the answer as usual. */
+  isSample: boolean;
   snapshot: Record<string, unknown>; // frozen values stored in AiCitation
 };
 

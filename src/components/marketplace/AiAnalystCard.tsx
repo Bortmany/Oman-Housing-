@@ -45,7 +45,6 @@ export function AiAnalystCard({
     <Card>
       <div className="flex items-center gap-2">
         <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">{t("title")}</h2>
-        <ProvenanceBadge provenance="AI_ESTIMATED" />
       </div>
       <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{t("subtitle")}</p>
 
@@ -140,6 +139,7 @@ export function AiAnalystCard({
                         <ProvenanceBadge
                           provenance={c.provenance}
                           confidence={c.confidence}
+                          isSample={c.isSample}
                         />
                       </span>
                     </li>

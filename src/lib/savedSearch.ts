@@ -1,6 +1,8 @@
 // Saved-search rules shared by the "save this search" button, the server
 // action and the account page. Pure functions, no I/O.
 
+import { BOUNDS_KEYS, boundsToQuery, parseBounds } from "./searchFilters";
+
 /** The only query parameters the property search understands. */
 export const SEARCH_PARAMS = [
   "hood",
@@ -10,7 +12,14 @@ export const SEARCH_PARAMS = [
   "maxPrice",
   "beds",
   "ownership",
+  // The map box: the four travel as one unit (all valid, or all dropped).
+  "n",
+  "s",
+  "e",
+  "w",
 ] as const;
+
+const isBoundsKey = (key: string) => (BOUNDS_KEYS as readonly string[]).includes(key);
 
 export type SearchParam = (typeof SEARCH_PARAMS)[number];
 
@@ -18,6 +27,9 @@ export type SearchParam = (typeof SEARCH_PARAMS)[number];
 export const FREQUENCIES = ["instant", "daily"] as const;
 export type Frequency = (typeof FREQUENCIES)[number];
 export const DEFAULT_FREQUENCY: Frequency = "daily";
+
+/** Stored when someone uses an email's unsubscribe link: the search stays saved, alerts stop. */
+export const FREQUENCY_OFF = "off";
 
 /** One person can keep this many searches — a sane ceiling, not a paid limit. */
 export const MAX_SAVED_SEARCHES = 25;
@@ -34,9 +46,13 @@ export function normalizeSearchQuery(raw: string): string {
   const input = new URLSearchParams(raw.startsWith("?") ? raw.slice(1) : raw);
   const out = new URLSearchParams();
   for (const key of SEARCH_PARAMS) {
+    if (isBoundsKey(key)) continue;
     const value = (input.get(key) ?? "").trim();
     if (value !== "" && value.length <= MAX_VALUE_LENGTH) out.append(key, value);
   }
+  // The map box is all-or-nothing, stored as the cleaned, rounded numbers.
+  const box = boundsToQuery(parseBounds(input));
+  for (const key of BOUNDS_KEYS) if (box[key]) out.append(key, box[key]);
   return out.toString();
 }
 
@@ -45,9 +61,12 @@ export function searchQueryToObject(query: string): Record<string, string> {
   const params = new URLSearchParams(query);
   const out: Record<string, string> = {};
   for (const key of SEARCH_PARAMS) {
+    if (isBoundsKey(key)) continue;
     const value = params.get(key);
     if (value) out[key] = value;
   }
+  // Same all-or-nothing rule, so an old or hand-edited row can't half-apply.
+  Object.assign(out, boundsToQuery(parseBounds(params)));
   return out;
 }
 

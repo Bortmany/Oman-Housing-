@@ -55,6 +55,20 @@ expectEqual("business.canAdd", canAddListing("BUSINESS", 100000), true);
   expectEqual("allowance.business.remaining", a.remaining, Infinity);
 }
 
+// Free launch ON: every tier is unlimited, whatever it has live.
+expectEqual("launch.free.unlimited", listingAllowance("FREE", 50, { freeLaunch: true }).unlimited, true);
+expectEqual("launch.free.canAdd", canAddListing("FREE", 50, { freeLaunch: true }), true);
+expectEqual("launch.free.remaining", listingAllowance("FREE", 3, { freeLaunch: true }).remaining, Infinity);
+expectEqual("launch.premium.canAdd", canAddListing("PREMIUM", 99, { freeLaunch: true }), true);
+expectEqual("launch.business.canAdd", canAddListing("BUSINESS", 99, { freeLaunch: true }), true);
+// Free launch OFF (explicit): FREE is capped at 3 again.
+expectEqual("launchOff.free.atCap", canAddListing("FREE", 3, { freeLaunch: false }), false);
+expectEqual("launchOff.free.atTwo", canAddListing("FREE", 2, { freeLaunch: false }), true);
+expectEqual("launchOff.free.limit", listingAllowance("FREE", 0, { freeLaunch: false }).limit, 3);
+expectEqual("launchOff.premium.atCap", canAddListing("PREMIUM", 25, { freeLaunch: false }), false);
+// The switch never changes the published tier table.
+expectEqual("launch.tableUntouched", ACTIVE_LISTING_LIMIT.FREE, 3);
+
 // Published monthly prices (OMR). These are what the public page shows.
 expectEqual("price.free", TIER_PRICE_OMR.FREE, 0);
 expectEqual("price.premium", TIER_PRICE_OMR.PREMIUM, 19);

@@ -1,0 +1,15 @@
+﻿area_level,area,property_type,metric,value,period_start,period_type,source_url,source_note,confidence
+governorate,مسقط,APARTMENT,avgSalePrice,68500.000,2026-04-01,quarter,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped average sale price),
+governorate,مسقط,APARTMENT,avgRentMonthly,345.500,2026-04-01,,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped average rent),
+governorate,مسقط,APARTMENT,avgPricePerSqm,742.250,2026-04-01,,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped price per sqm),
+governorate,مسقط,VILLA,avgSalePrice,142750.000,2026-04-01,,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped average sale price),
+governorate,muscat,VILLA,avgRentMonthly,820.000,2026-04-01,,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped average rent),
+governorate,مسقط,,avgPricePerSqm,690.500,2026-04-01,,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped all-types price per sqm),
+governorate,ظفار,APARTMENT,avgSalePrice,52300.000,2026-04-01,quarter,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped average sale price),
+governorate,ظفار,APARTMENT,avgRentMonthly,210.500,2026-04-01,,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped average rent),
+governorate,dhofar,VILLA,avgSalePrice,118400.000,2026-04-01,,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped average sale price),
+governorate,ظفار,,avgPricePerSqm,512.750,2026-04-01,,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (NCSI-shaped all-types price per sqm),0.85
+city,السيب,,transactionCount,1250,2026-04-01,month,https://mohup.gov.om/en/open-data/data/Realestate%20Transaction,TEST FIXTURE — not real data (MOHUP-shaped monthly land deals),
+city,صلالة,,transactionCount,268,2026-04-01,month,https://mohup.gov.om/en/open-data/data/Realestate%20Transaction,TEST FIXTURE — not real data (MOHUP-shaped monthly land deals),
+city,بوشر,,transactionCount,356,2026-04-01,month,https://mohup.gov.om/en/open-data/data/Realestate%20Transaction,TEST FIXTURE — not real data (MOHUP-shaped monthly land deals; Bawshar the city),
+neighborhood,بوشر,,transactionCount,94,2026-04-01,month,https://mohup.gov.om/en/open-data/data/Realestate%20Transaction,TEST FIXTURE — not real data (clash case; Bausher the neighbourhood),

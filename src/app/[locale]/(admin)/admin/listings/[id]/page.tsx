@@ -9,6 +9,7 @@ import { StatusPill } from "@/components/marketplace/StatusPill";
 import { Button } from "@/components/ui/Button";
 import { DirectionalLink } from "@/components/ui/DirectionalLink";
 import { enforceAdminPage } from "@/lib/require-admin";
+import { ButtonLink } from "@/components/ui/Button";
 
 export default async function EditListingPage({
   params,
@@ -19,9 +20,10 @@ export default async function EditListingPage({
 }) {
   await enforceAdminPage(); // guard BEFORE any DB query (see require-admin.ts)
   const [{ id }, { saved }] = await Promise.all([params, searchParams]);
-  const [t, tc, locale, listing, properties] = await Promise.all([
+  const [t, tc, tpay, locale, listing, properties] = await Promise.all([
     getTranslations("admin"),
     getTranslations("common"),
+    getTranslations("adminPayments"),
     getLocale(),
     prisma.listing.findUnique({
       where: { id },
@@ -75,6 +77,15 @@ export default async function EditListingPage({
                 </Button>
               </form>
             ))}
+          {listing.status === "ACTIVE" && !listing.isSample && (
+            <ButtonLink
+              href={`/admin/payments?listing=${encodeURIComponent(listing.id)}#hand`}
+              variant="secondary"
+              className="!px-3 !py-1.5 text-xs"
+            >
+              {tpay("featureByHand")}
+            </ButtonLink>
+          )}
         </div>
       </div>
 

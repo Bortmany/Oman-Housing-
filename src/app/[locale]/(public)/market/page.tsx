@@ -1,21 +1,30 @@
+import { pageMetadata } from "@/lib/seo";
 import { getLocale, getTranslations } from "next-intl/server";
 import type { PropertyType } from "@prisma/client";
 import {
+  latestAreaFiguresFor,
   latestStatsByNeighborhood,
   neighborhoodTrends,
 } from "@/lib/db/market-stats";
 import { decimalToNumber, formatOMRWhole, formatPercent } from "@/lib/money";
 import { localName, formatMonth } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
+import { AreaFigureCard } from "@/components/market/AreaFigureCard";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { SampleCaption } from "@/components/provenance/SampleCaption";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
+import { ChartSampleNote } from "@/components/provenance/ChartSampleNote";
 import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
+import { PriceMap } from "@/components/map/PriceMap";
+import { priceMapFor } from "@/lib/db/price-map";
 import { Link } from "@/i18n/navigation";
 import { DirectionalLink } from "@/components/ui/DirectionalLink";
+import { AdCard } from "@/components/ads/AdCard";
+import { loadAd } from "@/lib/ads/serve";
 
 export async function generateMetadata() {
   const t = await getTranslations("market");
-  return { title: t("title") };
+  return pageMetadata({ path: "/market", title: t("title") });
 }
 
 export default async function MarketPage({
@@ -26,12 +35,56 @@ export default async function MarketPage({
   const { type } = await searchParams;
   const propertyType: PropertyType = type === "villa" ? "VILLA" : "APARTMENT";
 
-  const [t, tc, locale, stats] = await Promise.all([
+  const [t, tc, ta, tp, locale, stats, areaRows, priceMap] = await Promise.all([
     getTranslations("market"),
     getTranslations("common"),
+    getTranslations("areaFigure"),
+    getTranslations("priceMap"),
     getLocale(),
     latestStatsByNeighborhood(type === "villa" ? "VILLA" : "APARTMENT"),
+    // Official whole-governorate figures; a context section only, so a failed
+    // read just leaves it out.
+    latestAreaFiguresFor("all").catch(() => []),
+    // The map is a nice-to-have on top of the cards: a failed read leaves it out.
+    getLocale()
+      .then((l) => priceMapFor(propertyType, l))
+      .catch(() => null),
   ]);
+
+  // One card per governorate that has an official row for the selected type.
+  const governorateCards = areaRows
+    .filter((r) => r.cityId == null && r.propertyType === propertyType && r.governorate)
+    .sort((a, b) =>
+      a.governorate!.nameEn.localeCompare(b.governorate!.nameEn),
+    );
+  const areaSection =
+    governorateCards.length > 0 ? (
+      <>
+        <h2 className="mt-10 text-lg font-semibold text-stone-900 dark:text-stone-100">
+          {ta("indexHeading")}
+        </h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {governorateCards.map((r) => {
+            const name = localName(
+              locale,
+              r.governorate!.nameEn,
+              r.governorate!.nameAr,
+            );
+            return (
+              <AreaFigureCard
+                key={r.id}
+                title={ta("governorateTitle", { name })}
+                note={ta("indexNote", {
+                  area: ta("governorateName", { name }),
+                })}
+                rows={[r]}
+                locale={locale}
+              />
+            );
+          })}
+        </div>
+      </>
+    ) : null;
 
   const sorted = [...stats].sort(
     (a, b) =>
@@ -61,6 +114,9 @@ export default async function MarketPage({
     key: s.neighborhoodId!,
     name: localName(locale, s.neighborhood!.nameEn, s.neighborhood!.nameAr),
   }));
+
+  // Paid sidebar (labelled "Ad"). null = no campaign = the page is exactly as before.
+  const sidebarAd = await loadAd("MARKET_SIDEBAR");
 
   const typeTabs = [
     { value: "apartment", label: t("apartments"), active: propertyType === "APARTMENT" },
@@ -108,7 +164,20 @@ export default async function MarketPage({
           <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t("noDataHint")}</p>
         </Card>
       ) : (
-        <>
+        <div className={sidebarAd ? "lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-x-8" : undefined}>
+          <div className="min-w-0">
+          {priceMap && (priceMap.points.length > 0 || priceMap.unplaced > 0) && (
+            <Card className="mt-8">
+              <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
+                {tp("title")}
+              </h2>
+              <p className="mt-1 mb-4 max-w-2xl text-sm text-stone-600 dark:text-stone-300">
+                {tp("subtitle")}
+              </p>
+              <PriceMap model={priceMap} />
+            </Card>
+          )}
+
           {trendData.length > 0 && (
             <Card className="mt-8">
               <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
@@ -117,8 +186,22 @@ export default async function MarketPage({
               <div className="mt-4">
                 <TrendChart data={trendData} series={trendSeries} />
               </div>
+              <ChartSampleNote
+                rows={trendRows.filter((r) => r.avgSalePrice != null)}
+              />
             </Card>
           )}
+
+          </div>
+
+          {sidebarAd && (
+            <div className="mt-8 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+              <AdCard ad={sidebarAd} className="lg:sticky lg:top-24" />
+            </div>
+          )}
+
+          <div className="min-w-0">
+          {areaSection}
 
           <h2 className="mt-10 text-lg font-semibold text-stone-900 dark:text-stone-100">
             {t("neighborhoods")}
@@ -196,18 +279,26 @@ export default async function MarketPage({
                       <ProvenanceBadge
                         provenance={s.provenance}
                         confidence={s.confidence}
+                        isSample={s.isSample}
+                        sampleSize={s.sampleSize}
+                        focusable={false}
                       />
                       <span className="text-xs text-stone-400 rtl:text-sm dark:text-stone-500">
                         {formatMonth(locale, s.periodStart)}
                       </span>
                     </div>
+                    {s.isSample && <SampleCaption className="mt-2" />}
                   </Card>
                 </Link>
               );
             })}
           </div>
-        </>
+          </div>
+        </div>
       )}
+
+      {/* No neighbourhood figures yet: the official area cards still show. */}
+      {stats.length === 0 && areaSection}
     </div>
   );
 }

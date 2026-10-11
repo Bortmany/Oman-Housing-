@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { Link } from "@/i18n/navigation";
 import { enforceAdminPage } from "@/lib/require-admin";
+import { getFreeLaunch } from "@/lib/siteSettings";
+import { countFlaggedEvents7d } from "@/lib/payments/core";
+import { countLiveCampaigns } from "@/lib/ads/core";
 
 export async function generateMetadata() {
   const t = await getTranslations("admin");
@@ -22,6 +25,12 @@ export default async function AdminHome() {
     agencyCount,
     pendingAgencies,
     newInquiries,
+    freeLaunch,
+    tSettings,
+    tPay,
+    tAds,
+    flaggedPayments,
+    liveAds,
   ] = await Promise.all([
     getTranslations("admin"),
     prisma.marketStat.count(),
@@ -33,11 +42,24 @@ export default async function AdminHome() {
     prisma.agency.count(),
     prisma.agency.count({ where: { isApproved: false } }),
     prisma.inquiry.count({ where: { status: "NEW" } }),
+    getFreeLaunch(),
+    getTranslations("adminSettings"),
+    getTranslations("adminPayments"),
+    getTranslations("adminAds"),
+    countFlaggedEvents7d(),
+    countLiveCampaigns(),
   ]);
 
   const reviewCount = pendingListings + unverifiedProps + unverifiedStats;
 
-  const sections = [
+  const sections: Array<{
+    href: string;
+    title: string;
+    hint: string;
+    count: number | string;
+    badge?: boolean;
+    note?: string | null;
+  }> = [
     {
       href: "/admin/review",
       title: t("review.title"),
@@ -77,6 +99,28 @@ export default async function AdminHome() {
       hint: t("listingsHint"),
       count: listingCount,
     },
+    {
+      href: "/admin/settings",
+      title: tSettings("title"),
+      hint: tSettings("dashHint"),
+      // The card's big figure is the switch itself: On / Off.
+      count: freeLaunch ? tSettings("freeLaunch.on") : tSettings("freeLaunch.off"),
+    },
+    {
+      href: "/admin/payments",
+      title: tPay("title"),
+      hint: tPay("dashHint"),
+      // Flagged payment events in the last 7 days (0 = all quiet).
+      count: flaggedPayments,
+      badge: flaggedPayments > 0,
+      note: flaggedPayments > 0 ? tPay("flaggedBadge", { count: flaggedPayments }) : null,
+    },
+    {
+      href: "/admin/ads",
+      title: tAds("title"),
+      hint: tAds("dashHint"),
+      count: liveAds, // campaigns live right now
+    },
   ];
 
   return (
@@ -100,10 +144,21 @@ export default async function AdminHome() {
                 </span>
               </div>
               <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">{s.hint}</p>
+              {s.note && (
+                <p className="mt-2 text-sm font-medium text-amber-800 dark:text-amber-300">{s.note}</p>
+              )}
             </Card>
           </Link>
         ))}
       </div>
+      <p className="mt-6">
+        <Link
+          href="/admin/settings/prices"
+          className="inline-flex min-h-11 items-center text-sm font-semibold text-teal-800 hover:underline dark:text-teal-300"
+        >
+          {tPay("pricesLink")}
+        </Link>
+      </p>
     </div>
   );
 }

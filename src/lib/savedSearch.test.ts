@@ -61,6 +61,37 @@ expectEqual(
   { hood: "qurum", maxPrice: "200000" },
 );
 
+// ---- the map box (n, s, e, w) is one unit ----
+expectEqual(
+  "keeps a good map box, after the other filters, rounded",
+  normalizeSearchQuery("w=58.30001&e=58.55&s=23.55&n=23.65&type=VILLA"),
+  "type=VILLA&n=23.65&s=23.55&e=58.55&w=58.3",
+);
+expectEqual(
+  "drops a map box with only some of the four",
+  normalizeSearchQuery("type=VILLA&n=23.65&s=23.55"),
+  "type=VILLA",
+);
+expectEqual(
+  "drops an out-of-range or upside-down map box entirely",
+  [
+    normalizeSearchQuery("n=999&s=23.55&e=58.55&w=58.3"),
+    normalizeSearchQuery("n=23.5&s=23.6&e=58.55&w=58.3"),
+    normalizeSearchQuery("n=abc&s=23.55&e=58.55&w=58.3"),
+  ],
+  ["", "", ""],
+);
+expectEqual(
+  "stored map box comes back as an object with the other filters",
+  searchQueryToObject("type=VILLA&n=23.65&s=23.55&e=58.55&w=58.3"),
+  { type: "VILLA", n: "23.65", s: "23.55", e: "58.55", w: "58.3" },
+);
+expectEqual(
+  "a half-stored map box does not come back",
+  searchQueryToObject("type=VILLA&n=23.65&s=23.55"),
+  { type: "VILLA" },
+);
+
 expectEqual("daily is a frequency", isFrequency("daily"), true);
 expectEqual("weekly is not a frequency", isFrequency("weekly"), false);
 

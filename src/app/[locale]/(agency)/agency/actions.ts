@@ -6,19 +6,13 @@ import { revalidatePath } from "next/cache";
 import type { Session } from "next-auth";
 import type { InquiryStatus } from "@prisma/client";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
 import { redirect } from "@/i18n/navigation";
-import {
-  agencyById,
-  countListingsInPlay,
-  updateAgencyProfile,
-} from "@/lib/db/agencies";
+import { updateAgencyProfile } from "@/lib/db/agencies";
 import {
   setInquiryStatus,
   inquiryBelongsToAgency,
   INQUIRY_STATUSES,
 } from "@/lib/db/inquiries";
-import { canAddListing } from "@/lib/tiers";
 import {
   DEFAULT_DIAL_CODE,
   checkPhone,
@@ -34,133 +28,6 @@ async function requireAgency(): Promise<
   const session = await auth();
   if (session?.user.role !== "AGENCY" || !session.user.agencyId) return null;
   return { session, agencyId: session.user.agencyId };
-}
-
-// ---------- Submit a new listing (property + listing together) ----------
-
-const PROPERTY_TYPES = [
-  "APARTMENT", "VILLA", "TOWNHOUSE", "PENTHOUSE",
-  "LAND", "OFFICE", "RETAIL", "WAREHOUSE",
-] as const;
-const OWNERSHIP = ["OMANI_ONLY", "GCC_ELIGIBLE", "FOREIGN_ITC", "UNKNOWN"] as const;
-
-const listingSchema = z.object({
-  neighborhoodId: z.string().min(1),
-  type: z.enum(PROPERTY_TYPES),
-  ownership: z.enum(OWNERSHIP),
-  titleEn: z.string().trim().min(1).max(200),
-  titleAr: z.string().trim().max(200).optional(),
-  descriptionEn: z.string().trim().max(5000).optional(),
-  descriptionAr: z.string().trim().max(5000).optional(),
-  bedrooms: z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().int().min(0).max(50).nullable()),
-  bathrooms: z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().int().min(0).max(50).nullable()),
-  areaSqm: z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().finite().positive().nullable()),
-  yearBuilt: z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().int().min(1900).max(2100).nullable()),
-  listingType: z.enum(["SALE", "RENT"]),
-  price: z.preprocess((v) => Number(v), z.number().finite().positive()),
-  rentPeriod: z.enum(["MONTHLY", "ANNUAL"]).nullable(),
-});
-
-export type AgencyListingState =
-  | {
-      error: "validationFailed" | "atListingLimit" | "notAllowed";
-      // Which input failed validation (e.g. "price"), so the form can put a
-      // red ring on the right box. Absent for form-wide errors.
-      field?: string;
-      // What the agency typed, so a rejected listing is never retyped.
-      values?: SubmittedValues;
-    }
-  | null;
-
-/** The boxes handed back when a listing submission is rejected. */
-const LISTING_FIELDS = [
-  "neighborhoodId", "type", "ownership", "titleEn", "titleAr",
-  "descriptionEn", "descriptionAr", "bedrooms", "bathrooms", "areaSqm",
-  "yearBuilt", "listingType", "price", "rentPeriod",
-] as const;
-
-export async function submitAgencyListing(
-  _prev: AgencyListingState,
-  formData: FormData,
-): Promise<AgencyListingState> {
-  // Held on to now so every "no" below can hand the typed text straight back.
-  const typed = submittedValues(formData, LISTING_FIELDS);
-
-  const ctx = await requireAgency();
-  if (!ctx) return { error: "notAllowed", values: typed };
-
-  const agency = await agencyById(ctx.agencyId);
-  if (!agency) return { error: "notAllowed", values: typed };
-
-  // Plan limit: block a new submission when the agency is already at its cap.
-  const inPlay = await countListingsInPlay(ctx.agencyId);
-  if (!canAddListing(agency.tier, inPlay)) {
-    return { error: "atListingLimit", values: typed };
-  }
-
-  const parsed = listingSchema.safeParse({
-    neighborhoodId: formData.get("neighborhoodId"),
-    type: formData.get("type"),
-    ownership: formData.get("ownership"),
-    titleEn: formData.get("titleEn"),
-    titleAr: formData.get("titleAr") || undefined,
-    descriptionEn: formData.get("descriptionEn") || undefined,
-    descriptionAr: formData.get("descriptionAr") || undefined,
-    bedrooms: formData.get("bedrooms"),
-    bathrooms: formData.get("bathrooms"),
-    areaSqm: formData.get("areaSqm"),
-    yearBuilt: formData.get("yearBuilt"),
-    listingType: formData.get("listingType"),
-    price: formData.get("price"),
-    rentPeriod: formData.get("rentPeriod") || null,
-  });
-  if (!parsed.success) {
-    const field = parsed.error.issues[0]?.path[0];
-    return {
-      error: "validationFailed",
-      field: typeof field === "string" ? field : undefined,
-      values: typed,
-    };
-  }
-  const d = parsed.data;
-
-  // Create the property (user-submitted, unverified) and the listing
-  // (pending review — never live until the owner publishes it) together.
-  await prisma.property.create({
-    data: {
-      neighborhoodId: d.neighborhoodId,
-      type: d.type,
-      ownership: d.ownership,
-      titleEn: d.titleEn,
-      titleAr: d.titleAr ?? null,
-      descriptionEn: d.descriptionEn ?? null,
-      descriptionAr: d.descriptionAr ?? null,
-      bedrooms: d.bedrooms,
-      bathrooms: d.bathrooms,
-      areaSqm: d.areaSqm,
-      yearBuilt: d.yearBuilt,
-      provenance: "USER_SUBMITTED",
-      confidence: 0.5,
-      sourceNote: `Submitted by agency: ${agency.nameEn}`,
-      listings: {
-        create: {
-          listingType: d.listingType,
-          price: d.price,
-          rentPeriod: d.listingType === "RENT" ? (d.rentPeriod ?? "MONTHLY") : null,
-          status: "PENDING_REVIEW",
-          agencyId: ctx.agencyId,
-          createdById: ctx.session.user.id,
-          provenance: "USER_SUBMITTED",
-          confidence: 0.5,
-        },
-      },
-    },
-  });
-
-  revalidatePath("/", "layout");
-  const locale = await getLocale();
-  redirect({ href: "/agency/listings?submitted=1", locale });
-  return null;
 }
 
 // ---------- Enquiry inbox status ----------

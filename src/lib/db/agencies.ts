@@ -21,7 +21,12 @@ export async function countListingsInPlay(agencyId: string): Promise<number> {
 }
 
 const agencyListingInclude = {
-  property: { include: { neighborhood: { include: { city: true } } } },
+  property: {
+    include: {
+      neighborhood: { include: { city: true } },
+      images: { orderBy: { sortOrder: "asc" as const }, take: 1 },
+    },
+  },
 } satisfies Prisma.ListingInclude;
 
 export type AgencyListing = Prisma.ListingGetPayload<{

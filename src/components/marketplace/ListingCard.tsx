@@ -3,31 +3,43 @@ import { Link } from "@/i18n/navigation";
 import type { ListingWithProperty } from "@/lib/db/listings";
 import { decimalToNumber, formatOMRWhole } from "@/lib/money";
 import { localName } from "@/lib/i18nData";
+import { effectiveLocation } from "@/lib/approxLocation";
 import { Card } from "@/components/ui/Card";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
 import { FavoriteButton } from "./FavoriteButton";
+import { FeaturedLabel } from "./FeaturedLabel";
 
 export function ListingCard({
   listing,
   favorited,
   signedIn,
   redirectTo,
+  showLocationNote,
+  featured,
 }: {
   listing: ListingWithProperty;
   favorited?: boolean; // undefined = hide the favorite control
   signedIn?: boolean;
   redirectTo?: string;
+  /** Say so when the home has no spot of its own and the map shows its area centre. */
+  showLocationNote?: boolean;
+  /** A paid featured spot on the results page: shows the visible "Featured" tag. Nothing else changes. */
+  featured?: boolean;
 }) {
   const locale = useLocale();
   const t = useTranslations("properties");
   const te = useTranslations("enums");
   const tc = useTranslations("common");
+  const tm = useTranslations("searchMap");
   const p = listing.property;
   const image = p.images.find((i) => i.isPrimary) ?? p.images[0];
 
   return (
-    <Card className="flex h-full flex-col !p-0 text-sm">
-      <Link href={`/properties/${p.id}`} className="block">
+    <Card
+      className={`flex h-full flex-col !p-0 text-sm ${featured ? "!ring-2 !ring-amber-500 dark:!ring-amber-400" : ""}`}
+    >
+      <Link href={`/properties/${p.id}`} className="relative block">
+        {featured && <FeaturedLabel className="absolute start-2 top-2" />}
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -47,8 +59,8 @@ export function ListingCard({
           <p className="text-lg font-bold text-teal-800 dark:text-teal-300">
             {formatOMRWhole(decimalToNumber(listing.price)!, locale)}
             {listing.listingType === "RENT" && listing.rentPeriod && (
-              <span className="ms-1 text-xs font-medium text-stone-500 dark:text-stone-400">
-                {te(`rentPeriod.${listing.rentPeriod}`)}
+              <span className="text-xs font-medium text-stone-500 dark:text-stone-400">
+                {" "}{te(`rentPeriod.${listing.rentPeriod}`)}
               </span>
             )}
           </p>
@@ -67,14 +79,21 @@ export function ListingCard({
           {localName(locale, p.neighborhood.nameEn, p.neighborhood.nameAr)},{" "}
           {localName(locale, p.neighborhood.city.nameEn, p.neighborhood.city.nameAr)}
           {" · "}{te(`propertyType.${p.type}`)}
-          {p.bedrooms != null && <> · {p.bedrooms} {tc("beds")}</>}
+          {p.bedrooms != null && <> · {tc("bedsCount", { count: p.bedrooms, n: String(p.bedrooms) })}</>}
           {p.areaSqm != null && <> · {decimalToNumber(p.areaSqm)} {tc("sqm")}</>}
         </p>
+
+        {showLocationNote && effectiveLocation(p, p.neighborhood)?.approximate && (
+          <p className="text-xs text-stone-500 rtl:text-sm dark:text-stone-400">
+            {tm("approximate")}
+          </p>
+        )}
 
         <div className="mt-auto flex items-center justify-between pt-2">
           <ProvenanceBadge
             provenance={listing.provenance}
             confidence={listing.confidence}
+            isSample={listing.isSample || p.isSample}
           />
           {favorited !== undefined && (
             <FavoriteButton

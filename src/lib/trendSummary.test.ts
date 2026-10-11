@@ -4,7 +4,7 @@
 // is worked out from the stored prices, the window is the last 12 months, and
 // the badge carries the weakest source and lowest confidence of the points
 // used — so a derived figure can never look more trustworthy than its inputs.
-import { summarizeTrend, weakestProvenance, type TrendInputPoint } from "./trendSummary";
+import { formatGrowthPct, summarizeTrend, weakestProvenance, type TrendInputPoint } from "./trendSummary";
 
 let failures = 0;
 
@@ -25,7 +25,9 @@ const pt = (
   value: number | null,
   provenance: TrendInputPoint["provenance"] = "VERIFIED",
   confidence = 0.9,
-): TrendInputPoint => ({ periodStart: month(i), value, provenance, confidence });
+  isSample = false,
+  sampleSize: number | null = null,
+): TrendInputPoint => ({ periodStart: month(i), value, provenance, confidence, isSample, sampleSize });
 
 {
   // 100 → 110 over two points: +10%.
@@ -60,6 +62,33 @@ const pt = (
   const s = summarizeTrend(pts)!;
   expectEqual("old weak point outside the window is ignored", s.provenance, "VERIFIED");
 }
+
+{
+  // Sample data: one sample point anywhere in the window makes the trend sample.
+  const allReal = summarizeTrend([pt(0, 100), pt(1, 102), pt(2, 104)])!;
+  expectEqual("all-real trend is not sample", allReal.isSample, false);
+  const oneSample = summarizeTrend([pt(0, 100), pt(1, 102, "VERIFIED", 0.9, true), pt(2, 104)])!;
+  expectEqual("a trend with any sample point is sample", oneSample.isSample, true);
+  const sampleOutside = summarizeTrend([
+    pt(0, 90, "AI_ESTIMATED", 0.35, true),
+    ...Array.from({ length: 13 }, (_, i) => pt(i + 1, 100)),
+  ])!;
+  expectEqual("a sample point outside the window no longer counts", sampleOutside.isSample, false);
+}
+
+{
+  const d = summarizeTrend([
+    pt(0, 100, "LISTING_DERIVED", 0.5, false, 4),
+    pt(1, 105, "LISTING_DERIVED", 0.5, false, 9),
+  ])!;
+  expectEqual("listing count carried from the newest derived point", d.sampleSize, 9);
+  expectEqual("no count for non-derived trends", summarizeTrend([pt(0, 100), pt(1, 101)])!.sampleSize, null);
+}
+
+expectEqual("growth: whole number keeps one decimal", formatGrowthPct(5, "en"), "+5.0%");
+expectEqual("growth: fraction", formatGrowthPct(3.44, "en"), "+3.4%");
+expectEqual("growth: negative", formatGrowthPct(-2.26, "en"), "-2.3%");
+expectEqual("growth: Latin digits in Arabic", formatGrowthPct(5, "ar").replace(/[\u200e\u200f\u061c]/g, ""), "+5.0%");
 
 expectEqual("no figures → no card", summarizeTrend([]), null);
 expectEqual("one figure → no card", summarizeTrend([pt(0, 100)]), null);

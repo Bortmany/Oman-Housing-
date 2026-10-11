@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { isCaptchaConfigured } from "@/lib/captcha";
+import { isStatsConfigured } from "@/lib/stats";
 import { getSignupMode } from "@/lib/signupMode";
+import { isSmsConfigured } from "@/lib/sms/send";
+import { emailMode } from "@/lib/email/send";
+import { isCronSecretValid } from "@/lib/alerts/live";
+import { isThawaniEnabled } from "@/lib/payments/thawani";
 
 // Health endpoint for uptime checks (ops-watchdog / Railway).
 //
@@ -21,9 +26,21 @@ export async function GET() {
         aiAnalyst: process.env.ANTHROPIC_API_KEY ? "configured" : "dormant",
         rateLimitStore: process.env.REDIS_URL ? "redis" : "in-memory",
         captcha: isCaptchaConfigured() ? "configured" : "dormant",
+        // Visitor stats (privacy-friendly counter) — src/lib/stats.ts. Only
+        // whether it is on; the script address and site id are never shown.
+        stats: isStatsConfigured() ? "configured" : "dormant",
+        // Twilio Verify (phone codes for private owners) — src/lib/sms/send.ts.
+        sms: isSmsConfigured() ? "configured" : "dormant",
+        // Alert emails: "configured" (Resend), "outbox" (local test files) or
+        // "dormant"; alertJob = CRON_SECRET set (the secret itself is never shown).
+        email: emailMode() === "live" ? "configured" : emailMode() === "outbox" ? "outbox" : "dormant",
+        alertJob: isCronSecretValid(process.env.CRON_SECRET) ? "configured" : "dormant",
         // "open" | "invite" | "closed" — see src/lib/signupMode.ts. Admin-only
         // like the rest: the codes themselves are never shown anywhere.
         signups: getSignupMode(),
+        // Thawani card payments for featured listings — src/lib/payments/thawani.ts.
+        // Only whether both keys are set; the keys are never shown.
+        payments: isThawaniEnabled() ? "configured" : "dormant",
       }
     : undefined;
 

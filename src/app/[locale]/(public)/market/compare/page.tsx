@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/lib/seo";
 import { getLocale, getTranslations } from "next-intl/server";
 import type { PropertyType } from "@prisma/client";
 import {
@@ -9,13 +10,14 @@ import { decimalToNumber, formatOMRWhole, formatPercent } from "@/lib/money";
 import { localName, formatMonth } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
 import { ProvenanceBadge } from "@/components/provenance/ProvenanceBadge";
+import { ChartSampleNote } from "@/components/provenance/ChartSampleNote";
 import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
 import { Select, Label } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 
 export async function generateMetadata() {
   const t = await getTranslations("market");
-  return { title: t("compare") };
+  return pageMetadata({ path: "/market/compare", title: t("compare"), noindex: true });
 }
 
 export default async function ComparePage({
@@ -41,6 +43,8 @@ export default async function ComparePage({
   );
 
   let trendData: TrendPoint[] = [];
+  // The rows the chart plots, so its card can say when any are sample.
+  let plotted: Array<{ isSample: boolean }> = [];
   let latest: Array<{
     hood: (typeof chosen)[number];
     stat: Awaited<ReturnType<typeof latestNeighborhoodStat>>;
@@ -57,6 +61,7 @@ export default async function ComparePage({
       if (!map.has(key)) map.set(key, { label: formatMonth(locale, r.periodStart) });
       map.get(key)![r.neighborhoodId!] = decimalToNumber(r.avgSalePrice);
     }
+    plotted = rows.filter((r) => r.avgSalePrice != null);
     trendData = [...map.entries()].sort(([x], [y]) => x - y).map(([, v]) => v);
 
     latest = await Promise.all(
@@ -163,6 +168,8 @@ export default async function ComparePage({
                       <ProvenanceBadge
                         provenance={stat.provenance}
                         confidence={stat.confidence}
+                        isSample={stat.isSample}
+                        sampleSize={stat.sampleSize}
                       />
                     </div>
                   </>
@@ -187,6 +194,7 @@ export default async function ComparePage({
                   }))}
                 />
               </div>
+              <ChartSampleNote rows={plotted} />
             </Card>
           )}
         </>

@@ -2,13 +2,16 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { agencyById, countListingsInPlay } from "@/lib/db/agencies";
 import { listingAllowance } from "@/lib/tiers";
+import { getFreeLaunch } from "@/lib/siteSettings";
 import { localName } from "@/lib/i18nData";
 import { Card } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 
 export default async function AgencyDashboardPage() {
-  const [t, locale, session] = await Promise.all([
+  const [t, tf, tData, locale, session] = await Promise.all([
     getTranslations("agency"),
+    getTranslations("freeLaunch"),
+    getTranslations("agencyData"),
     getLocale(),
     auth(),
   ]);
@@ -17,8 +20,11 @@ export default async function AgencyDashboardPage() {
   const agency = await agencyById(session.user.agencyId);
   if (!agency) return null;
 
-  const inPlay = await countListingsInPlay(agency.id);
-  const allowance = listingAllowance(agency.tier, inPlay);
+  const [inPlay, freeLaunch] = await Promise.all([
+    countListingsInPlay(agency.id),
+    getFreeLaunch(),
+  ]);
+  const allowance = listingAllowance(agency.tier, inPlay, { freeLaunch });
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -42,17 +48,26 @@ export default async function AgencyDashboardPage() {
         <Card>
           <p className="text-sm font-medium text-stone-500 dark:text-stone-400">{t("dashboard.plan")}</p>
           <p className="mt-1 text-lg font-semibold text-stone-900 dark:text-stone-100">
-            {t(`tier.${agency.tier}`)}
+            {freeLaunch ? tf("planName") : t(`tier.${agency.tier}`)}
           </p>
           <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">
-            {allowance.unlimited
+            {freeLaunch
+              ? tf("allowance", { count: allowance.used })
+              : allowance.unlimited
               ? t("dashboard.allowanceUnlimited", { used: allowance.used })
+            : allowance.used > allowance.limit
+              ? t("dashboard.allowanceOver", { used: allowance.used, limit: allowance.limit })
               : t("dashboard.allowance", {
                   used: allowance.used,
                   limit: allowance.limit,
                   remaining: allowance.remaining,
                 })}
           </p>
+          {freeLaunch && (
+            <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
+              {tf("tierReturns", { tier: t(`tier.${agency.tier}`) })}
+            </p>
+          )}
         </Card>
 
         <Card className="flex flex-col justify-between">
@@ -66,6 +81,9 @@ export default async function AgencyDashboardPage() {
             </ButtonLink>
             <ButtonLink href="/agency/profile" variant="secondary">
               {t("nav.profile")}
+            </ButtonLink>
+            <ButtonLink href="/agency/data" variant="secondary">
+              {tData("dashboardButton")}
             </ButtonLink>
           </div>
         </Card>

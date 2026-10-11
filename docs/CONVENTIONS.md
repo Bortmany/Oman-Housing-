@@ -19,7 +19,14 @@ and ships its docs in `node_modules/next/dist/docs/`.**
    `confidence`, and `sourceNote`. Every figure shown to users renders a
    `ProvenanceBadge`. Never write a stat without provenance; never display a
    number without its badge nearby. Never label generated/estimated values as
-   `VERIFIED` or `OFFICIAL_STAT`.
+   `VERIFIED` or `OFFICIAL_STAT`. Sample rows carry `isSample`; the badge says
+   'Sample data' and public queries hide a sample row once a real row exists
+   for the same place, type and month. (The one rule lives in
+   `src/lib/db/sampleData.ts`, tested in `sampleData.test.ts`.) An admin
+   edit to a seeded home or listing does NOT clear its sample flag — it stays
+   'Sample data' (erring on the safe side); only saving a market figure
+   through `upsertMarketStat` turns a stat real. "Mark verified" is hidden
+   for sample rows in the review queue (and the verify action refuses them).
 2. **OMR has 3 decimal places (baisa).** All money columns are
    `Decimal @db.Decimal(12,3)`. Never `Float` for money. Every displayed
    amount goes through `formatOMR` / `formatOMRWhole` in `src/lib/money.ts`
@@ -49,6 +56,17 @@ and ships its docs in `node_modules/next/dist/docs/`.**
 8. **Uploads go under `DATA_DIR`** via `src/lib/storage.ts` and are served by
    `/api/images/[...path]` (path-traversal guarded). On Railway, `DATA_DIR=/data`
    on a mounted Volume — **without the volume, photos are wiped every deploy**.
+   Owner/agency listing photos go one per request through the same function
+   (bytes-checked, 5 MB, max 15 per listing); the server-action body limit is
+   6 MB in `next.config.ts` for exactly that reason.
+   **Listings that owners and agencies share** live in `src/lib/listings/`:
+   `rules.ts` (pure rules, `ownsListing`, the form's checks, the state table)
+   and `core.ts` (the actions' database half). Every listing action checks
+   OWNERSHIP inside its query (`ownershipWhere`), so someone else's listing and
+   a missing one are indistinguishable (not-found). **Unreviewed content is never
+   public**: every public Property query uses `publicPropertyWhere` (no listings,
+   or at least one ACTIVE one). Tests: `listings/rules.test.ts`, `listings/core.test.ts`
+   (the first database-backed test; refuses to run off a `_test` database).
 9. **Calculators are pure functions** in `src/lib/calculators/` with tests in
    `calculators.test.ts`. UI never contains financial math.
 10. **Chart colors come from `src/lib/chartPalette.ts`** (validated, fixed
@@ -77,6 +95,16 @@ npx prisma migrate deploy # apply committed migrations to the DEV database (same
 npm run db:seed           # idempotent
 npm run verify            # lint → typecheck → build → tests, stopping at the first failure
 ```
+
+**What the seed writes.** Every market figure, property, listing and valuation
+the seed creates is invented sample data and is written with `isSample: true`
+(badge "Sample data" / "بيانات تجريبية", no confidence percentage). Re-running
+it is idempotent and also re-flags seeded rows an older seed wrote without the
+flag (the `add_is_sample` migration does the same for databases seeded before
+it). Rows written through the app are never sample: `upsertMarketStat`
+replaces a sample figure in place and marks it real. Sample listings and homes
+step aside publicly once a real live listing exists in the same neighbourhood
+and property type; admin screens always show every row, marked.
 
 `npm run verify` is the whole check in one command:
 `npm run lint && npm run typecheck && npm run build && npm test`.
@@ -112,7 +140,7 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
   `engines` in `package.json`).
 - Volume mounted at `/data`, env `DATA_DIR=/data`
 - Env vars:
-  - `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` (public app URL), `DATA_DIR`
+  - `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` (public app URL; the only base for sitemap, robots, canonical, language and share links: `src/lib/siteUrl.ts`), `DATA_DIR`
   - `SEED_ADMIN_PASSWORD` — password given to the seeded `admin@example.com`
     and `agency@example.com` logins by `npm run db:seed`; set a strong one
     before seeding, then remove/rotate those demo accounts before launch.
@@ -121,11 +149,42 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
     IP. Leave unset locally.
   - `ANTHROPIC_API_KEY` — powers the AI analyst; without it the analyst card
     shows a friendly "not switched on yet" message and everything else works.
+  - `CRON_SECRET` — at least 16 characters; the password for the daily job
+    `POST /api/jobs/listing-averages` (sent as `Authorization: Bearer ...`).
+    Unset or shorter = the job address refuses everyone (503). Railway: run
+    the job daily; schedule `0 23 * * *` = 03:00 Oman time. The admin
+    "Recompute now" button works without it.
+  - `CRON_SECRET` also guards the hourly alert job
+    `POST /api/jobs/saved-search-alerts` (saved-search emails). Railway cron:
+    `0 * * * *` running `curl -X POST -H "Authorization: Bearer $CRON_SECRET"
+    "$AUTH_URL/api/jobs/saved-search-alerts"`. Code: `src/lib/alerts/`
+    (runner = at-most-once claim, caps 10/user/24 h, 100/run, 5 listings per
+    email; template = pure, EN + AR RTL, plain text always). Failed sends
+    count toward the daily cap and a search is left alone after 3 failures in
+    24 h. Every alert carries a signed one-click unsubscribe link (HMAC with
+    `AUTH_SECRET`; public route `/api/alerts/unsubscribe`, sets the search's
+    frequency to `off`) plus `List-Unsubscribe` / `List-Unsubscribe-Post`
+    headers. The "alerts are live" notes need email on AND a valid
+    `CRON_SECRET` (`src/lib/alerts/live.ts`).
+    Map-area search: a home with no coordinates of its own matches by its
+    neighbourhood's centre and is marked "approximate" — the centre is never
+    stored on the home (`src/lib/approxLocation.ts`).
+  - `RESEND_API_KEY` + `EMAIL_FROM` — email provider; dormant until BOTH are
+    set (the alert job then reports "not configured" and changes nothing).
+  - `EMAIL_DEV_LOG` — `true` writes emails as `.eml` files to
+    `DATA_DIR/outbox/` instead of sending. Development only; ignored when
+    `NODE_ENV=production`. Never needs a backup.
   - `SENTRY_DSN` — error tracking; empty = off, nothing is sent.
   - `TURNSTILE_SECRET_KEY` + `NEXT_PUBLIC_TURNSTILE_SITE_KEY` — Cloudflare
     Turnstile (free CAPTCHA) on the login, register and list-with-us forms.
     Dormant until BOTH are set: no widget is shown and nothing is verified.
     Get the pair from the Cloudflare dashboard (Turnstile → Add site).
+  - `NEXT_PUBLIC_STATS_SCRIPT_URL` + `NEXT_PUBLIC_STATS_SITE_ID` (+ optional
+    `NEXT_PUBLIC_STATS_ATTR`) — privacy-friendly visitor stats (Plausible
+    chosen; Umami/GoatCounter work by settings). Dormant until the script
+    address (https only) AND the site id are set: no script tag, CSP unchanged.
+    Parsed in `src/lib/stats.ts` (shared by `next.config.ts`, the layout, the
+    privacy page and `/api/health`). Cookieless; no consent banner.
   - `SIGNUP_INVITE_CODES` — comma-separated invite codes (8+ chars each).
     Sign-up (buyer register AND agency list-with-us) is invitation-only while
     this is set; in production with it unset and `SIGNUPS_OPEN` unset, sign-up
@@ -137,12 +196,42 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
     mailto link on the Privacy Policy and Terms of Use pages. Defaults to
     the owner's address (`naeljam@hotmail.com`). Logic and tests:
     `src/lib/legalContact.ts`.
-  - optional `NEXT_PUBLIC_MAP_TILE_URL`, `REDIS_URL`
+  - `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN` + `TWILIO_VERIFY_SERVICE_SID` —
+    Twilio Verify, the SMS that carries the phone code private owners need
+    before they can list. Dormant until ALL THREE are set. The site's own
+    rules always run (Omani +968 mobiles only, 10-minute expiry, 5 wrong
+    tries, 60 s between sends, one verified number per account — logic and
+    tests: `src/lib/phoneVerify.ts`). Unset in development: the site makes
+    its own code and prints it to the server console. Unset in production:
+    phone verification, and so owner listing, is closed (fail closed).
+    Provider code: `src/lib/sms/send.ts`.
+  - `THAWANI_API_KEY` (secret) + `THAWANI_PUBLISHABLE_KEY` (+ `THAWANI_ENV` =
+    `sandbox` default | `production`) — Thawani Pay card checkout for featured
+    listings. Dormant until BOTH keys are set: no checkout button, no gateway
+    call, "online payments aren't switched on yet — contact us" instead. Code:
+    `src/lib/payments/` (`thawani.ts` the only file that talks to Thawani;
+    `core.ts` the once-only confirm logic; `priceCore.ts` prices in
+    `SiteSetting`). Rules: the browser sends only a listing id; price and days
+    are read on the server and frozen on the `Payment`; only a gateway lookup
+    answering exactly `paid` with a matching amount counts; the "mark paid and
+    extend `featuredUntil`" step is one conditional update, so replays do
+    nothing; featuring changes only `Listing.featuredUntil`, never provenance,
+    confidence, status or price, and `src/lib/db/valuations.ts` / `src/lib/ai/**`
+    never mention payments (scan test in `payments/payments.test.ts`).
+  - `NEXT_PUBLIC_MAP_PMTILES_URL` — full address of the Protomaps `.pmtiles`
+    file (Cloudflare R2). Build-time. When set it wins over
+    `NEXT_PUBLIC_MAP_TILE_URL`; when unset the map uses that raster URL
+    (default OpenStreetMap). The map style, tile source and attribution are
+    decided in one place, `src/components/map/mapStyle.ts`; fonts, icons and
+    the Arabic text plugin are served from `public/map`. The CSP derives its
+    `connect-src` origin from this variable (`next.config.ts`).
+  - optional `NEXT_PUBLIC_MAP_TILE_URL`, `NEXT_PUBLIC_MAP_ATTRIBUTION`
+    (attribution for the raster path), `REDIS_URL` (reserved: the shared limit store is not built yet, so limits are per server copy; run one copy until it is)
 - Health endpoint: `/api/health` (a signed-in admin also sees which of the
   optional integrations — Sentry, AI analyst, CAPTCHA — are configured, plus
-  `signups: open | invite | closed`)
-- The default OSM tile server is fine for low traffic only; swap
-  `NEXT_PUBLIC_MAP_TILE_URL` to Carto/Protomaps before real traffic.
+  `signups: open | invite | closed`, `sms: configured | dormant`, `payments: configured | dormant`)
+- The default OSM tile server is fine for low traffic only; set
+  `NEXT_PUBLIC_MAP_PMTILES_URL` (Protomaps on R2) before real traffic.
 
 ## Roadmap (already designed, schema already in place)
 

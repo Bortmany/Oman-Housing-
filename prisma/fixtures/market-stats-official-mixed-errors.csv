@@ -1,0 +1,18 @@
+area_level,area,property_type,metric,value,period_start,period_type,source_url,source_note,confidence
+city,,APARTMENT,avgSalePrice,88000.000,2026-04-01,month,https://mohup.gov.om/en/open-data/data/Realestate%20Transaction,TEST FIXTURE — not real data (blank area),
+district,seeb,APARTMENT,avgSalePrice,88000.000,2026-04-01,month,https://mohup.gov.om/en/open-data/data/Realestate%20Transaction,TEST FIXTURE — not real data (unknown level),
+governorate,Musandam,APARTMENT,avgSalePrice,41000.000,2026-04-01,quarter,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (place not in the database),
+governorate,muscat,FLAT,avgSalePrice,68500.000,2026-04-01,quarter,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (bad property type),
+governorate,muscat,APARTMENT,avgPrice,68500.000,2026-04-01,quarter,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (unknown metric),
+governorate,muscat,APARTMENT,avgRentMonthly,abc,2026-04-01,quarter,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (value is not a number),
+governorate,dhofar,APARTMENT,avgRentMonthly,-250.000,2026-04-01,quarter,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (negative value),
+governorate,dhofar,APARTMENT,avgSalePrice,52300.1234,2026-04-01,quarter,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (four decimal places),
+governorate,muscat,VILLA,avgSalePrice,142750.000,2026-01-15,quarter,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (day is not 01),
+governorate,muscat,VILLA,avgRentMonthly,820.000,2026-04-01,biweekly,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (bad period type),
+governorate,dhofar,VILLA,avgRentMonthly,560.000,2026-04-01,quarter,www.ncsi.gov.om,TEST FIXTURE — not real data (web address without https),
+governorate,muscat,,avgPricePerSqm,690.500,2026-04-01,quarter,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (confidence out of range),1.5
+governorate,dhofar,,avgPricePerSqm,512.750,2026-04-01,quarter,https://www.ncsi.gov.om/,TEST FIXTURE — not real data. This note is deliberately far too long for the source note column. This note is deliberately far too long for the source note column. This note is deliberately far too long for the source note column. This note is deliberately far too long for the source note column. This note is deliberately far too long for the source note column. This note is deliberately far too long for the source note column. This note is deliberately far too long for the source note column. This note is deliberately far too long for the source note column.,
+governorate,dhofar,VILLA,avgSalePrice,118400.000,2026-04-01,quarter,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (repeated row),
+governorate,dhofar,VILLA,avgSalePrice,118400.000,2026-04-01,quarter,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (repeated row),
+city,seeb,,transactionCount,1250,2026-04-01,month,https://mohup.gov.om/en/open-data/data/Realestate%20Transaction,TEST FIXTURE — not real data (same group; source link A),
+city,seeb,,sampleSize,480,2026-04-01,month,https://www.ncsi.gov.om/,TEST FIXTURE — not real data (same group; source link B),

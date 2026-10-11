@@ -7,9 +7,12 @@ import { Card } from "@/components/ui/Card";
 export function ContactButtons({
   phone,
   agencyName,
+  byOwner = false,
 }: {
   phone: string | null;
   agencyName: string;
+  /** A private owner's verified number: "Listed directly by the owner." */
+  byOwner?: boolean;
 }) {
   const t = useTranslations("enquiry");
   const digits = phoneDigits(phone);
@@ -21,10 +24,10 @@ export function ContactButtons({
   return (
     <Card>
       <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">
-        {t("contactTitle")}
+        {byOwner ? t("contactTitleOwner") : t("contactTitle")}
       </h2>
       <p className="mt-1 text-sm text-stone-600 dark:text-stone-300">
-        {t("contactVia", { agency: agencyName })}
+        {byOwner ? t("contactViaOwner") : t("contactVia", { agency: agencyName })}
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <a

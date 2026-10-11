@@ -4,11 +4,26 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 // ---------------------------------------------------------------------------
-// Seed data. IMPORTANT: market figures below are ballpark SAMPLE values so the
-// dashboard demonstrates itself. They are labeled USER_SUBMITTED / AI_ESTIMATED
-// with "sample data" source notes and low confidence — never VERIFIED or
-// OFFICIAL_STAT. Real data entered by the owner replaces them over time.
+// Seed data. IMPORTANT: every market figure, property, listing and valuation
+// below is INVENTED SAMPLE DATA so the site demonstrates itself. Every one is
+// written with `isSample: true`, so the site badges it "Sample data" (no
+// confidence percentage) and hides it once a real row exists for the same
+// place, type and month (listings/properties: once a real live listing exists
+// in the same neighbourhood and type) — see src/lib/db/sampleData.ts.
+// The provenance/confidence values stored on these rows are kept only because
+// the columns require them; they are never shown for sample rows, and they are
+// never VERIFIED or OFFICIAL_STAT.
+//
+// Re-running the seed is idempotent: it skips rows that already exist, and
+// re-flags as sample any seeded row that an older seed wrote without the flag
+// (matched on the exact seed note text AND the seed's own values, so a row the
+// admin has since rewritten is never turned back into sample).
 // ---------------------------------------------------------------------------
+
+const SAMPLE_STAT_NOTE = "Sample data for demonstration — replace with real figures.";
+const SAMPLE_PROPERTY_NOTE = "Sample record for demonstration.";
+const SAMPLE_VALUATION_NOTE =
+  "Sample AI-estimated valuation for demonstration; not a professional appraisal.";
 
 const GOVERNORATES = [
   { slug: "muscat", nameEn: "Muscat", nameAr: "مسقط" },
@@ -223,8 +238,9 @@ async function main() {
         });
         if (existing) continue;
 
-        // Recent 6 months labeled as AI estimates, older as sample submissions —
-        // both clearly marked as sample data. No fake "official" figures.
+        // Stored provenance kept as before (recent 6 months AI_ESTIMATED, older
+        // USER_SUBMITTED); the isSample flag is what the site shows. No fake
+        // "official" figures.
         const recent = m < 6;
         await prisma.marketStat.create({
           data: {
@@ -238,13 +254,30 @@ async function main() {
             sampleSize: 8 + ((hoodIndex + m) % 7),
             provenance: recent ? "AI_ESTIMATED" : "USER_SUBMITTED",
             confidence: recent ? 0.35 : 0.4,
-            sourceNote: "Sample data for demonstration — replace with real figures.",
+            sourceNote: SAMPLE_STAT_NOTE,
+            isSample: true,
           },
         });
         statCount++;
       }
     }
   }
+
+  // Repair: flag seeded figures an older seed wrote without the sample mark.
+  // Only rows still exactly as the seed wrote them (note, source, confidence,
+  // never verified) — an admin write through upsertMarketStat changes these.
+  const flaggedStats = await prisma.marketStat.updateMany({
+    where: {
+      isSample: false,
+      sourceNote: SAMPLE_STAT_NOTE,
+      verifiedAt: null,
+      OR: [
+        { provenance: "AI_ESTIMATED", confidence: 0.35 },
+        { provenance: "USER_SUBMITTED", confidence: 0.4 },
+      ],
+    },
+    data: { isSample: true },
+  });
 
   // --- Sample properties -------------------------------------------------------
   const SAMPLE_PROPERTIES: Array<{
@@ -305,11 +338,23 @@ async function main() {
         lng: hood.lng + p.dLng,
         provenance: "USER_SUBMITTED",
         confidence: 0.6,
-        sourceNote: "Sample record for demonstration.",
+        sourceNote: SAMPLE_PROPERTY_NOTE,
+        isSample: true,
       },
     });
     propCount++;
   }
+
+  // Repair: flag seeded homes an older seed wrote without the sample mark.
+  const flaggedProps = await prisma.property.updateMany({
+    where: {
+      isSample: false,
+      sourceNote: SAMPLE_PROPERTY_NOTE,
+      titleEn: { in: SAMPLE_PROPERTIES.map((p) => p.titleEn) },
+      verifiedAt: null,
+    },
+    data: { isSample: true },
+  });
 
   // --- Sample listings & valuations (Phase 3) --------------------------------
   // Deterministic assignment over the seeded properties (sorted by titleEn):
@@ -321,7 +366,10 @@ async function main() {
     where: { email: "admin@example.com" },
     select: { id: true },
   });
+  // Only the seed's own sample homes — never attach sample listings or
+  // valuations to a real property added through the app.
   const allProps = await prisma.property.findMany({
+    where: { titleEn: { in: SAMPLE_PROPERTIES.map((p) => p.titleEn) } },
     orderBy: { titleEn: "asc" },
     include: { neighborhood: { select: { slug: true } } },
   });
@@ -389,11 +437,18 @@ async function main() {
             spec.status === "ACTIVE" || spec.status === "SOLD" ? PUBLISHED : null,
           expiresAt:
             spec.status === "SOLD" ? new Date(Date.UTC(2026, 5, 20)) : null,
+          isSample: true,
         },
       });
       listingCount++;
     }
   }
+
+  // Repair: a listing on an invented home is invented.
+  const flaggedListings = await prisma.listing.updateMany({
+    where: { isSample: false, property: { isSample: true } },
+    data: { isSample: true },
+  });
 
   // 6 valuations on alternating properties, so the MarketStat-fallback path
   // in propertyFinancials() stays exercised on the rest.
@@ -418,12 +473,18 @@ async function main() {
         valueHigh: Math.round(mid * 1.08),
         provenance: "AI_ESTIMATED",
         confidence: 0.3 + 0.03 * i,
-        assumptions:
-          "Sample AI-estimated valuation for demonstration; not a professional appraisal.",
+        assumptions: SAMPLE_VALUATION_NOTE,
+        isSample: true,
       },
     });
     valuationCount++;
   }
+
+  // Repair: flag seeded valuations an older seed wrote without the sample mark.
+  const flaggedValuations = await prisma.valuationEstimate.updateMany({
+    where: { isSample: false, assumptions: SAMPLE_VALUATION_NOTE },
+    data: { isSample: true },
+  });
 
   // ---------- Phase 5: a sample agency, its login, a listing, an enquiry ----------
   // So the agency portal and the admin/agency inboxes are demoable out of the box.
@@ -455,17 +516,26 @@ async function main() {
     },
   });
 
-  // Hand the agency one live listing so its portal isn't empty.
-  const someActive = await prisma.listing.findFirst({
-    where: { status: "ACTIVE", agencyId: null },
-    orderBy: { createdAt: "asc" },
-    include: { property: true },
-  });
+  // Hand the agency one live SAMPLE listing so its portal isn't empty — only
+  // once (a re-run must not hand over another), and never a real listing.
+  const agencyHasListing =
+    (await prisma.listing.count({ where: { agencyId: agency.id } })) > 0;
+  const someActive = agencyHasListing
+    ? await prisma.listing.findFirst({
+        where: { agencyId: agency.id, isSample: true },
+        orderBy: { createdAt: "asc" },
+      })
+    : await prisma.listing.findFirst({
+        where: { status: "ACTIVE", agencyId: null, isSample: true },
+        orderBy: { createdAt: "asc" },
+      });
   if (someActive) {
-    await prisma.listing.update({
-      where: { id: someActive.id },
-      data: { agencyId: agency.id },
-    });
+    if (someActive.agencyId !== agency.id) {
+      await prisma.listing.update({
+        where: { id: someActive.id },
+        data: { agencyId: agency.id },
+      });
+    }
 
     // A sample enquiry on that listing.
     const existingInquiry = await prisma.inquiry.findFirst({
@@ -488,7 +558,8 @@ async function main() {
   }
 
   console.log(
-    `Done. ${GOVERNORATES.length} governorates, ${CITIES.length} cities, ${NEIGHBORHOODS.length} neighborhoods, +${statCount} market stats, +${propCount} properties, +${listingCount} listings, +${valuationCount} valuations, +1 sample agency (agency@example.com), +1 sample enquiry.`,
+    `Done. ${GOVERNORATES.length} governorates, ${CITIES.length} cities, ${NEIGHBORHOODS.length} neighborhoods, +${statCount} market stats, +${propCount} properties, +${listingCount} listings, +${valuationCount} valuations, +1 sample agency (agency@example.com), +1 sample enquiry. ` +
+      `Re-flagged as sample: ${flaggedStats.count} stats, ${flaggedProps.count} properties, ${flaggedListings.count} listings, ${flaggedValuations.count} valuations.`,
   );
 }
 

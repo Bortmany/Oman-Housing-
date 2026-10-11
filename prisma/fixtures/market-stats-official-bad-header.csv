@@ -1,0 +1,4 @@
+area_level,area,property_type,metric,vaule,period_start,period_type,notes,source_note,confidence
+governorate,muscat,APARTMENT,avgSalePrice,68500.000,2026-04-01,quarter,checked by hand,TEST FIXTURE — not real data (NCSI-shaped average sale price),
+governorate,muscat,VILLA,avgSalePrice,142750.000,2026-04-01,quarter,checked by hand,TEST FIXTURE — not real data (NCSI-shaped average sale price),
+governorate,dhofar,APARTMENT,avgSalePrice,52300.000,2026-04-01,quarter,checked by hand,TEST FIXTURE — not real data (NCSI-shaped average sale price),

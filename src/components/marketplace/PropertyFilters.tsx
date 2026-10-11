@@ -17,6 +17,11 @@ export type FilterValues = {
   maxPrice?: string;
   beds?: string;
   ownership?: string;
+  /** The map area (north, south, east, west) — all four or none. */
+  n?: string;
+  s?: string;
+  e?: string;
+  w?: string;
 };
 
 // Server component: plain GET form, URL is the state. Submitting reloads
@@ -37,6 +42,15 @@ export function PropertyFilters({
       method="get"
       className="grid grid-cols-2 items-end gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-stone-200 sm:grid-cols-4 lg:grid-cols-8 dark:bg-stone-900 dark:ring-stone-800"
     >
+      {/* Applying a filter must not silently drop the map area. */}
+      {values.n && values.s && values.e && values.w && (
+        <>
+          <input type="hidden" name="n" value={values.n} />
+          <input type="hidden" name="s" value={values.s} />
+          <input type="hidden" name="e" value={values.e} />
+          <input type="hidden" name="w" value={values.w} />
+        </>
+      )}
       <div className="col-span-2">
         <Label htmlFor="hood">{t("filterLocation")}</Label>
         <Select id="hood" name="hood" defaultValue={values.hood ?? ""}>

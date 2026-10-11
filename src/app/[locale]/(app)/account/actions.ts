@@ -44,9 +44,10 @@ const MAX_NAME_LENGTH = 120;
  */
 async function describeSearch(query: string, locale: string): Promise<string> {
   const params = searchQueryToObject(query);
-  const [t, te] = await Promise.all([
+  const [t, te, tm] = await Promise.all([
     getTranslations({ locale, namespace: "properties" }),
     getTranslations({ locale, namespace: "enums" }),
+    getTranslations({ locale, namespace: "searchMap" }),
   ]);
 
   const parts: string[] = [];
@@ -80,8 +81,47 @@ async function describeSearch(query: string, locale: string): Promise<string> {
   const ownership = OWNERSHIP.safeParse(params.ownership);
   if (ownership.success) parts.push(te(`ownership.${ownership.data}`));
 
+  // searchQueryToObject only returns the four box values when all are valid.
+  if (params.n && params.s && params.e && params.w) {
+    parts.push(await describeArea(params, locale, tm));
+  }
+
   const name = parts.length > 0 ? parts.join(" · ") : t("savedSearchAll");
   return name.slice(0, MAX_NAME_LENGTH);
+}
+
+type Translate = (key: string, values?: Record<string, string>) => string;
+
+/**
+ * "Map area: Al Mouj, Qurum" — the neighbourhoods whose centre lies inside the
+ * saved box (up to 3, then "+N"). With none inside, a short rounded centre
+ * ("Map area near 23.60, 58.40") so two different areas never look the same.
+ */
+async function describeArea(
+  box: Record<string, string>,
+  locale: string,
+  tm: Translate,
+): Promise<string> {
+  const n = Number(box.n), s = Number(box.s), e = Number(box.e), w = Number(box.w);
+  try {
+    const hoods = await prisma.neighborhood.findMany({
+      where: { lat: { gte: s, lte: n }, lng: { gte: w, lte: e } },
+      select: { nameEn: true, nameAr: true },
+      orderBy: { nameEn: "asc" },
+      take: 4,
+    });
+    if (hoods.length > 0) {
+      const names = hoods.slice(0, 3).map((h) => localName(locale, h.nameEn, h.nameAr));
+      const places = names.join(locale === "ar" ? "، " : ", ") + (hoods.length > 3 ? " …" : "");
+      return tm("areaChipIn", { places });
+    }
+  } catch {
+    // Fall through to the coordinates: a name lookup must never block saving.
+  }
+  return tm("areaChipCoords", {
+    lat: ((n + s) / 2).toFixed(2),
+    lng: ((e + w) / 2).toFixed(2),
+  });
 }
 
 const saveSchema = z.object({

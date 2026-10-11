@@ -2,9 +2,23 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { decimalToNumber } from "@/lib/money";
+import { decimalToNumber, formatOMRWhole } from "@/lib/money";
 import { propertyFinancials } from "@/lib/db/valuations";
-import { activeListingsForProperty, nearestMarketStat } from "@/lib/db/listings";
+import {
+  activeListingsForProperty,
+  nearestMarketStat,
+  realActiveListingKeysFor,
+} from "@/lib/db/listings";
+import {
+  anySample,
+  dropSupersededSampleStats,
+  hideSupersededSampleListings,
+  isSampleListing,
+  isSampleValuation,
+  preferRealValuation,
+} from "@/lib/db/sampleData";
+import { publicStatWhere } from "@/lib/statVisibility";
+import { publicPropertyWhere } from "@/lib/listings/rules";
 import {
   finalizeVerdict,
   hasSufficientData,
@@ -38,8 +52,10 @@ export type AnalystResult =
 type PropertyForAnalysis = NonNullable<Awaited<ReturnType<typeof loadProperty>>>;
 
 async function loadProperty(propertyId: string) {
-  return prisma.property.findUnique({
-    where: { id: propertyId },
+  // Same public-property rule as the property page: the analyst can never be
+  // pointed at a home whose listings have not been reviewed and published.
+  return prisma.property.findFirst({
+    where: { id: propertyId, ...publicPropertyWhere },
     include: { neighborhood: { include: { city: true } } },
   });
 }
@@ -51,22 +67,29 @@ function monthLabel(date: Date): string {
 export async function gatherOfferedData(
   property: PropertyForAnalysis,
 ): Promise<OfferedDatum[]> {
-  const [financials, comp, ownListings, valuation, history, comparables] =
+  // Every direct query below applies the sample-data rule (sampleData.ts):
+  // a real valuation beats a sample one, a sample month superseded by a real
+  // one is dropped from the history, and sample comparables step aside once
+  // a real live listing exists in the same neighbourhood and type.
+  const [financials, comp, ownListings, valuations, historyRows, compRows, realKeys] =
     await Promise.all([
       propertyFinancials(property.id),
       nearestMarketStat(property.neighborhoodId, property.type),
       activeListingsForProperty(property.id),
-      prisma.valuationEstimate.findFirst({
+      prisma.valuationEstimate.findMany({
         where: { propertyId: property.id },
         orderBy: { createdAt: "desc" },
+        take: 10,
       }),
+      // Same public rule as the market pages: unapproved submissions are
+      // never offered to the model (src/lib/statVisibility.ts).
       prisma.marketStat.findMany({
-        where: {
+        where: publicStatWhere({
           neighborhoodId: property.neighborhoodId,
           propertyType: property.type,
-        },
+        }),
         orderBy: { periodStart: "desc" },
-        take: 13,
+        take: 26, // room for a real and a sample row sharing a month
       }),
       prisma.listing.findMany({
         where: {
@@ -77,11 +100,25 @@ export async function gatherOfferedData(
             type: property.type,
           },
         },
-        include: { property: { select: { bedrooms: true, areaSqm: true } } },
+        include: {
+          property: {
+            select: {
+              bedrooms: true,
+              areaSqm: true,
+              isSample: true,
+              neighborhoodId: true,
+              type: true,
+            },
+          },
+        },
         orderBy: { publishedAt: "desc" },
-        take: 4,
+        take: 12,
       }),
+      realActiveListingKeysFor({ neighborhoodId: property.neighborhoodId }),
     ]);
+  const valuation = preferRealValuation(valuations);
+  const history = dropSupersededSampleStats(historyRows).slice(0, 13);
+  const comparables = hideSupersededSampleListings(compRows, realKeys).slice(0, 4);
 
   const offered: OfferedDatum[] = [];
   const hood = property.neighborhood.nameEn;
@@ -118,6 +155,7 @@ export async function gatherOfferedData(
         promptText: `${f.labelKey} for comparable ${property.type} in this market area, ${period}: ${f.value} ${f.unit}`,
         provenance: comp.provenance,
         confidence: comp.confidence,
+        isSample: comp.isSample,
         snapshot: { field: f.labelKey, value: f.value, period, scope: hood },
       });
     }
@@ -147,6 +185,8 @@ export async function gatherOfferedData(
         promptText: `Average sale price change in this neighborhood from ${monthLabel(oldest.periodStart)} to ${monthLabel(latest.periodStart)}: ${changePct}% (derived from stored monthly statistics)`,
         provenance: "AI_ESTIMATED",
         confidence: Math.min(latest.confidence, DERIVED_CONFIDENCE_CAP),
+        // Worked out from the history: sample if any month used is sample.
+        isSample: anySample(priced),
         snapshot: {
           field: "priceTrend",
           fromPeriod: monthLabel(oldest.periodStart),
@@ -172,6 +212,8 @@ export async function gatherOfferedData(
       promptText: `Stored valuation for this property (${valuation.method}): OMR ${mid} (range ${decimalToNumber(valuation.valueLow)}–${decimalToNumber(valuation.valueHigh)})`,
       provenance: valuation.provenance,
       confidence: valuation.confidence,
+      // A valuation of a sample home is sample (same rule as valuations.ts).
+      isSample: isSampleValuation(valuation, property),
       snapshot: {
         field: "valuationMid",
         value: mid,
@@ -196,6 +238,7 @@ export async function gatherOfferedData(
       promptText: `This property's live ${isRent ? `rent listing: OMR ${price} per ${listing.rentPeriod === "ANNUAL" ? "year" : "month"}` : `sale listing: OMR ${price}`}`,
       provenance: listing.provenance,
       confidence: listing.confidence,
+      isSample: listing.isSample, // already resolved (sample home ⇒ sample listing)
       snapshot: {
         field: isRent ? "askingRent" : "askingPrice",
         value: price,
@@ -204,8 +247,21 @@ export async function gatherOfferedData(
     });
   }
 
-  // Derived financials for this property (computed by valuations.ts — reused, not recomputed)
+  // Derived financials for this property (computed by valuations.ts — reused, not recomputed).
+  // Each figure carries its own sample flag, worked out from the inputs that
+  // figure actually used (any sample input ⇒ sample): the yield from
+  // grossYieldPct.isSample, the score from investmentIsSample.
   if (financials.grossYieldPct) {
+    const rentUsed =
+      financials.yieldRentUsed != null
+        ? formatOMRWhole(financials.yieldRentUsed, "en")
+        : null;
+    const yieldBasisText =
+      financials.yieldBasis === "ASKING" && rentUsed
+        ? `worked out from this property's advertised rent of ${rentUsed} a month`
+        : financials.yieldBasis === "ESTIMATE" && rentUsed
+          ? `worked out from this property's estimated market rent of ${rentUsed} a month (floor area x the area's rent per square metre; no advertised rent)`
+          : "basis unknown";
     offered.push({
       tag: "FIN-YIELD",
       sourceType: "PROPERTY",
@@ -213,9 +269,10 @@ export async function gatherOfferedData(
       labelKey: "estimatedYield",
       format: "percent",
       value: financials.grossYieldPct.value,
-      promptText: `Estimated gross rental yield for this property: ${financials.grossYieldPct.value.toFixed(1)}% (derived estimate)`,
+      promptText: `Estimated gross rental yield for this property: ${financials.grossYieldPct.value.toFixed(1)}% (derived estimate, ${yieldBasisText})`,
       provenance: financials.grossYieldPct.provenance,
       confidence: financials.grossYieldPct.confidence,
+      isSample: financials.grossYieldPct.isSample,
       snapshot: { field: "grossYieldPct", value: financials.grossYieldPct.value },
     });
   }
@@ -230,6 +287,7 @@ export async function gatherOfferedData(
       promptText: `Platform investment score for this property: ${financials.investment.score}/100 (${financials.investment.band}) — a transparent heuristic, always AI-estimated`,
       provenance: "AI_ESTIMATED",
       confidence: financials.investmentConfidence ?? 0,
+      isSample: financials.investmentIsSample,
       snapshot: {
         field: "investmentScore",
         value: financials.investment.score,
@@ -252,6 +310,7 @@ export async function gatherOfferedData(
       promptText: `Comparable active ${c.listingType} listing in the same neighborhood: OMR ${price}${c.property.bedrooms ? `, ${c.property.bedrooms} bed` : ""}${c.property.areaSqm ? `, ${decimalToNumber(c.property.areaSqm)} sqm` : ""}`,
       provenance: c.provenance,
       confidence: c.confidence,
+      isSample: isSampleListing(c),
       snapshot: {
         field: "comparablePrice",
         value: price,
@@ -312,6 +371,7 @@ function buildSystemPrompt(locale: string): string {
     "- List in citedTags the tag of every data point your answer relies on.",
     "- If the data is too thin, too old, or contradictory to justify a verdict, return rating INSUFFICIENT_DATA and say plainly what is missing. An honest 'not enough data' is a good answer on this platform.",
     "- Set confidence to how well the data supports the verdict (0 to 1). Data labeled AI_ESTIMATED or with low confidence values must pull your confidence down.",
+    "- Data points marked SAMPLE DATA are invented example figures used to demonstrate the site, not real market evidence. If your answer relies on them, say plainly that the figures are sample data and must not be relied on for a decision.",
     "- Prices are in Omani Rial (OMR). Quote figures exactly as given.",
     `- Write the answer in ${language}, in plain language for a non-expert, under 180 words. Use Latin digits for numbers.`,
     "- You are giving an analysis of stored data, not financial advice; do not promise future returns.",
@@ -333,9 +393,10 @@ function buildUserPrompt(
     property.neighborhood.isITC ? "Located in an ITC (foreigners may buy)" : null,
   ].filter(Boolean);
 
-  const data = offered.map(
-    (d) =>
-      `[${d.tag}] ${d.promptText} — source: ${d.provenance}, confidence ${Math.round(d.confidence * 100)}%`,
+  const data = offered.map((d) =>
+    d.isSample
+      ? `[${d.tag}] ${d.promptText} — source: SAMPLE DATA (invented example figure, not real), confidence ${Math.round(d.confidence * 100)}%`
+      : `[${d.tag}] ${d.promptText} — source: ${d.provenance}, confidence ${Math.round(d.confidence * 100)}%`,
   );
 
   return [
@@ -411,6 +472,7 @@ async function persist(
             ...c.snapshot,
             provenance: c.provenance,
             confidence: c.confidence,
+            isSample: c.isSample,
             labelKey: c.labelKey,
             labelParams: c.labelParams ?? {},
           },

@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 
 // Shown instantly while one property's details are being fetched.
 // Mirrors the real page: back link, title row, photos, then two columns.
-export default function PropertyDetailLoading() {
+export function PropertyDetailLoading() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <Skeleton className="h-4 w-32" />
