@@ -40,8 +40,8 @@ expectEqual(
 // these headers itself, e.g. Railway), the forwarded IP is used.
 process.env.TRUST_PROXY_HEADERS = "true";
 expectEqual(
-  "trusted.usesFirstXffHop",
-  getClientIp(headersWith({ "x-forwarded-for": "203.0.113.5, 10.0.0.1" })),
+  "trusted.usesRightMostXffHop",
+  getClientIp(headersWith({ "x-forwarded-for": "6.6.6.6, 203.0.113.5" })),
   "203.0.113.5",
 );
 expectEqual(

@@ -221,3 +221,30 @@ export async function getAnonRateLimitKey(): Promise<string> {
   // a `browser:` key.
   return `ip:${getRawClientIp(await headers())}`;
 }
+
+/** The IP bucket is shared by everyone behind one address (offices, mobile
+ *  networks), so it is allowed this many times the per-visitor limit. */
+const IP_BUCKET_MULTIPLIER = 3;
+
+/**
+ * Rate-limit an anonymous visitor on BOTH signals: their per-browser key
+ * (`anonKey`, from getAnonRateLimitKey) and their connection IP. Counting the
+ * IP too means clearing cookies, or forging a fresh signed cookie, can no
+ * longer hand an abuser a new empty bucket. Denied if either bucket is full.
+ */
+export async function checkAnonRateLimit(
+  name: string,
+  anonKey: string,
+  options: RateLimitOptions,
+): Promise<RateLimitResult> {
+  const byVisitor = checkRateLimit(`${name}:ip:${anonKey}`, options);
+  const ip = getRawClientIp(await headers());
+  // When the visitor key already IS the IP key, don't count it twice.
+  if (anonKey === `ip:${ip}`) return byVisitor;
+  const byIp = checkRateLimit(`${name}:ipwide:${ip}`, {
+    limit: options.limit * IP_BUCKET_MULTIPLIER,
+    windowMs: options.windowMs,
+  });
+  if (!byVisitor.allowed) return byVisitor;
+  return byIp;
+}

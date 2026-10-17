@@ -12,7 +12,7 @@ import {
   isPossibleEmail,
 } from "@/lib/contact";
 import { submittedValues, type SubmittedValues } from "@/lib/formValues";
-import { checkRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
+import { checkAnonRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
 import { CAPTCHA_FIELD, issueCaptchaPass, verifyCaptcha } from "@/lib/captcha";
 import {
   INVITE_ATTEMPT_LIMIT,
@@ -76,7 +76,7 @@ export async function signUpAgency(
   // Throttle agency signups per visitor (same pattern as user registration)
   // so nobody can bulk-create agencies and flood the approval queue.
   const anonKey = await getAnonRateLimitKey();
-  const { allowed } = checkRateLimit(`agencysignup:ip:${anonKey}`, {
+  const { allowed } = await checkAnonRateLimit("agencysignup", anonKey, {
     limit: 5,
     windowMs: 60 * 60 * 1000,
   });
@@ -90,7 +90,7 @@ export async function signUpAgency(
   if (mode === "invite" && !checkInviteCode(formData.get(INVITE_CODE_FIELD))) {
     // Only FAILED code attempts count here; the signup limiter above already
     // bounds total submissions. Never echo the code back.
-    const attempt = checkRateLimit(`invitecode:ip:${anonKey}`, INVITE_ATTEMPT_LIMIT);
+    const attempt = await checkAnonRateLimit("invitecode", anonKey, INVITE_ATTEMPT_LIMIT);
     return { error: attempt.allowed ? "inviteRequired" : "rateLimited", values: typed };
   }
 

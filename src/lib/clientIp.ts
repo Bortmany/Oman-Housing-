@@ -62,8 +62,11 @@ export function getClientIp(headers: Headers): string {
   if (process.env.TRUST_PROXY_HEADERS === "true") {
     const xff = headers.get("x-forwarded-for");
     if (xff) {
-      const first = xff.split(",")[0]?.trim();
-      if (first) return first;
+      // RIGHT-most hop: the one our own trusted proxy appended. Everything
+      // to its left is client-supplied and can be forged to dodge limits.
+      const hops = xff.split(",").map((h) => h.trim()).filter(Boolean);
+      const last = hops[hops.length - 1];
+      if (last) return last;
     }
     const realIp = headers.get("x-real-ip")?.trim();
     if (realIp) return realIp;

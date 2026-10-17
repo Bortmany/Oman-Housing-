@@ -4,7 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { Role, Tier } from "@prisma/client";
-import { checkRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
+import { checkAnonRateLimit, checkRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
 import { computeLoginBackoffMs, computeOvershoot } from "@/lib/loginBackoff";
 import { safeRedirectUrl } from "@/lib/safePath";
 import { consumeCaptchaPass, verifyCaptcha } from "@/lib/captcha";
@@ -121,7 +121,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // far over the limit the guesser is, up to LOGIN_BACKOFF_MAX_MS.
         const ipLimit = 20;
         const emailLimit = 10;
-        const byIp = checkRateLimit(`login:ip:${anonKey}`, {
+        const byIp = await checkAnonRateLimit("login", anonKey, {
           limit: ipLimit,
           windowMs: 10 * 60 * 1000,
         });

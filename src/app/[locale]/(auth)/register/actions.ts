@@ -5,7 +5,8 @@ import bcrypt from "bcryptjs";
 import { getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { signIn } from "@/auth";
-import { checkRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
+import { isUniqueViolation } from "@/lib/db/uniqueViolation";
+import { checkAnonRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
 import { isPossibleEmail } from "@/lib/contact";
 import { submittedValues, type SubmittedValues } from "@/lib/formValues";
 import { safePath } from "@/lib/safePath";
@@ -51,7 +52,7 @@ export async function registerUser(
   // per-browser cookie — see getAnonRateLimitKey) so no one can bulk-create
   // accounts.
   const anonKey = await getAnonRateLimitKey();
-  const { allowed } = checkRateLimit(`register:ip:${anonKey}`, {
+  const { allowed } = await checkAnonRateLimit("register", anonKey, {
     limit: 5,
     windowMs: 60 * 60 * 1000,
   });
@@ -64,7 +65,7 @@ export async function registerUser(
   if (mode === "invite" && !checkInviteCode(formData.get(INVITE_CODE_FIELD))) {
     // Only FAILED code attempts count here; the register limiter above
     // already bounds total submissions. Never echo the code back.
-    const attempt = checkRateLimit(`invitecode:ip:${anonKey}`, INVITE_ATTEMPT_LIMIT);
+    const attempt = await checkAnonRateLimit("invitecode", anonKey, INVITE_ATTEMPT_LIMIT);
     return { error: attempt.allowed ? "inviteRequired" : "rateLimited", values: typed };
   }
 
@@ -87,14 +88,21 @@ export async function registerUser(
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "emailTaken", values: typed };
 
-  await prisma.user.create({
-    data: {
-      name,
-      email,
-      passwordHash: await bcrypt.hash(password, 10),
-      locale,
-    },
-  });
+  try {
+    await prisma.user.create({
+      data: {
+        name,
+        email,
+        passwordHash: await bcrypt.hash(password, 10),
+        locale,
+      },
+    });
+  } catch (e) {
+    // Two sign-ups with the same email at the same moment can both pass the
+    // check above; the database's unique rule stops the second one.
+    if (isUniqueViolation(e)) return { error: "emailTaken", values: typed };
+    throw e;
+  }
 
   // Signs the new user in and redirects (throws a redirect internally).
   // The visitor's CAPTCHA token was spent above (single use), so this

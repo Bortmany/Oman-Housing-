@@ -1,7 +1,8 @@
 import { readFile } from "fs/promises";
+import path from "path";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { resolveStoredPath } from "@/lib/storage";
+import { dataDir, resolveStoredPath } from "@/lib/storage";
 import { decideImageAccess, type ImageViewer } from "@/lib/listings/imageAccess";
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -18,9 +19,11 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> },
 ) {
   const { path: parts } = await params;
-  const rel = parts.join("/");
-  const abs = resolveStoredPath(rel);
+  const abs = resolveStoredPath(parts.join("/"));
   if (!abs) return new Response("Not found", { status: 404 });
+  // Look the photo up by the path we will actually serve (normalised, with
+  // any "./" or "//" tricks removed), never by the raw URL text.
+  const rel = path.relative(dataDir(), abs).split(path.sep).join("/");
 
   const ext = abs.slice(abs.lastIndexOf("."));
   const contentType = CONTENT_TYPES[ext];
