@@ -146,7 +146,8 @@ Seeded admin login: `admin@example.com` / the `SEED_ADMIN_PASSWORD` from `.env`.
     before seeding, then remove/rotate those demo accounts before launch.
   - `TRUST_PROXY_HEADERS="true"` — tells the app the `X-Forwarded-For` header
     is trustworthy (true on Railway) so rate limits count per real visitor
-    IP. Leave unset locally.
+    IP. Leave unset locally. `TRUSTED_PROXY_HOPS` (default 1) is how many
+    proxies sit in front; match it to the real chain (see GO-LIVE.md).
   - `ANTHROPIC_API_KEY` — powers the AI analyst; without it the analyst card
     shows a friendly "not switched on yet" message and everything else works.
   - `CRON_SECRET` — at least 16 characters; the password for the daily job

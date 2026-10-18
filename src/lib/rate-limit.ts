@@ -156,12 +156,13 @@ export { getClientIp, getSocketIp, SOCKET_IP_HEADER } from "./clientIp";
 // ---------------------------------------------------------------------------
 import { cookies, headers } from "next/headers";
 import { mintSignedAnonId, verifySignedAnonId } from "./anonId";
-import { getClientIp as getRawClientIp } from "./clientIp";
+import { getClientIp as getRawClientIp, isKnownIp } from "./clientIp";
 
 const ANON_COOKIE_NAME = "opip_anon";
 const ANON_COOKIE_MAX_AGE_S = 60 * 60 * 24 * 365; // 1 year
 
 let warnedNoTrustProxyInProd = false;
+let warnedUnknownIp = false;
 
 /**
  * The key to use when rate-limiting an anonymous visitor. Cookie-bearing
@@ -241,6 +242,18 @@ export async function checkAnonRateLimit(
   const ip = getRawClientIp(await headers());
   // When the visitor key already IS the IP key, don't count it twice.
   if (anonKey === `ip:${ip}`) return byVisitor;
+  // No usable IP: an "ipwide:unknown" bucket would be one pool shared by every
+  // such caller, letting one flood lock out the rest. Skip it — the
+  // per-visitor (and per-email) limits still apply.
+  if (!isKnownIp(ip)) {
+    if (!warnedUnknownIp) {
+      warnedUnknownIp = true;
+      console.warn(
+        "[rate-limit] Could not determine a caller IP; skipping the IP-wide limit for those callers (per-visitor limits still apply).",
+      );
+    }
+    return byVisitor;
+  }
   const byIp = checkRateLimit(`${name}:ipwide:${ip}`, {
     limit: options.limit * IP_BUCKET_MULTIPLIER,
     windowMs: options.windowMs,

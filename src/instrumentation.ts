@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { getTrustedProxyHops } from "@/lib/clientIp";
 
 // Error tracking — DORMANT until SENTRY_DSN is set on the server.
 // With no DSN, Sentry.init is never called, so the SDK stays completely inert
@@ -7,6 +8,9 @@ import * as Sentry from "@sentry/nextjs";
 // only needed for source-map upload; skipping it keeps the Next 16 build clean
 // while still reporting server errors when a DSN is present.
 export async function register() {
+  // Fail fast on a mistyped TRUSTED_PROXY_HOPS rather than run with weak limits.
+  if (process.env.NEXT_RUNTIME === "nodejs") getTrustedProxyHops();
+
   // Node.js-only: stamps the true TCP socket address onto every request so
   // getClientIp() (src/lib/clientIp.ts) can key a cookie-less anonymous
   // caller (login, buyer enquiries) on a real per-source identity instead of
