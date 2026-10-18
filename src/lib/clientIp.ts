@@ -33,7 +33,26 @@ export function getSocketIp(headers: Headers): string | null {
 }
 
 /**
- * The visitor's IP from `x-forwarded-for` (first hop) or `x-real-ip`, but
+ * How many trusted reverse proxies sit in front of the app (TRUSTED_PROXY_HOPS,
+ * default 1). The visitor's address is the Nth entry from the right of
+ * X-Forwarded-For. 0 = ignore the header. Throws on anything that isn't a
+ * whole number from 0 to 10 — checked once at startup (instrumentation.ts) so
+ * a typo stops the server instead of silently weakening rate limits.
+ */
+export function getTrustedProxyHops(): number {
+  const raw = process.env.TRUSTED_PROXY_HOPS?.trim();
+  if (!raw) return 1;
+  if (!/^\d+$/.test(raw) || Number(raw) > 10) {
+    throw new Error(
+      `TRUSTED_PROXY_HOPS must be a whole number from 0 to 10 (got "${raw}"). ` +
+        "Set it to the number of proxies in front of the app. See .env.example.",
+    );
+  }
+  return Number(raw);
+}
+
+/**
+ * The visitor's IP from `x-forwarded-for` (the hop our trusted proxies vouch for) or `x-real-ip`, but
  * ONLY when TRUST_PROXY_HEADERS=true says a trusted proxy is in front of the
  * app. `X-Forwarded-For`/`X-Real-Ip` are set by the VISITOR's own request
  * unless a reverse proxy overwrites them — trusting them blindly lets
@@ -60,17 +79,35 @@ export function getSocketIp(headers: Headers): string | null {
  */
 export function getClientIp(headers: Headers): string {
   if (process.env.TRUST_PROXY_HEADERS === "true") {
-    const xff = headers.get("x-forwarded-for");
-    if (xff) {
-      const first = xff.split(",")[0]?.trim();
-      if (first) return first;
+    const proxyHops = getTrustedProxyHops();
+    // 0 hops = "no proxy to trust": ignore both forwarded headers entirely.
+    if (proxyHops > 0) {
+      const xff = headers.get("x-forwarded-for");
+      if (xff) {
+        // Each trusted proxy appends the address it saw, so the Nth entry
+        // from the RIGHT (N = TRUSTED_PROXY_HOPS) is the first one our own
+        // infrastructure vouches for. Everything left of it is client-supplied
+        // and can be forged. A header with fewer entries than hops cannot have
+        // passed through the whole chain, so it is not trusted at all.
+        const hops = xff.split(",").map((h) => h.trim()).filter(Boolean);
+        const picked = hops.length >= proxyHops ? hops[hops.length - proxyHops] : undefined;
+        if (picked) return picked;
+      }
+      const realIp = headers.get("x-real-ip")?.trim();
+      if (realIp) return realIp;
     }
-    const realIp = headers.get("x-real-ip")?.trim();
-    if (realIp) return realIp;
   }
 
   const socketIp = getSocketIp(headers);
   if (socketIp) return `socket:${socketIp}`;
 
-  return "unknown";
+  return UNKNOWN_IP;
+}
+
+/** The literal returned when no trustworthy address is available. */
+export const UNKNOWN_IP = "unknown";
+
+/** True when `ip` is a real address (not the "unknown" placeholder). */
+export function isKnownIp(ip: string): boolean {
+  return ip !== UNKNOWN_IP;
 }

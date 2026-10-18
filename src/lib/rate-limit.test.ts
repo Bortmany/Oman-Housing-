@@ -4,7 +4,7 @@
 // "server-only" (guards its stateful in-memory store), which throws when
 // imported outside Next's own bundler; clientIp.ts is the same function
 // rate-limit.ts re-exports, split out precisely so it stays unit-testable.
-import { getClientIp, getSocketIp, SOCKET_IP_HEADER } from "./clientIp";
+import { getClientIp, getSocketIp, getTrustedProxyHops, isKnownIp, SOCKET_IP_HEADER } from "./clientIp";
 
 let failures = 0;
 
@@ -40,8 +40,8 @@ expectEqual(
 // these headers itself, e.g. Railway), the forwarded IP is used.
 process.env.TRUST_PROXY_HEADERS = "true";
 expectEqual(
-  "trusted.usesFirstXffHop",
-  getClientIp(headersWith({ "x-forwarded-for": "203.0.113.5, 10.0.0.1" })),
+  "trusted.usesRightMostXffHop",
+  getClientIp(headersWith({ "x-forwarded-for": "6.6.6.6, 203.0.113.5" })),
   "203.0.113.5",
 );
 expectEqual(
@@ -115,6 +115,58 @@ expectEqual(
 // socket header — e.g. a bare Headers built directly in a test, bypassing a
 // real HTTP server) does it fall back to the literal "unknown".
 expectEqual("untrusted.noSocketIp.fallsBackToUnknown", getClientIp(headersWith({})), "unknown");
+
+
+// ---------------------------------------------------------------------------
+// TRUSTED_PROXY_HOPS: read the Nth X-Forwarded-For entry from the right.
+// ---------------------------------------------------------------------------
+process.env.TRUST_PROXY_HEADERS = "true";
+const chain = "6.6.6.6, 7.7.7.7, 203.0.113.5";
+delete process.env.TRUSTED_PROXY_HOPS;
+expectEqual("hops.default1.rightmost", getClientIp(headersWith({ "x-forwarded-for": chain })), "203.0.113.5");
+process.env.TRUSTED_PROXY_HOPS = "1";
+expectEqual("hops.1.rightmost", getClientIp(headersWith({ "x-forwarded-for": chain })), "203.0.113.5");
+process.env.TRUSTED_PROXY_HOPS = "2";
+expectEqual("hops.2.secondFromRight", getClientIp(headersWith({ "x-forwarded-for": chain })), "7.7.7.7");
+expectEqual(
+  "hops.2.forgedLeftEntryIgnored",
+  getClientIp(headersWith({ "x-forwarded-for": "1.1.1.1, 7.7.7.7, 203.0.113.5" })),
+  "7.7.7.7",
+);
+expectEqual(
+  "hops.2.shortHeaderNotTrusted",
+  getClientIp(headersWith({ "x-forwarded-for": "9.9.9.9" })),
+  "unknown",
+);
+expectEqual(
+  "hops.2.shortHeaderFallsToSocket",
+  getClientIp(headersWith({ "x-forwarded-for": "9.9.9.9", [SOCKET_IP_HEADER]: "203.0.113.20" })),
+  "socket:203.0.113.20",
+);
+process.env.TRUSTED_PROXY_HOPS = "0";
+expectEqual("hops.0.ignoresXff", getClientIp(headersWith({ "x-forwarded-for": chain })), "unknown");
+expectEqual("hops.0.ignoresRealIp", getClientIp(headersWith({ "x-real-ip": "9.9.9.9" })), "unknown");
+expectEqual(
+  "hops.0.usesSocket",
+  getClientIp(headersWith({ "x-forwarded-for": chain, [SOCKET_IP_HEADER]: "203.0.113.20" })),
+  "socket:203.0.113.20",
+);
+expectEqual("hops.1.emptyXff", getClientIp(headersWith({ "x-forwarded-for": " , " })), "unknown");
+for (const bad of ["abc", "-1", "1.5", "11", "2 hops"]) {
+  process.env.TRUSTED_PROXY_HOPS = bad;
+  let threw = false;
+  try { getTrustedProxyHops(); } catch { threw = true; }
+  expectEqual(`hops.invalid.${bad}.throws`, threw, true);
+}
+process.env.TRUSTED_PROXY_HOPS = "";
+expectEqual("hops.blank.defaultsTo1", getTrustedProxyHops(), 1);
+delete process.env.TRUSTED_PROXY_HOPS;
+delete process.env.TRUST_PROXY_HEADERS;
+
+// The IP-wide limiter bucket is skipped when there is no usable IP.
+expectEqual("ipwide.unknownSkipped", isKnownIp("unknown"), false);
+expectEqual("ipwide.socketKept", isKnownIp("socket:203.0.113.20"), true);
+expectEqual("ipwide.realIpKept", isKnownIp("203.0.113.5"), true);
 
 if (failures > 0) {
   console.error(`\n${failures} test(s) failed`);

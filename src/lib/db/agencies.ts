@@ -1,3 +1,6 @@
+import crypto from "crypto";
+import { isUniqueViolation } from "@/lib/db/uniqueViolation";
+import { profileChangeNeedsReview } from "@/lib/agencyReview";
 import { prisma } from "@/lib/prisma";
 import type { ListingStatus, Prisma, Tier } from "@prisma/client";
 
@@ -68,37 +71,49 @@ export async function createAgencyWithOwner(input: {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { ok: false, reason: "emailTaken" };
 
-  // Ensure a unique slug (the column is @unique).
-  let slug = slugify(input.agencyNameEn);
-  for (let i = 0; i < 5; i++) {
-    const taken = await prisma.agency.findUnique({ where: { slug } });
-    if (!taken) break;
-    slug = `${slugify(input.agencyNameEn)}-${Math.floor(1000 + Math.random() * 9000)}`;
-  }
-
-  await prisma.agency.create({
-    data: {
-      slug,
-      nameEn: input.agencyNameEn,
-      nameAr: input.agencyNameAr,
-      licenseNo: input.licenseNo,
-      phone: input.phone,
-      email,
-      isApproved: false,
-      tier: "FREE",
-      users: {
-        create: {
-          name: input.contactName,
-          email,
-          passwordHash: input.passwordHash,
-          role: "AGENCY",
-          locale: input.locale,
+  // Unique slug (the column is @unique). First try the plain name, then a
+  // random suffix; the database's unique rule is the final judge, so a
+  // clash lost to a simultaneous signup just picks a new suffix and retries.
+  const baseSlug = slugify(input.agencyNameEn);
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const slug =
+      attempt === 0
+        ? baseSlug
+        : `${baseSlug}-${crypto.randomBytes(4).toString("hex")}`;
+    if (attempt === 0 && (await prisma.agency.findUnique({ where: { slug } }))) {
+      continue;
+    }
+    try {
+      await prisma.agency.create({
+        data: {
+          slug,
+          nameEn: input.agencyNameEn,
+          nameAr: input.agencyNameAr,
+          licenseNo: input.licenseNo,
           phone: input.phone,
+          email,
+          isApproved: false,
+          tier: "FREE",
+          users: {
+            create: {
+              name: input.contactName,
+              email,
+              passwordHash: input.passwordHash,
+              role: "AGENCY",
+              locale: input.locale,
+              phone: input.phone,
+            },
+          },
         },
-      },
-    },
-  });
-  return { ok: true };
+      });
+      return { ok: true };
+    } catch (e) {
+      if (!isUniqueViolation(e)) throw e;
+      // Taken email (lost a race) → tell the visitor; taken slug → retry.
+      if (isUniqueViolation(e, "email")) return { ok: false, reason: "emailTaken" };
+    }
+  }
+  throw new Error("Could not find a free agency slug");
 }
 
 export async function updateAgencyProfile(
@@ -111,7 +126,17 @@ export async function updateAgencyProfile(
     phone: string | null;
   },
 ) {
-  await prisma.agency.update({ where: { id: agencyId }, data });
+  const current = await prisma.agency.findUnique({
+    where: { id: agencyId },
+    select: { nameEn: true, nameAr: true, licenseNo: true },
+  });
+  // Changing the name or licence of an approved agency sends it back to the
+  // admin for another look (listings stay saved but the agency is unapproved).
+  const needsReview = current ? profileChangeNeedsReview(current, data) : false;
+  await prisma.agency.update({
+    where: { id: agencyId },
+    data: needsReview ? { ...data, isApproved: false } : data,
+  });
 }
 
 // ---------- Admin ----------

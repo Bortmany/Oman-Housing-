@@ -12,7 +12,7 @@ import {
 import { formatOMRWhole, formatPercent } from "@/lib/money";
 import type { OfferedDatum } from "@/lib/ai/analystCore";
 import { prisma } from "@/lib/prisma";
-import { checkRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
+import { checkAnonRateLimit, getAnonRateLimitKey } from "@/lib/rate-limit";
 import {
   createInquiry,
   countRecentInquiriesByEmail,
@@ -161,7 +161,7 @@ export async function sendEnquiryAction(
   // a script cycling a fresh unique email on every request. This caps the
   // rate of submissions per visitor regardless of the email used.
   const anonKey = await getAnonRateLimitKey();
-  const rl = checkRateLimit(`enquiry:anon:${anonKey}`, {
+  const rl = await checkAnonRateLimit("enquiry:anon", anonKey, {
     limit: 10,
     windowMs: 60 * 60 * 1000,
   });
