@@ -12,4 +12,4 @@
    public launch (host, secrets, payments, email) is in `GO-LIVE.md`.
 4. The owner is **not a developer**: commit messages, reports, and summaries
    in plain English.
-5. Commanders (dev-lead etc.) never commit or push — the main session does.
+5. Agents (builder etc.) never commit or push — the main session does.

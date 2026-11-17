@@ -1,7 +1,7 @@
 # Oman Property Intelligence — house rules & verify recipe
 
-This is the conventions doc that `dev-lead`, `builder`, `verifier`, and
-`deploy-checker` read before touching this repo. It states the rules that keep
+This is the conventions doc that the `build-feature` skill, `builder` and
+`verifier` read before touching this repo. It states the rules that keep
 the app consistent; the app registry row lives in `Agents/docs/apps.md`.
 
 ## What this app is
