@@ -44,6 +44,20 @@ body {
   color-scheme: dark;
 }
 
+/* Theme switch reveal (src/lib/theme-reveal.ts): the new look grows in a
+   circle from the Appearance pill. While it runs, the old picture must not
+   fade and nothing may tween its colours underneath the circle. */
+[data-theme-reveal]::view-transition-old(root),
+[data-theme-reveal]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+[data-theme-reveal] *,
+[data-theme-reveal] *::before,
+[data-theme-reveal] *::after {
+  transition: none !important;
+}
+
 /* Arabic-first font stack when the page is RTL */
 [dir="rtl"] body {
   font-family: var(--font-arabic), var(--font-inter), ui-sans-serif, system-ui,

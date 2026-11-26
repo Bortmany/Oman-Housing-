@@ -1,7 +1,9 @@
 "use client";
 
+import { flushSync } from "react-dom";
 import { useTranslations } from "next-intl";
-import { THEMES, type Theme } from "./theme";
+import { switchThemeWithReveal } from "@/lib/theme-reveal";
+import { DARK_MEDIA_QUERY, THEMES, type Theme } from "./theme";
 import { useTheme } from "./ThemeProvider";
 
 // One small pill in the header, styled like the language switcher next to it.
@@ -18,10 +20,25 @@ export function ThemeToggle() {
 
   const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
 
+  // The new look is revealed in a circle growing from the pill — but only when
+  // the page actually changes colour. Dark → System on a dark device (or
+  // Light → … on a light one) only changes the label, so it just saves.
+  function onPress(e: React.MouseEvent<HTMLButtonElement>) {
+    const nowDark = document.documentElement.classList.contains("dark");
+    const willBeDark =
+      next === "dark" ||
+      (next === "system" && window.matchMedia(DARK_MEDIA_QUERY).matches);
+    switchThemeWithReveal(
+      e,
+      () => flushSync(() => setTheme(next)),
+      nowDark !== willBeDark,
+    );
+  }
+
   return (
     <button
       type="button"
-      onClick={() => setTheme(next)}
+      onClick={onPress}
       className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-stone-600 ring-1 ring-stone-300 hover:bg-stone-100 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800"
       aria-label={`${t("label")}: ${t(theme)}`}
       title={t("switchTo", { mode: t(next) })}
